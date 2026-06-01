@@ -36,6 +36,19 @@ export function formatClock(iso: string): string {
   return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
 }
 
+export function formatRelative(past: Date, now: number = Date.now()): string {
+  const diffMs = now - past.getTime();
+  const sec = Math.round(diffMs / 1000);
+  if (sec < 5) return 'just now';
+  if (sec < 60) return `${sec}s ago`;
+  const min = Math.round(sec / 60);
+  if (min < 60) return `${min} min${min === 1 ? '' : 's'} ago`;
+  const hr = Math.round(min / 60);
+  if (hr < 24) return `${hr} hour${hr === 1 ? '' : 's'} ago`;
+  const day = Math.round(hr / 24);
+  return `${day} day${day === 1 ? '' : 's'} ago`;
+}
+
 /** The 5-1-1 rule: contractions ~1 minute long, ~5 minutes apart, for ~1 hour.
  *  Returns true if the most recent hour of contractions roughly matches. */
 export function isFiveOneOne(contractions: Contraction[], now: number = Date.now()): boolean {

@@ -11,7 +11,6 @@ import {
   Check,
   Heart,
   Shield,
-  Upload,
 } from 'lucide-react';
 import {
   type Contraction,
@@ -19,11 +18,12 @@ import {
   durationSeconds,
   formatClock,
   formatDuration,
+  formatRelative,
   intervalSeconds,
   isFiveOneOne,
 } from './lib/contractions';
 import { load, save, uid } from './lib/storage';
-import { downloadBackup, mergeContractions, readBackupFile } from './lib/backup';
+import { autoBackup, loadAutoBackup } from './lib/idb';
 import Timeline from './components/Timeline';
 
 const STORAGE_KEY = 'contraction-tracker:v1';
@@ -42,19 +42,50 @@ export default function App() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [intensityDraft, setIntensityDraft] = useState<string>('');
   const [noteDraft, setNoteDraft] = useState<string>('');
-  const [backupStatus, setBackupStatus] = useState<'idle' | 'saving' | 'restoring' | 'error'>('idle');
-  const [backupMessage, setBackupMessage] = useState<string>('');
+  const [savedAt, setSavedAt] = useState<Date | null>(null);
+  const [showBackupInfo, setShowBackupInfo] = useState(false);
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const backupInfoTimeout = useRef<number | null>(null);
 
   const tickRef = useRef<number | null>(null);
 
+  // On first mount: if localStorage is empty but IndexedDB has a backup, restore it.
+  // This is the recovery path for "I cleared my browser data but the app is still installed."
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const localStored = load<Stored>(STORAGE_KEY, { contractions: [] });
+        if (localStored.contractions.length > 0) {
+          setSavedAt(new Date());
+          return;
+        }
+        const backup = await loadAutoBackup<Contraction>();
+        if (mounted && backup && backup.contractions.length > 0) {
+          setContractions(backup.contractions);
+          if (backup.current) setCurrent(backup.current);
+          if (backup.savedAt) setSavedAt(new Date(backup.savedAt));
+        }
+      } catch {
+        /* IDB not available; localStorage is the only copy */
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
+
+  // Save to localStorage + mirror to IndexedDB on every change.
   useEffect(() => {
     save(STORAGE_KEY, { contractions });
-  }, [contractions]);
+    autoBackup(contractions, current).then((ok) => {
+      if (ok) setSavedAt(new Date());
+    });
+  }, [contractions, current]);
   useEffect(() => {
     save(SESSION_KEY, current);
-  }, [current]);
+    autoBackup(contractions, current).then((ok) => {
+      if (ok) setSavedAt(new Date());
+    });
+  }, [current, contractions]);
 
   useEffect(() => {
     if (current && !current.end) {
@@ -125,59 +156,6 @@ export default function App() {
     setContractions([]);
   };
 
-  const handleDownloadBackup = () => {
-    setBackupStatus('saving');
-    try {
-      downloadBackup(contractions, current);
-      setBackupMessage('Backup saved to your Downloads.');
-      setTimeout(() => setBackupMessage(''), 4000);
-      setBackupStatus('idle');
-    } catch (err) {
-      setBackupMessage('Could not save backup.');
-      setBackupStatus('error');
-      setTimeout(() => {
-        setBackupMessage('');
-        setBackupStatus('idle');
-      }, 4000);
-    }
-  };
-
-  const handleRestoreClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleRestoreFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    setBackupStatus('restoring');
-    try {
-      const backup = await readBackupFile(file);
-      const merged = mergeContractions(contractions, backup.contractions);
-      setContractions(merged);
-      if (backup.current && !current) {
-        setCurrent(backup.current);
-      }
-      const restored = backup.contractions.length;
-      const added = merged.length - contractions.length;
-      setBackupMessage(
-        added > 0
-          ? `Restored ${restored} entries (${added} new).`
-          : `Loaded ${restored} entries. Nothing new to add.`,
-      );
-      setBackupStatus('idle');
-    } catch (err) {
-      setBackupMessage('Not a valid Luna backup file.');
-      setBackupStatus('error');
-    } finally {
-      // Reset so picking the same file again triggers onChange
-      if (fileInputRef.current) fileInputRef.current.value = '';
-      setTimeout(() => {
-        setBackupMessage('');
-        setBackupStatus('idle');
-      }, 5000);
-    }
-  };
-
   const handleShare = async () => {
     const text = buildSummary(contractions);
     const file = new File([text], `contractions-${new Date().toISOString().split('T')[0]}.txt`, { type: 'text/plain' });
@@ -235,7 +213,7 @@ export default function App() {
   return (
     <div className="flex flex-col h-dvh text-ink-50 max-w-md mx-auto w-full">
       {/* Header */}
-      <header className="flex-shrink-0 px-5 pt-5 pb-3 flex items-center justify-between">
+      <header className="flex-shrink-0 px-5 pt-5 pb-3 flex items-center justify-between relative">
         <div className="flex items-center gap-2.5">
           <Heart className="w-5 h-5 text-rose-300 fill-rose-300/20" strokeWidth={1.5} />
           <h1 className="font-display text-xl font-medium tracking-tight text-ink-50">Luna</h1>
@@ -243,43 +221,65 @@ export default function App() {
             Contractions
           </span>
         </div>
-        {finished.length > 0 && (
+        <div className="flex items-center gap-1">
+          {/* Saved-locally indicator — tappable for tooltip */}
           <button
-            onClick={handleClearAll}
-            className="text-[11px] text-ink-400 active:text-rose-300 px-2 py-1.5 font-medium transition-colors"
+            onClick={() => {
+              setShowBackupInfo((v) => !v);
+              if (backupInfoTimeout.current) window.clearTimeout(backupInfoTimeout.current);
+              backupInfoTimeout.current = window.setTimeout(() => setShowBackupInfo(false), 6000);
+            }}
+            className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-[11px] text-sage-300 active:bg-sage-300/10 transition-colors font-medium"
+            aria-label="Saved locally — tap for details"
           >
-            clear
+            <span className="relative flex w-2 h-2">
+              <span className="absolute inset-0 rounded-full bg-sage-300 animate-pulse-live" />
+              <span className="relative w-2 h-2 rounded-full bg-sage-300" />
+            </span>
+            <span>saved</span>
           </button>
+          {finished.length > 0 && (
+            <button
+              onClick={handleClearAll}
+              className="text-[11px] text-ink-400 active:text-rose-300 px-2 py-1.5 font-medium transition-colors"
+            >
+              clear
+            </button>
+          )}
+        </div>
+
+        {/* Tooltip — drops down from the saved indicator */}
+        {showBackupInfo && (
+          <>
+            <div
+              className="fixed inset-0 z-30"
+              onClick={() => setShowBackupInfo(false)}
+              aria-hidden="true"
+            />
+            <div className="absolute right-5 top-full mt-1 z-40 w-64 rounded-2xl border border-sage-300/30 bg-plum-950/95 backdrop-blur-xl shadow-[0_8px_32px_-8px_rgba(0,0,0,0.6)] px-4 py-3 animate-fade-in">
+              <div className="flex items-start gap-2.5">
+                <div className="w-7 h-7 rounded-full bg-sage-300/15 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <Shield className="w-3.5 h-3.5 text-sage-300" strokeWidth={2} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-semibold text-ink-50 font-display">
+                    Saved on this phone
+                  </div>
+                  <p className="text-[11px] text-ink-300 mt-1 leading-relaxed">
+                    Every contraction is saved automatically to your phone's storage. Even if you
+                    close the app or lose internet, your history stays.
+                  </p>
+                  {savedAt && (
+                    <div className="text-[10px] text-ink-500 mt-2 font-medium">
+                      Last saved {formatRelative(savedAt, now)}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </>
         )}
       </header>
-
-      {/* Hidden file input for restore */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="application/json,.json"
-        onChange={handleRestoreFile}
-        className="hidden"
-        aria-hidden="true"
-      />
-
-      {/* Backup status toast */}
-      {backupMessage && (
-        <div
-          className={`flex-shrink-0 mx-5 mb-3 rounded-xl border px-4 py-2.5 flex items-center gap-2.5 animate-fade-in text-sm ${
-            backupStatus === 'error'
-              ? 'border-rose-300/50 bg-rose-300/10 text-rose-200'
-              : 'border-sage-300/30 bg-sage-300/10 text-sage-300'
-          }`}
-        >
-          {backupStatus === 'error' ? (
-            <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-          ) : (
-            <Shield className="w-4 h-4 flex-shrink-0" />
-          )}
-          <span className="flex-1">{backupMessage}</span>
-        </div>
-      )}
 
       {/* 5-1-1 alert */}
       {showAlert && (
@@ -513,46 +513,6 @@ export default function App() {
             </p>
           </div>
         )}
-
-        {/* Backup & Restore — always available so the user can save an archive
-            of the contractions any time, not just when something is logged. */}
-        <div className="mt-8 rounded-2xl border border-ink-200/30 bg-gradient-to-br from-ink-100/[0.04] to-transparent px-4 py-4">
-          <div className="flex items-start gap-3 mb-3">
-            <div className="w-8 h-8 rounded-full bg-sage-300/15 flex items-center justify-center flex-shrink-0">
-              <Shield className="w-4 h-4 text-sage-300" strokeWidth={2} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="text-sm font-semibold text-ink-100 font-display">Keep it safe</div>
-              <p className="text-xs text-ink-400 mt-0.5 leading-relaxed">
-                Save a backup file to your phone, email it to yourself, or send it to your midwife.
-                Restore from a backup at any time.
-              </p>
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <button
-              onClick={handleDownloadBackup}
-              disabled={backupStatus === 'saving'}
-              className="flex-1 bg-sage-300/15 active:bg-sage-300/25 border border-sage-300/30 text-sage-300 rounded-xl py-2.5 text-sm font-semibold flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50"
-            >
-              <Download className="w-4 h-4" />
-              Save backup
-            </button>
-            <button
-              onClick={handleRestoreClick}
-              disabled={backupStatus === 'restoring'}
-              className="flex-1 bg-ink-100/5 active:bg-ink-100/10 border border-ink-200/30 text-ink-200 rounded-xl py-2.5 text-sm font-semibold flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50"
-            >
-              <Upload className="w-4 h-4" />
-              {backupStatus === 'restoring' ? 'Restoring…' : 'Restore'}
-            </button>
-          </div>
-          {backupStatus === 'restoring' && (
-            <div className="text-[11px] text-ink-400 mt-2 text-center">
-              Reading backup file…
-            </div>
-          )}
-        </div>
       </main>
     </div>
   );
