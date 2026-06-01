@@ -11,6 +11,8 @@ import {
   Check,
   Heart,
   Shield,
+  Volume2,
+  VolumeX,
 } from 'lucide-react';
 import {
   type Contraction,
@@ -24,14 +26,36 @@ import {
 } from './lib/contractions';
 import { load, save, uid } from './lib/storage';
 import { autoBackup, loadAutoBackup } from './lib/idb';
+import {
+  chimeAlert,
+  chimeStart,
+  chimeStop,
+  setMuted,
+  speak,
+  stopSpeaking,
+  unlockAudio,
+} from './lib/audio';
 import Timeline from './components/Timeline';
 
 const STORAGE_KEY = 'contraction-tracker:v1';
 const SESSION_KEY = 'contraction-tracker:current';
+const MUTED_KEY = 'contraction-tracker:muted';
 
 type Stored = {
   contractions: Contraction[];
 };
+
+function formatDurationSpoken(totalSeconds: number): string {
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  if (m === 0) return `${s} second${s === 1 ? '' : 's'}`;
+  if (s === 0) return `${m} minute${m === 1 ? '' : 's'}`;
+  return `${m} minute${m === 1 ? '' : 's'} and ${s} second${s === 1 ? '' : 's'}`;
+}
+
+function pluralContraction(n: number): string {
+  return `${n} contraction${n === 1 ? '' : 's'}`;
+}
 
 export default function App() {
   const [contractions, setContractions] = useState<Contraction[]>(() =>
@@ -44,8 +68,11 @@ export default function App() {
   const [noteDraft, setNoteDraft] = useState<string>('');
   const [savedAt, setSavedAt] = useState<Date | null>(null);
   const [showBackupInfo, setShowBackupInfo] = useState(false);
+  const [muted, setMutedState] = useState<boolean>(() => load<boolean>(MUTED_KEY, false));
 
   const backupInfoTimeout = useRef<number | null>(null);
+  const alertAnnouncedRef = useRef<number>(0);
+  const lastAnnouncedMinuteRef = useRef<number>(0);
 
   const tickRef = useRef<number | null>(null);
 
@@ -105,9 +132,19 @@ export default function App() {
     }
   }, []);
 
+  // Keep the audio module in sync with the muted state
+  useEffect(() => {
+    setMuted(muted);
+    save(MUTED_KEY, muted);
+    if (muted) stopSpeaking();
+  }, [muted]);
+
   const handleStart = () => {
     if (current && !current.end) return;
+    // iOS: the start tap counts as a user gesture, so the audio context can unlock here
+    unlockAudio();
     setCurrent({ id: uid(), start: new Date().toISOString(), end: null, intensity: null });
+    chimeStart();
   };
 
   const handleStop = () => {
@@ -115,6 +152,10 @@ export default function App() {
     const finished: Contraction = { ...current, end: new Date().toISOString() };
     setContractions((prev) => [...prev, finished]);
     setCurrent(null);
+    chimeStop();
+    // Voice readout of the contraction we just finished
+    const dur = durationSeconds(finished);
+    speak(`That was ${formatDurationSpoken(dur)}.`);
     setEditingId(finished.id);
     setIntensityDraft('');
     setNoteDraft('');
@@ -154,6 +195,30 @@ export default function App() {
   const handleClearAll = () => {
     if (!confirm('Delete all contractions? This cannot be undone.')) return;
     setContractions([]);
+  };
+
+  const handleReadSummary = () => {
+    if (finished.length === 0) {
+      speak('No contractions recorded yet.');
+      return;
+    }
+    const last = finished[finished.length - 1];
+    const prev = finished[finished.length - 2];
+    const lastDur = durationSeconds(last, now);
+    const lastGap = prev ? intervalSeconds(prev, last) : null;
+    const parts: string[] = [];
+    parts.push(pluralContraction(finished.length) + ' so far.');
+    parts.push(`Last contraction: ${formatDurationSpoken(lastDur)}`);
+    if (lastGap !== null) {
+      parts.push(`started ${formatDurationSpoken(lastGap)} after the previous one.`);
+    }
+    const summary = parts.join('. ');
+    speak(summary);
+  };
+
+  const handleMuteToggle = () => {
+    unlockAudio();
+    setMutedState((m) => !m);
   };
 
   const handleShare = async () => {
@@ -210,6 +275,28 @@ export default function App() {
   const showAlert = isFiveOneOne(contractions, now);
   const currentElapsed = current && !current.end ? durationSeconds(current, now) : 0;
 
+  // Voice the 5-1-1 alert once when it transitions from off → on.
+  // Guarded by a timestamp so it doesn't re-trigger every render.
+  useEffect(() => {
+    if (!showAlert) return;
+    const nowMs = Date.now();
+    if (nowMs - alertAnnouncedRef.current < 60_000) return;
+    alertAnnouncedRef.current = nowMs;
+    chimeAlert();
+    speak('This looks like the 5 1 1 pattern. Consider calling your provider.');
+  }, [showAlert]);
+
+  // Periodic "X minutes in" voice readouts while a contraction is running.
+  // Only on whole minutes; rate-limited to once per minute.
+  useEffect(() => {
+    if (!current || current.end) return;
+    const minutes = Math.floor(currentElapsed / 60);
+    if (minutes < 1) return;
+    if (lastAnnouncedMinuteRef.current === minutes) return;
+    lastAnnouncedMinuteRef.current = minutes;
+    speak(`${minutes} ${minutes === 1 ? 'minute' : 'minutes'} in.`);
+  }, [currentElapsed, current]);
+
   return (
     <div className="flex flex-col h-dvh text-ink-50 max-w-md mx-auto w-full">
       {/* Header */}
@@ -246,6 +333,17 @@ export default function App() {
               clear
             </button>
           )}
+          {/* Sound on/off */}
+          <button
+            onClick={handleMuteToggle}
+            className={`p-1.5 rounded-lg transition-colors ${
+              muted ? 'text-ink-500 active:text-ink-300' : 'text-ink-300 active:text-rose-300'
+            }`}
+            aria-label={muted ? 'Sound off — tap to enable' : 'Sound on — tap to mute'}
+            title={muted ? 'Sound off' : 'Sound on'}
+          >
+            {muted ? <VolumeX className="w-4 h-4" strokeWidth={1.75} /> : <Volume2 className="w-4 h-4" strokeWidth={1.75} />}
+          </button>
         </div>
 
         {/* Tooltip — drops down from the saved indicator */}
@@ -373,6 +471,14 @@ export default function App() {
                 History
               </div>
               <div className="flex gap-1 flex-wrap">
+                <button
+                  onClick={handleReadSummary}
+                  className="text-ink-300 active:text-rose-300 active:bg-ink-100/10 px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 text-xs transition-colors"
+                  title="Read summary aloud"
+                >
+                  <Volume2 className="w-3.5 h-3.5" />
+                  <span>Read</span>
+                </button>
                 <button
                   onClick={handleShare}
                   className="text-ink-300 active:text-rose-300 active:bg-ink-100/10 px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 text-xs transition-colors"
