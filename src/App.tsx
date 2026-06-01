@@ -225,7 +225,7 @@ export default function App() {
           {/* Saved-locally indicator — tappable for tooltip */}
           <button
             onClick={() => {
-              setShowBackupInfo((v) => !v);
+              setShowBackupInfo(true);
               if (backupInfoTimeout.current) window.clearTimeout(backupInfoTimeout.current);
               backupInfoTimeout.current = window.setTimeout(() => setShowBackupInfo(false), 6000);
             }}
