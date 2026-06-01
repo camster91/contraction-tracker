@@ -1,5 +1,27 @@
 @import "tailwindcss";
 
+@theme {
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --color-ink-50: #faf6f4;
+  --color-ink-100: #f3ebe6;
+  --color-ink-200: #e8d9d1;
+  --color-ink-300: #d3b8ac;
+  --color-ink-400: #b89184;
+  --color-ink-500: #9a6e62;
+  --color-rose-50: #fdf3f0;
+  --color-rose-100: #f9dfd6;
+  --color-rose-200: #f3bca9;
+  --color-rose-300: #e8957a;
+  --color-rose-400: #d97459;
+  --color-rose-500: #c25a3f;
+  --color-sage-100: #e8ede4;
+  --color-sage-300: #a8b89f;
+  --color-sage-500: #7a8d6e;
+  --color-plum-900: #1a1216;
+  --color-plum-950: #120c10;
+}
+
 :root {
   color-scheme: dark;
 }
@@ -7,16 +29,65 @@
 html, body, #root {
   height: 100%;
   margin: 0;
-  background: #0a0a0a;
-  color: #f5f5f5;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  background: #120c10;
+  color: #faf6f4;
+  font-family: 'Inter', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior: none;
+}
+
+body {
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(232, 149, 122, 0.12), transparent),
+    radial-gradient(ellipse 60% 40% at 100% 100%, rgba(168, 184, 159, 0.06), transparent),
+    #120c10;
+  background-attachment: fixed;
 }
 
 button {
   -webkit-tap-highlight-color: transparent;
   user-select: none;
   touch-action: manipulation;
+  font-family: inherit;
+}
+
+input, textarea {
+  font-family: inherit;
+}
+
+/* Display font for the big timer numerals */
+.font-display {
+  font-family: 'Fraunces', Georgia, serif;
+  font-feature-settings: 'tnum' 1;
+}
+
+/* Custom breathing animation for the idle CTA */
+@keyframes breathe-soft {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow:
+      0 12px 30px -8px rgba(232, 149, 122, 0.45),
+      0 0 0 0 rgba(232, 149, 122, 0);
+  }
+  50% {
+    transform: scale(1.015);
+    box-shadow:
+      0 12px 30px -8px rgba(232, 149, 122, 0.55),
+      0 0 0 14px rgba(232, 149, 122, 0);
+  }
+}
+
+.animate-breathe-soft {
+  animation: breathe-soft 3.5s ease-in-out infinite;
+}
+
+/* Subtle breathing for the in-progress state */
+@keyframes pulse-live {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.animate-pulse-live {
+  animation: pulse-live 1.6s ease-in-out infinite;
 }
