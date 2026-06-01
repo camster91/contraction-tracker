@@ -190,7 +190,7 @@ export default function App() {
 
       {/* 5-1-1 alert */}
       {showAlert && (
-        <div className="flex-shrink-0 mx-5 mb-3 rounded-2xl border border-rose-300/30 bg-gradient-to-br from-rose-300/15 to-rose-400/5 px-4 py-3 flex items-start gap-3 animate-fade-in">
+        <div className="flex-shrink-0 mx-5 mb-3 rounded-2xl border border-rose-300/60 bg-rose-300/15 px-4 py-3 flex items-start gap-3 animate-fade-in shadow-[0_4px_24px_-8px_rgba(232,149,122,0.3)]">
           <div className="w-8 h-8 rounded-full bg-rose-300/15 flex items-center justify-center flex-shrink-0">
             <AlertTriangle className="w-4 h-4 text-rose-300" strokeWidth={2} />
           </div>
