@@ -168,7 +168,7 @@ export default function App() {
   const currentElapsed = current && !current.end ? durationSeconds(current, now) : 0;
 
   return (
-    <div className="flex flex-col h-dvh text-ink-50">
+    <div className="flex flex-col h-dvh text-ink-50 max-w-md mx-auto w-full">
       {/* Header */}
       <header className="flex-shrink-0 px-5 pt-5 pb-3 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
@@ -203,14 +203,13 @@ export default function App() {
         </div>
       )}
 
-      <main className="flex-1 overflow-y-auto px-5 pb-8">
+      <main className="flex-1 overflow-y-auto px-5 pb-8 w-full">
         {/* Hero CTA */}
         <div className="pt-2 pb-6">
           {!current ? (
             <button
               onClick={handleStart}
-              className="w-full relative overflow-hidden rounded-3xl bg-gradient-to-br from-rose-300 via-rose-400 to-rose-500 text-plum-950 active:scale-[0.99] transition-transform duration-150 animate-breathe-soft"
-              style={{ aspectRatio: '1.4 / 1' }}
+              className="w-full relative overflow-hidden rounded-3xl bg-gradient-to-br from-rose-300 via-rose-400 to-rose-500 text-plum-950 active:scale-[0.99] transition-transform duration-150 animate-breathe-soft py-10 px-6"
             >
               <div className="absolute inset-0 flex flex-col items-center justify-center px-6">
                 <div className="w-16 h-16 rounded-full bg-plum-950/10 backdrop-blur-sm flex items-center justify-center mb-3">
@@ -225,7 +224,6 @@ export default function App() {
           ) : (
             <div
               className="w-full rounded-3xl border border-rose-300/40 bg-gradient-to-br from-rose-300/10 to-transparent px-6 py-8 flex flex-col items-center animate-fade-in"
-              style={{ aspectRatio: '1.4 / 1' }}
             >
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-2 h-2 rounded-full bg-rose-300 animate-pulse-live" />
