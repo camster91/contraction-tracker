@@ -35,6 +35,7 @@ import {
   stopSpeaking,
   unlockAudio,
 } from './lib/audio';
+import { disableWakeLock, enableWakeLock, installWakeLockVisibilityHandler } from './lib/wakelock';
 import Timeline from './components/Timeline';
 
 const STORAGE_KEY = 'contraction-tracker:v1';
@@ -130,6 +131,10 @@ export default function App() {
         /* PWA install is optional; fail silently */
       });
     }
+    // Install the visibility-change re-acquire handler for the wake lock
+    installWakeLockVisibilityHandler();
+    // Release the wake lock if the page is being torn down
+    return () => disableWakeLock();
   }, []);
 
   // Keep the audio module in sync with the muted state
@@ -145,6 +150,7 @@ export default function App() {
     unlockAudio();
     setCurrent({ id: uid(), start: new Date().toISOString(), end: null, intensity: null });
     chimeStart();
+    enableWakeLock();
   };
 
   const handleStop = () => {
@@ -152,6 +158,7 @@ export default function App() {
     const finished: Contraction = { ...current, end: new Date().toISOString() };
     setContractions((prev) => [...prev, finished]);
     setCurrent(null);
+    disableWakeLock();
     chimeStop();
     // Voice readout of the contraction we just finished
     const dur = durationSeconds(finished);
@@ -182,6 +189,8 @@ export default function App() {
     if (!editingId) return;
     if (isJustFinished) {
       setContractions((prev) => prev.filter((c) => c.id !== editingId));
+      // The user discarded the just-finished contraction, so there's no active timer.
+      disableWakeLock();
     }
     setEditingId(null);
     setIntensityDraft('');
@@ -449,6 +458,10 @@ export default function App() {
               </div>
               <div className="text-[11px] text-ink-400 mt-3 tracking-wide">
                 Started at {formatClock(current.start)}
+              </div>
+              <div className="text-[10px] text-sage-300/80 mt-1.5 tracking-wide flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-sage-300/70" />
+                <span>Screen will stay on</span>
               </div>
               <button
                 onClick={handleStop}
