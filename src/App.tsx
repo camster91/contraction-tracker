@@ -92,10 +92,11 @@ export default function App() {
     setIntensityDraft('');
     setNoteDraft('');
   };
-
+  // Was the entry just-finished (auto-edit panel after Stop) or already-saved?
+  // 2-minute window: the user has a moment to add intensity/note, then it's "saved".
   const editingContraction = contractions.find((c) => c.id === editingId);
   const isJustFinished =
-    !!editingContraction && Date.now() - new Date(editingContraction.start).getTime() < 30_000;
+    !!editingContraction && Date.now() - new Date(editingContraction.start).getTime() < 2 * 60 * 1000;
 
   const handleCancelEdit = () => {
     if (!editingId) return;
