@@ -56,6 +56,16 @@ import {
 } from './lib/settings';
 import { useUndo } from './lib/undo';
 import Timeline from './components/Timeline';
+import SessionsSheet from './components/SessionsSheet';
+import PeopleSheet from './components/PeopleSheet';
+import ShareSheet from './components/ShareSheet';
+import {
+  contractionsInSession,
+  getActiveSessionId,
+  getSessions,
+  migrateContractionsToSessions,
+  type Session,
+} from './lib/sessions';
 
 const STORAGE_KEY = 'contraction-tracker:v1';
 const SESSION_KEY = 'contraction-tracker:current';
@@ -94,6 +104,11 @@ export default function App() {
   const [tagFilter, setTagFilter] = useState<string | null>(null);
   const [tagsDraft, setTagsDraft] = useState<string[]>([]);
   const [showSettings, setShowSettings] = useState(false);
+  const [showSessions, setShowSessions] = useState(false);
+  const [showPeople, setShowPeople] = useState(false);
+  const [showShare, setShowShare] = useState<string | null>(null); // sessionId or null
+  const [sessions, setSessions] = useState<Session[]>(() => getSessions());
+  const [activeSessionId, setActiveId] = useState<string>(() => getActiveSessionId());
 
   const undo = useUndo();
   const backupInfoTimeout = useRef<number | null>(null);
@@ -125,6 +140,12 @@ export default function App() {
     })();
     return () => { mounted = false; };
   }, []);
+
+  // Active session display name (or "Contractions" as fallback)
+  const activeSessionName = useMemo(
+    () => sessions.find((s) => s.id === activeSessionId)?.name ?? 'Contractions',
+    [sessions, activeSessionId],
+  );
 
   // Save to localStorage + mirror to IndexedDB on every change.
   useEffect(() => {
@@ -372,6 +393,17 @@ export default function App() {
     () => contractions.filter((c) => c.end).sort((a, b) => a.start.localeCompare(b.start)),
     [contractions],
   );
+
+  // One-time migration: stamp old contractions (no sessionId) with the primary
+  // session. Idempotent — only writes if any are missing the field.
+  useEffect(() => {
+    const migrated = migrateContractionsToSessions(contractions);
+    if (migrated !== contractions) {
+      setContractions(migrated);
+    }
+    // Make sure the primary session exists in the sessions list
+    setSessions(getSessions());
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const lastFinished = finished[finished.length - 1];
   const prevFinished = finished[finished.length - 2];
   const lastDuration = lastFinished ? durationSeconds(lastFinished, now) : 0;
@@ -549,15 +581,79 @@ export default function App() {
         </>
       )}
 
+      {/* Sessions sheet — drops from the Luna wordmark */}
+      {showSessions && !showPeople && !showShare && (
+        <>
+          <div
+            className="fixed inset-0 z-30"
+            onClick={() => setShowSessions(false)}
+            aria-hidden="true"
+          />
+          <SessionsSheet
+            contractions={contractions}
+            activeSessionId={activeSessionId}
+            onActiveChange={(id) => {
+              setActiveId(id);
+              setShowSessions(false);
+            }}
+            onClose={() => setShowSessions(false)}
+            onOpenPeople={() => setShowPeople(true)}
+            onOpenShare={(id) => setShowShare(id)}
+          />
+        </>
+      )}
+
+      {/* People sheet */}
+      {showPeople && (
+        <>
+          <div
+            className="fixed inset-0 z-30"
+            onClick={() => {
+              setShowPeople(false);
+              setShowSessions(false);
+            }}
+            aria-hidden="true"
+          />
+          <PeopleSheet onClose={() => setShowPeople(false)} />
+        </>
+      )}
+
+      {/* Share sheet — opens from a session row's share button */}
+      {showShare && (
+        <>
+          <div
+            className="fixed inset-0 z-30"
+            onClick={() => setShowShare(null)}
+            aria-hidden="true"
+          />
+          <ShareSheet
+            sessionId={showShare}
+            contractions={contractionsInSession(contractions, showShare)}
+            onClose={() => {
+              setShowShare(null);
+              setSessions(getSessions());
+            }}
+          />
+        </>
+      )}
+
       {/* Header */}
       <header className="flex-shrink-0 px-5 pt-5 pb-3 flex items-center justify-between relative">
-        <div className="flex items-center gap-2.5">
+        <button
+          onClick={() => {
+            setShowSessions((s) => !s);
+            setShowSettings(false);
+            setShowBackupInfo(false);
+          }}
+          className="flex items-center gap-2.5 active:opacity-70"
+          aria-label="Sessions"
+        >
           <Heart className="w-5 h-5 text-rose-300 fill-rose-300/20" strokeWidth={1.5} />
           <h1 className="font-display text-xl font-medium tracking-tight text-ink-50">Luna</h1>
           <span className="text-[10px] uppercase tracking-[0.18em] text-ink-400 font-medium mt-0.5">
-            Contractions
+            {activeSessionName}
           </span>
-        </div>
+        </button>
         <div className="flex items-center gap-1">
           {/* Saved-locally indicator — tappable for tooltip */}
           <button
@@ -603,6 +699,7 @@ export default function App() {
           >
             <Type className="w-4 h-4" strokeWidth={1.75} />
           </button>
+          {/* Sessions toggle — opens the sessions sheet from the main button */}
         </div>
 
         {/* Tooltip — drops down from the saved indicator */}
