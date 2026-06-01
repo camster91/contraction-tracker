@@ -182,9 +182,9 @@ export default function App() {
         {finished.length > 0 && (
           <button
             onClick={handleClearAll}
-            className="text-[11px] uppercase tracking-[0.15em] text-ink-400 active:text-rose-300 px-2 py-1.5 font-medium transition-colors"
+            className="text-[11px] text-ink-400 active:text-rose-300 px-2 py-1.5 font-medium transition-colors"
           >
-            Clear
+            clear
           </button>
         )}
       </header>
