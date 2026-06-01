@@ -97,10 +97,17 @@ export default function App() {
     setNoteDraft('');
   };
 
+  // Was the entry just-finished (auto-edit panel after Stop) or already-saved?
+  const editingContraction = contractions.find((c) => c.id === editingId);
+  const isJustFinished =
+    !!editingContraction && Date.now() - new Date(editingContraction.start).getTime() < 30_000;
+
   const handleCancelEdit = () => {
-    // Discard the just-finished contraction entirely
     if (!editingId) return;
-    setContractions((prev) => prev.filter((c) => c.id !== editingId));
+    // Only discard the entire record if it was just-finished and never saved
+    if (isJustFinished) {
+      setContractions((prev) => prev.filter((c) => c.id !== editingId));
+    }
     setEditingId(null);
     setIntensityDraft('');
     setNoteDraft('');
@@ -334,7 +341,7 @@ export default function App() {
                             className="flex-1 bg-neutral-800 active:bg-neutral-700 rounded-lg py-2 text-sm font-medium flex items-center justify-center gap-1.5"
                           >
                             <X className="w-4 h-4" />
-                            Discard
+                            {isJustFinished ? 'Discard' : 'Cancel'}
                           </button>
                         </div>
                       </div>
