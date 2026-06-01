@@ -10,6 +10,8 @@ import {
   X,
   Check,
   Heart,
+  Shield,
+  Upload,
 } from 'lucide-react';
 import {
   type Contraction,
@@ -21,6 +23,7 @@ import {
   isFiveOneOne,
 } from './lib/contractions';
 import { load, save, uid } from './lib/storage';
+import { downloadBackup, mergeContractions, readBackupFile } from './lib/backup';
 import Timeline from './components/Timeline';
 
 const STORAGE_KEY = 'contraction-tracker:v1';
@@ -39,6 +42,10 @@ export default function App() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [intensityDraft, setIntensityDraft] = useState<string>('');
   const [noteDraft, setNoteDraft] = useState<string>('');
+  const [backupStatus, setBackupStatus] = useState<'idle' | 'saving' | 'restoring' | 'error'>('idle');
+  const [backupMessage, setBackupMessage] = useState<string>('');
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const tickRef = useRef<number | null>(null);
 
@@ -59,10 +66,11 @@ export default function App() {
   }, [current]);
 
   useEffect(() => {
-    const tg = (window as unknown as { Telegram?: { WebApp?: { ready: () => void; expand: () => void } } }).Telegram?.WebApp;
-    if (tg) {
-      tg.ready();
-      tg.expand();
+    // Register the PWA service worker (only in production; dev is unregister-then-reload)
+    if ('serviceWorker' in navigator && import.meta.env.PROD) {
+      navigator.serviceWorker.register('/sw.js').catch(() => {
+        /* PWA install is optional; fail silently */
+      });
     }
   }, []);
 
@@ -117,21 +125,77 @@ export default function App() {
     setContractions([]);
   };
 
+  const handleDownloadBackup = () => {
+    setBackupStatus('saving');
+    try {
+      downloadBackup(contractions, current);
+      setBackupMessage('Backup saved to your Downloads.');
+      setTimeout(() => setBackupMessage(''), 4000);
+      setBackupStatus('idle');
+    } catch (err) {
+      setBackupMessage('Could not save backup.');
+      setBackupStatus('error');
+      setTimeout(() => {
+        setBackupMessage('');
+        setBackupStatus('idle');
+      }, 4000);
+    }
+  };
+
+  const handleRestoreClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleRestoreFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setBackupStatus('restoring');
+    try {
+      const backup = await readBackupFile(file);
+      const merged = mergeContractions(contractions, backup.contractions);
+      setContractions(merged);
+      if (backup.current && !current) {
+        setCurrent(backup.current);
+      }
+      const restored = backup.contractions.length;
+      const added = merged.length - contractions.length;
+      setBackupMessage(
+        added > 0
+          ? `Restored ${restored} entries (${added} new).`
+          : `Loaded ${restored} entries. Nothing new to add.`,
+      );
+      setBackupStatus('idle');
+    } catch (err) {
+      setBackupMessage('Not a valid Luna backup file.');
+      setBackupStatus('error');
+    } finally {
+      // Reset so picking the same file again triggers onChange
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      setTimeout(() => {
+        setBackupMessage('');
+        setBackupStatus('idle');
+      }, 5000);
+    }
+  };
+
   const handleShare = async () => {
     const text = buildSummary(contractions);
-    const tg = (window as unknown as { Telegram?: { WebApp?: { openTelegramLink?: (url: string) => void } } }).Telegram?.WebApp;
-    if (tg?.openTelegramLink) {
-      const url = `https://t.me/share/url?url=${encodeURIComponent('Contraction log')}&text=${encodeURIComponent(text)}`;
-      tg.openTelegramLink(url);
-      return;
+    const file = new File([text], `contractions-${new Date().toISOString().split('T')[0]}.txt`, { type: 'text/plain' });
+    if (navigator.canShare?.({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: 'Contraction log', text });
+        return;
+      } catch {
+        /* user cancelled */
+      }
     }
     if (navigator.share) {
       try {
         await navigator.share({ title: 'Contraction log', text });
+        return;
       } catch {
         /* cancelled */
       }
-      return;
     }
     try {
       await navigator.clipboard.writeText(text);
@@ -189,6 +253,34 @@ export default function App() {
         )}
       </header>
 
+      {/* Hidden file input for restore */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="application/json,.json"
+        onChange={handleRestoreFile}
+        className="hidden"
+        aria-hidden="true"
+      />
+
+      {/* Backup status toast */}
+      {backupMessage && (
+        <div
+          className={`flex-shrink-0 mx-5 mb-3 rounded-xl border px-4 py-2.5 flex items-center gap-2.5 animate-fade-in text-sm ${
+            backupStatus === 'error'
+              ? 'border-rose-300/50 bg-rose-300/10 text-rose-200'
+              : 'border-sage-300/30 bg-sage-300/10 text-sage-300'
+          }`}
+        >
+          {backupStatus === 'error' ? (
+            <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+          ) : (
+            <Shield className="w-4 h-4 flex-shrink-0" />
+          )}
+          <span className="flex-1">{backupMessage}</span>
+        </div>
+      )}
+
       {/* 5-1-1 alert */}
       {showAlert && (
         <div className="flex-shrink-0 mx-5 mb-3 rounded-2xl border border-rose-300/60 bg-rose-300/15 px-4 py-3 flex items-start gap-3 animate-fade-in shadow-[0_4px_24px_-8px_rgba(232,149,122,0.3)]">
@@ -210,29 +302,25 @@ export default function App() {
           {!current ? (
             <button
               onClick={handleStart}
-              className="w-full relative overflow-hidden rounded-3xl bg-gradient-to-br from-rose-300 via-rose-400 to-rose-500 text-plum-950 active:scale-[0.99] transition-transform duration-150 animate-breathe-soft py-10 px-6"
+              className="w-full min-h-[180px] rounded-3xl bg-gradient-to-br from-rose-300 via-rose-400 to-rose-500 text-plum-950 active:scale-[0.99] transition-transform duration-150 animate-breathe-soft flex flex-col items-center justify-center px-6 py-8"
             >
-              <div className="absolute inset-0 flex flex-col items-center justify-center px-6">
-                <div className="w-16 h-16 rounded-full bg-plum-950/10 backdrop-blur-sm flex items-center justify-center mb-3">
-                  <Play className="w-7 h-7 ml-0.5" fill="currentColor" strokeWidth={0} />
-                </div>
-                <div className="font-display text-2xl font-medium tracking-tight">Start</div>
-                <div className="text-[11px] uppercase tracking-[0.2em] opacity-70 mt-1 font-medium">
-                  Tap when it begins
-                </div>
+              <div className="w-14 h-14 rounded-full bg-plum-950/10 backdrop-blur-sm flex items-center justify-center mb-3">
+                <Play className="w-6 h-6" fill="currentColor" strokeWidth={0} />
+              </div>
+              <div className="font-display text-3xl font-medium tracking-tight leading-none">Start</div>
+              <div className="text-[10px] uppercase tracking-[0.18em] opacity-70 mt-2 font-semibold text-center">
+                Tap when it begins
               </div>
             </button>
           ) : (
-            <div
-              className="w-full rounded-3xl border border-rose-300/40 bg-gradient-to-br from-rose-300/10 to-transparent px-6 py-8 flex flex-col items-center animate-fade-in"
-            >
+            <div className="w-full min-h-[180px] rounded-3xl border border-rose-300/40 bg-gradient-to-br from-rose-300/10 to-transparent px-6 py-8 flex flex-col items-center justify-center animate-fade-in">
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-2 h-2 rounded-full bg-rose-300 animate-pulse-live" />
                 <div className="text-[10px] uppercase tracking-[0.25em] text-rose-300 font-semibold">
                   In progress
                 </div>
               </div>
-              <div className="font-display text-7xl font-light text-ink-50 tabular-nums leading-none">
+              <div className="font-display text-6xl font-light text-ink-50 tabular-nums leading-none">
                 {formatDuration(currentElapsed)}
               </div>
               <div className="text-[11px] text-ink-400 mt-3 tracking-wide">
@@ -280,11 +368,11 @@ export default function App() {
         {/* History list */}
         {finished.length > 0 && (
           <div className="mb-4">
-            <div className="flex items-center justify-between mb-2.5 ml-1">
+            <div className="flex items-center justify-between mb-2.5 ml-1 flex-wrap gap-2">
               <div className="text-[10px] uppercase tracking-[0.2em] text-ink-400 font-semibold">
                 History
               </div>
-              <div className="flex gap-1">
+              <div className="flex gap-1 flex-wrap">
                 <button
                   onClick={handleShare}
                   className="text-ink-300 active:text-rose-300 active:bg-ink-100/10 px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 text-xs transition-colors"
@@ -425,6 +513,46 @@ export default function App() {
             </p>
           </div>
         )}
+
+        {/* Backup & Restore — always available so the user can save an archive
+            of the contractions any time, not just when something is logged. */}
+        <div className="mt-8 rounded-2xl border border-ink-200/30 bg-gradient-to-br from-ink-100/[0.04] to-transparent px-4 py-4">
+          <div className="flex items-start gap-3 mb-3">
+            <div className="w-8 h-8 rounded-full bg-sage-300/15 flex items-center justify-center flex-shrink-0">
+              <Shield className="w-4 h-4 text-sage-300" strokeWidth={2} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-semibold text-ink-100 font-display">Keep it safe</div>
+              <p className="text-xs text-ink-400 mt-0.5 leading-relaxed">
+                Save a backup file to your phone, email it to yourself, or send it to your midwife.
+                Restore from a backup at any time.
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={handleDownloadBackup}
+              disabled={backupStatus === 'saving'}
+              className="flex-1 bg-sage-300/15 active:bg-sage-300/25 border border-sage-300/30 text-sage-300 rounded-xl py-2.5 text-sm font-semibold flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50"
+            >
+              <Download className="w-4 h-4" />
+              Save backup
+            </button>
+            <button
+              onClick={handleRestoreClick}
+              disabled={backupStatus === 'restoring'}
+              className="flex-1 bg-ink-100/5 active:bg-ink-100/10 border border-ink-200/30 text-ink-200 rounded-xl py-2.5 text-sm font-semibold flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50"
+            >
+              <Upload className="w-4 h-4" />
+              {backupStatus === 'restoring' ? 'Restoring…' : 'Restore'}
+            </button>
+          </div>
+          {backupStatus === 'restoring' && (
+            <div className="text-[11px] text-ink-400 mt-2 text-center">
+              Reading backup file…
+            </div>
+          )}
+        </div>
       </main>
     </div>
   );
