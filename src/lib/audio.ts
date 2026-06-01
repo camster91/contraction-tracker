@@ -2,11 +2,18 @@
 //   1. Tones — short, warm, generated with Web Audio (no asset downloads, no latency).
 //   2. Speech — uses SpeechSynthesis so iOS Safari / Android Chrome pick the OS voice.
 //
-// Sound is opt-out. Default ON.
+// Sound is opt-out. Default ON. Quiet hours (mute schedule) override sound without
+// changing the user's saved preference.
 
 let audioCtx: AudioContext | null = null;
 let muted = false;
+let inQuietHours = false;
 let unlocked = false;
+
+/** Called by the settings module when the mute schedule changes. */
+export function setInQuietHours(value: boolean) {
+  inQuietHours = value;
+}
 
 function getCtx(): AudioContext | null {
   if (typeof window === 'undefined') return null;
@@ -46,7 +53,7 @@ export function isMuted() {
 
 /** Warm meditation-bell tone. freq in Hz, dur in seconds, gain 0-1. */
 export function playTone(freq = 528, dur = 0.6, gain = 0.18) {
-  if (muted) return;
+  if (muted || inQuietHours) return;
   const ctx = getCtx();
   if (!ctx) return;
 
@@ -130,8 +137,9 @@ if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
 }
 
 let lastSpeechAt = 0;
-export function speak(text: string, opts: { rate?: number; pitch?: number } = {}) {
-  if (muted) return;
+export function speak(text: string, opts: { rate?: number; pitch?: number; force?: boolean } = {}) {
+  // Quiet hours mute everything except the 5-1-1 alert (force=true).
+  if (muted || (inQuietHours && !opts.force)) return;
   if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
   // Throttle to avoid talking over itself
   if (Date.now() - lastSpeechAt < 800) return;

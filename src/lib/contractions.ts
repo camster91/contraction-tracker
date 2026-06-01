@@ -1,4 +1,20 @@
 // Pure contraction math — no React, no DOM. Easy to reason about, easy to test.
+//
+// DATA MODEL: backward-compatible additive evolution only.
+//   - All new fields are optional with safe defaults.
+//   - Old data (no new fields) reads cleanly with `?? defaultValue`.
+//   - New code never renames or removes existing fields.
+
+export const COMMON_TAGS = [
+  'back labor',
+  'pressure',
+  'nausea',
+  'shaky',
+  'cramping',
+  'breathless',
+] as const;
+
+export type CommonTag = typeof COMMON_TAGS[number];
 
 export type Contraction = {
   id: string;
@@ -10,7 +26,14 @@ export type Contraction = {
   intensity?: number | null;
   /** optional note */
   note?: string;
+  /** optional tags (added in v1.6) — quick categorical labels. Defaults to []. */
+  tags?: string[];
 };
+
+/** Read the tags for a contraction, defaulting to empty array. */
+export function getTags(c: Contraction): string[] {
+  return Array.isArray(c.tags) ? c.tags : [];
+}
 
 export function durationSeconds(c: Contraction, now: number = Date.now()): number {
   const end = c.end ? new Date(c.end).getTime() : now;
@@ -49,6 +72,17 @@ export function formatRelative(past: Date, now: number = Date.now()): string {
   return `${day} day${day === 1 ? '' : 's'} ago`;
 }
 
+/** Format elapsed time as "Xh Ym" or "Xm Ys" or "Ys" — for big stat displays. */
+export function formatElapsed(totalSeconds: number): string {
+  if (totalSeconds < 60) return `${Math.max(0, Math.round(totalSeconds))}s`;
+  const hr = Math.floor(totalSeconds / 3600);
+  const min = Math.floor((totalSeconds % 3600) / 60);
+  if (hr > 0) return `${hr}h ${min}m`;
+  const sec = Math.round(totalSeconds % 60);
+  if (min > 0) return `${min}m ${sec}s`;
+  return `${sec}s`;
+}
+
 /** The 5-1-1 rule: contractions ~1 minute long, ~5 minutes apart, for ~1 hour.
  *  Returns true if the most recent hour of contractions roughly matches. */
 export function isFiveOneOne(contractions: Contraction[], now: number = Date.now()): boolean {
@@ -69,6 +103,30 @@ export function isFiveOneOne(contractions: Contraction[], now: number = Date.now
   const avgGap = gaps.reduce((a, b) => a + b, 0) / gaps.length;
 
   return avgDuration >= 45 && avgGap <= 5 * 60 + 30; // ~5 min
+}
+
+/** Seconds since the last finished contraction. Null if no finished contractions. */
+export function secondsSinceLastFinish(contractions: Contraction[], now: number = Date.now()): number | null {
+  const finished = contractions.filter((c) => c.end);
+  if (finished.length === 0) return null;
+  const last = finished.reduce((a, b) =>
+    new Date(a.end || a.start).getTime() > new Date(b.end || b.start).getTime() ? a : b,
+  );
+  const endMs = new Date(last.end || last.start).getTime();
+  return Math.max(0, Math.round((now - endMs) / 1000));
+}
+
+/** All unique tags across contractions, sorted by usage count desc. */
+export function allTags(contractions: Contraction[]): { tag: string; count: number }[] {
+  const counts = new Map<string, number>();
+  for (const c of contractions) {
+    for (const t of getTags(c)) {
+      counts.set(t, (counts.get(t) || 0) + 1);
+    }
+  }
+  return [...counts.entries()]
+    .map(([tag, count]) => ({ tag, count }))
+    .sort((a, b) => b.count - a.count);
 }
 
 /** Build a midwife-friendly summary of the most recent hour of contractions. */
@@ -100,7 +158,9 @@ export function buildSummary(contractions: Contraction[], now: number = Date.now
     const dur = durationSeconds(c, now);
     const intensity = c.intensity ? `  intensity ${c.intensity}/10` : '';
     const note = c.note ? `  — ${c.note}` : '';
-    lines.push(`  ${formatClock(c.start)}  ${formatDuration(dur)}${intensity}${note}`);
+    const tags = getTags(c);
+    const tagStr = tags.length ? `  [${tags.join(', ')}]` : '';
+    lines.push(`  ${formatClock(c.start)}  ${formatDuration(dur)}${intensity}${note}${tagStr}`);
   }
 
   return lines.join('\n');

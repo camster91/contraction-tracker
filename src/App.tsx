@@ -13,16 +13,25 @@ import {
   Shield,
   Volume2,
   VolumeX,
+  Undo2,
+  Type,
+  Moon,
+  Tag,
 } from 'lucide-react';
 import {
   type Contraction,
+  COMMON_TAGS,
+  allTags,
   buildSummary,
   durationSeconds,
   formatClock,
   formatDuration,
+  formatElapsed,
   formatRelative,
+  getTags,
   intervalSeconds,
   isFiveOneOne,
+  secondsSinceLastFinish,
 } from './lib/contractions';
 import { load, save, uid } from './lib/storage';
 import { autoBackup, loadAutoBackup } from './lib/idb';
@@ -31,11 +40,21 @@ import {
   chimeStart,
   chimeStop,
   setMuted,
+  setInQuietHours,
   speak,
   stopSpeaking,
   unlockAudio,
 } from './lib/audio';
 import { disableWakeLock, enableWakeLock, installWakeLockVisibilityHandler } from './lib/wakelock';
+import {
+  getMuteSchedule,
+  isBigText,
+  isInQuietHours,
+  setBigText,
+  setMuteSchedule,
+  type MuteSchedule,
+} from './lib/settings';
+import { useUndo } from './lib/undo';
 import Timeline from './components/Timeline';
 
 const STORAGE_KEY = 'contraction-tracker:v1';
@@ -70,7 +89,13 @@ export default function App() {
   const [savedAt, setSavedAt] = useState<Date | null>(null);
   const [showBackupInfo, setShowBackupInfo] = useState(false);
   const [muted, setMutedState] = useState<boolean>(() => load<boolean>(MUTED_KEY, false));
+  const [bigText, setBigTextState] = useState<boolean>(() => isBigText());
+  const [muteSchedule, setMuteScheduleState] = useState<MuteSchedule>(() => getMuteSchedule());
+  const [tagFilter, setTagFilter] = useState<string | null>(null);
+  const [tagsDraft, setTagsDraft] = useState<string[]>([]);
+  const [showSettings, setShowSettings] = useState(false);
 
+  const undo = useUndo();
   const backupInfoTimeout = useRef<number | null>(null);
   const alertAnnouncedRef = useRef<number>(0);
   const lastAnnouncedMinuteRef = useRef<number>(0);
@@ -144,6 +169,23 @@ export default function App() {
     if (muted) stopSpeaking();
   }, [muted]);
 
+  // Keep audio module in sync with the mute schedule. Re-evaluated every minute
+  // so quiet-hours transition happens without a page reload.
+  useEffect(() => {
+    setMuteSchedule(muteSchedule);
+    setInQuietHours(isInQuietHours(muteSchedule));
+    const id = window.setInterval(() => {
+      setInQuietHours(isInQuietHours(muteSchedule));
+    }, 60_000);
+    return () => window.clearInterval(id);
+  }, [muteSchedule]);
+
+  // Apply big-text mode to <html> so CSS can scale appropriately
+  useEffect(() => {
+    setBigText(bigText);
+    document.documentElement.classList.toggle('big-text', bigText);
+  }, [bigText]);
+
   const handleStart = () => {
     if (current && !current.end) return;
     // iOS: the start tap counts as a user gesture, so the audio context can unlock here
@@ -166,18 +208,31 @@ export default function App() {
     setEditingId(finished.id);
     setIntensityDraft('');
     setNoteDraft('');
+    setTagsDraft(getTags(finished));
+    // Save the state *before* this contraction was added so undo can remove it
+    undo.push({
+      kind: 'stop',
+      label: `Saved contraction (${formatDuration(dur)})`,
+      contractions: contractions,
+      current: null,
+    });
   };
 
   const handleSaveEdit = () => {
     if (!editingId) return;
     const intensity = intensityDraft ? Math.max(1, Math.min(10, Number(intensityDraft))) : null;
     const note = noteDraft.trim();
+    // De-dupe tags and strip empty
+    const cleanTags = Array.from(new Set(tagsDraft.filter(Boolean)));
     setContractions((prev) =>
-      prev.map((c) => (c.id === editingId ? { ...c, intensity, note: note || undefined } : c)),
+      prev.map((c) => (c.id === editingId
+        ? { ...c, intensity, note: note || undefined, tags: cleanTags.length ? cleanTags : undefined }
+        : c)),
     );
     setEditingId(null);
     setIntensityDraft('');
     setNoteDraft('');
+    setTagsDraft([]);
   };
   // Was the entry just-finished (auto-edit panel after Stop) or already-saved?
   // 2-minute window: the user has a moment to add intensity/note, then it's "saved".
@@ -188,6 +243,16 @@ export default function App() {
   const handleCancelEdit = () => {
     if (!editingId) return;
     if (isJustFinished) {
+      // Capture the just-finished entry for undo before discarding
+      const justFinished = contractions.find((c) => c.id === editingId);
+      if (justFinished) {
+        undo.push({
+          kind: 'discard',
+          label: `Discarded contraction (${formatDuration(durationSeconds(justFinished, now))})`,
+          contractions: contractions,
+          current: current,
+        });
+      }
       setContractions((prev) => prev.filter((c) => c.id !== editingId));
       // The user discarded the just-finished contraction, so there's no active timer.
       disableWakeLock();
@@ -195,15 +260,44 @@ export default function App() {
     setEditingId(null);
     setIntensityDraft('');
     setNoteDraft('');
+    setTagsDraft([]);
   };
 
   const handleDelete = (id: string) => {
+    const target = contractions.find((c) => c.id === id);
+    if (!target) return;
     setContractions((prev) => prev.filter((c) => c.id !== id));
+    undo.push({
+      kind: 'delete',
+      label: `Deleted contraction (${formatDuration(durationSeconds(target, now))})`,
+      contractions: contractions,
+      current: current,
+    });
   };
 
   const handleClearAll = () => {
     if (!confirm('Delete all contractions? This cannot be undone.')) return;
+    const snapshot = contractions;
     setContractions([]);
+    undo.push({
+      kind: 'clear',
+      label: `Cleared all ${snapshot.length} contractions`,
+      contractions: snapshot,
+      current: current,
+    });
+  };
+
+  const handleUndo = () => {
+    const entry = undo.take();
+    if (!entry) return;
+    setContractions(entry.contractions);
+    setCurrent(entry.current);
+    // Close any open edit panel that referenced a now-restored entry
+    setEditingId(null);
+    setIntensityDraft('');
+    setNoteDraft('');
+    setTagsDraft([]);
+    undo.dismiss();
   };
 
   const handleReadSummary = () => {
@@ -215,6 +309,7 @@ export default function App() {
     const prev = finished[finished.length - 2];
     const lastDur = durationSeconds(last, now);
     const lastGap = prev ? intervalSeconds(prev, last) : null;
+    const sinceFinish = secondsSinceLastFinish(contractions, now);
     // Each part is a clause. We join with ", " and add a final period so the
     // voice reads naturally without double periods.
     const parts: string[] = [];
@@ -222,6 +317,9 @@ export default function App() {
     parts.push(`last contraction was ${formatDurationSpoken(lastDur)}`);
     if (lastGap !== null) {
       parts.push(`started ${formatDurationSpoken(lastGap)} after the previous one`);
+    }
+    if (sinceFinish !== null && !current) {
+      parts.push(`${formatDurationSpoken(sinceFinish)} since the last one`);
     }
     const summary = parts.join(', ') + '.';
     speak(summary);
@@ -285,6 +383,24 @@ export default function App() {
   const avgGap = gaps.length ? Math.round(gaps.reduce((a, b) => a + b, 0) / gaps.length) : null;
   const showAlert = isFiveOneOne(contractions, now);
   const currentElapsed = current && !current.end ? durationSeconds(current, now) : 0;
+  const secondsSinceFinish = secondsSinceLastFinish(contractions, now);
+  const firstStart = finished[0]?.start;
+  const totalLogElapsedSec = firstStart
+    ? Math.max(0, Math.round((now - new Date(firstStart).getTime()) / 1000))
+    : 0;
+  // Filtered list when a tag filter is active
+  const visibleFinished = useMemo(() => {
+    if (!tagFilter) return finished;
+    return finished.filter((c) => getTags(c).includes(tagFilter));
+  }, [finished, tagFilter]);
+  // All tags used anywhere, for the filter chip row
+  const knownTags = useMemo(() => allTags(contractions), [contractions]);
+  // Available common tags that haven't been applied yet
+  const availableCommonTags = useMemo(() => {
+    const used = new Set<string>();
+    for (const c of contractions) for (const t of getTags(c)) used.add(t);
+    return COMMON_TAGS.filter((t) => !used.has(t));
+  }, [contractions]);
 
   // Voice the 5-1-1 alert once when it transitions from off → on.
   // Guarded by a timestamp so it doesn't re-trigger every render.
@@ -294,7 +410,8 @@ export default function App() {
     if (nowMs - alertAnnouncedRef.current < 60_000) return;
     alertAnnouncedRef.current = nowMs;
     chimeAlert();
-    speak('This looks like the 5 1 1 pattern. Consider calling your provider.');
+    // force=true bypasses quiet hours — the 5-1-1 alert is a medical signal
+    speak('This looks like the 5 1 1 pattern. Consider calling your provider.', { force: true });
   }, [showAlert]);
 
   // Periodic "X minutes in" voice readouts while a contraction is running.
@@ -310,6 +427,128 @@ export default function App() {
 
   return (
     <div className="flex flex-col h-dvh text-ink-50 max-w-md mx-auto w-full">
+      {/* Undo toast — fixed to the bottom of the screen so it doesn't push content.
+          Auto-dismisses after 5s; user can tap Undo to reverse the last action. */}
+      {undo.pending && (
+        <div
+          className="fixed inset-x-0 bottom-6 z-50 flex justify-center pointer-events-none"
+          role="status"
+          aria-live="polite"
+        >
+          <div className="pointer-events-auto mx-4 flex items-center gap-3 bg-plum-950/95 border border-ink-200/40 backdrop-blur-xl rounded-2xl px-4 py-2.5 shadow-[0_8px_32px_-8px_rgba(0,0,0,0.6)] max-w-sm animate-fade-in">
+            <span className="text-sm text-ink-100 flex-1">{undo.pending.label}</span>
+            <button
+              onClick={handleUndo}
+              className="text-sm text-rose-300 active:text-rose-200 font-semibold flex items-center gap-1 px-2 py-1 rounded-lg active:bg-rose-300/10"
+            >
+              <Undo2 className="w-4 h-4" />
+              Undo
+            </button>
+            <button
+              onClick={undo.dismiss}
+              className="p-1 text-ink-400 active:text-ink-200"
+              aria-label="Dismiss"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Settings sheet — drops down from the settings button */}
+      {showSettings && (
+        <>
+          <div
+            className="fixed inset-0 z-30"
+            onClick={() => setShowSettings(false)}
+            aria-hidden="true"
+          />
+          <div className="absolute right-5 top-full mt-1 z-40 w-72 rounded-2xl border border-ink-200/30 bg-plum-950/95 backdrop-blur-xl shadow-[0_8px_32px_-8px_rgba(0,0,0,0.6)] p-4 animate-fade-in">
+            <div className="flex items-center gap-2 mb-3">
+              <Type className="w-4 h-4 text-ink-300" strokeWidth={1.75} />
+              <div className="text-sm font-semibold text-ink-50 font-display">Settings</div>
+            </div>
+
+            {/* Big text toggle */}
+            <label className="flex items-center justify-between py-2 cursor-pointer">
+              <span className="text-sm text-ink-200">Big text</span>
+              <button
+                role="switch"
+                aria-checked={bigText}
+                onClick={() => setBigTextState((v) => !v)}
+                className={`w-10 h-6 rounded-full transition-colors ${
+                  bigText ? 'bg-rose-300/60' : 'bg-ink-100/20'
+                }`}
+              >
+                <span
+                  className={`block w-5 h-5 rounded-full bg-ink-50 shadow transition-transform ${
+                    bigText ? 'translate-x-5' : 'translate-x-0.5'
+                  }`}
+                />
+              </button>
+            </label>
+
+            {/* Mute schedule */}
+            <div className="border-t border-ink-200/20 mt-2 pt-3">
+              <label className="flex items-center justify-between py-2 cursor-pointer">
+                <span className="text-sm text-ink-200 flex items-center gap-1.5">
+                  <Moon className="w-3.5 h-3.5" /> Quiet hours
+                </span>
+                <button
+                  role="switch"
+                  aria-checked={muteSchedule.enabled}
+                  onClick={() =>
+                    setMuteScheduleState((s) => ({ ...s, enabled: !s.enabled }))
+                  }
+                  className={`w-10 h-6 rounded-full transition-colors ${
+                    muteSchedule.enabled ? 'bg-rose-300/60' : 'bg-ink-100/20'
+                  }`}
+                >
+                  <span
+                    className={`block w-5 h-5 rounded-full bg-ink-50 shadow transition-transform ${
+                      muteSchedule.enabled ? 'translate-x-5' : 'translate-x-0.5'
+                    }`}
+                  />
+                </button>
+              </label>
+              {muteSchedule.enabled && (
+                <div className="flex items-center gap-2 mt-2 text-xs text-ink-400">
+                  <span>From</span>
+                  <select
+                    value={muteSchedule.startHour}
+                    onChange={(e) =>
+                      setMuteScheduleState((s) => ({ ...s, startHour: Number(e.target.value) }))
+                    }
+                    className="bg-ink-100/10 border border-ink-200/30 rounded px-2 py-1 text-ink-100"
+                  >
+                    {Array.from({ length: 24 }, (_, h) => (
+                      <option key={h} value={h}>{h.toString().padStart(2, '0')}:00</option>
+                    ))}
+                  </select>
+                  <span>to</span>
+                  <select
+                    value={muteSchedule.endHour}
+                    onChange={(e) =>
+                      setMuteScheduleState((s) => ({ ...s, endHour: Number(e.target.value) }))
+                    }
+                    className="bg-ink-100/10 border border-ink-200/30 rounded px-2 py-1 text-ink-100"
+                  >
+                    {Array.from({ length: 24 }, (_, h) => (
+                      <option key={h} value={h}>{h.toString().padStart(2, '0')}:00</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              {muteSchedule.enabled && isInQuietHours(muteSchedule) && (
+                <div className="text-[10px] text-amber-300 mt-2">
+                  Quiet hours are active now. Only the 5-1-1 alert will play.
+                </div>
+              )}
+            </div>
+          </div>
+        </>
+      )}
+
       {/* Header */}
       <header className="flex-shrink-0 px-5 pt-5 pb-3 flex items-center justify-between relative">
         <div className="flex items-center gap-2.5">
@@ -354,6 +593,15 @@ export default function App() {
             title={muted ? 'Sound off' : 'Sound on'}
           >
             {muted ? <VolumeX className="w-4 h-4" strokeWidth={1.75} /> : <Volume2 className="w-4 h-4" strokeWidth={1.75} />}
+          </button>
+          {/* Settings */}
+          <button
+            onClick={() => setShowSettings((s) => !s)}
+            className="p-1.5 rounded-lg text-ink-300 active:text-rose-300 active:bg-ink-100/10 transition-colors"
+            aria-label="Settings"
+            title="Settings"
+          >
+            <Type className="w-4 h-4" strokeWidth={1.75} />
           </button>
         </div>
 
@@ -474,6 +722,24 @@ export default function App() {
           )}
         </div>
 
+        {/* "Since last" hero stat — biggest reading on the page during active
+            labor, between contractions. Hidden while a contraction is in
+            progress (the in-progress card takes that role) and for the
+            first few seconds of the very first contraction. */}
+        {!current && finished.length > 0 && secondsSinceFinish !== null && (
+          <div className="mb-4 rounded-2xl border border-ink-200/30 bg-gradient-to-br from-ink-100/[0.04] to-transparent px-4 py-4 animate-fade-in">
+            <div className="text-[10px] uppercase tracking-[0.2em] text-ink-400 font-semibold">Since last</div>
+            <div className="font-display text-4xl font-light text-ink-50 tabular-nums mt-1 leading-none">
+              {formatDuration(secondsSinceFinish)}
+            </div>
+            <div className="text-[10px] text-ink-500 mt-1.5">
+              {finished.length === 1
+                ? 'since first contraction'
+                : `${pluralContraction(finished.length)} logged · started ${formatElapsed(totalLogElapsedSec)} ago`}
+            </div>
+          </div>
+        )}
+
         {/* Live stats */}
         {finished.length > 0 && (
           <div className="grid grid-cols-2 gap-3 mb-6">
@@ -534,8 +800,41 @@ export default function App() {
                 </button>
               </div>
             </div>
+
+            {/* Tag filter chips — only shown when there are tagged contractions.
+                Tap a tag to filter the history list to that tag; tap All to clear. */}
+            {knownTags.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mb-3 ml-1">
+                <button
+                  onClick={() => setTagFilter(null)}
+                  className={`text-[11px] px-2.5 py-1 rounded-full font-medium transition-colors ${
+                    tagFilter === null
+                      ? 'bg-rose-300/20 text-rose-200 border border-rose-300/40'
+                      : 'bg-ink-100/5 text-ink-400 border border-ink-200/30 active:bg-ink-100/10'
+                  }`}
+                >
+                  All ({finished.length})
+                </button>
+                {knownTags.map(({ tag, count }) => (
+                  <button
+                    key={tag}
+                    onClick={() => setTagFilter((f) => (f === tag ? null : tag))}
+                    className={`text-[11px] px-2.5 py-1 rounded-full font-medium transition-colors flex items-center gap-1 ${
+                      tagFilter === tag
+                        ? 'bg-rose-300/20 text-rose-200 border border-rose-300/40'
+                        : 'bg-ink-100/5 text-ink-300 border border-ink-200/30 active:bg-ink-100/10'
+                    }`}
+                  >
+                    <Tag className="w-2.5 h-2.5" />
+                    {tag}
+                    <span className="opacity-60">({count})</span>
+                  </button>
+                ))}
+              </div>
+            )}
+
             <ul className="space-y-2">
-              {[...finished].reverse().map((c, idx) => {
+              {[...visibleFinished].reverse().map((c, idx) => {
                 const dur = durationSeconds(c, now);
                 const interval = idx < finished.length - 1 ? intervalSeconds(finished[finished.length - 2 - idx], c) : null;
                 const isEditing = editingId === c.id;
@@ -572,6 +871,42 @@ export default function App() {
                               </button>
                             ))}
                           </div>
+                        </div>
+                        {/* Quick-tag chips — tap to toggle inclusion on this contraction */}
+                        <div className="flex flex-wrap gap-1.5">
+                          {COMMON_TAGS.map((t) => {
+                            const active = tagsDraft.includes(t);
+                            return (
+                              <button
+                                key={t}
+                                onClick={() =>
+                                  setTagsDraft((cur) =>
+                                    active ? cur.filter((x) => x !== t) : [...cur, t],
+                                  )
+                                }
+                                className={`text-[10px] uppercase tracking-wider px-2.5 py-1.5 rounded-full font-semibold transition-colors flex items-center gap-1 ${
+                                  active
+                                    ? 'bg-rose-300/20 text-rose-200 border border-rose-300/40'
+                                    : 'bg-ink-100/5 text-ink-300 border border-ink-200/30 active:bg-ink-100/10'
+                                }`}
+                              >
+                                <Tag className="w-2.5 h-2.5" />
+                                {t}
+                              </button>
+                            );
+                          })}
+                          {tagsDraft
+                            .filter((t) => !COMMON_TAGS.includes(t as (typeof COMMON_TAGS)[number]))
+                            .map((t) => (
+                              <button
+                                key={t}
+                                onClick={() => setTagsDraft((cur) => cur.filter((x) => x !== t))}
+                                className="text-[10px] uppercase tracking-wider px-2.5 py-1.5 rounded-full font-semibold bg-rose-300/20 text-rose-200 border border-rose-300/40 transition-colors flex items-center gap-1"
+                              >
+                                <Tag className="w-2.5 h-2.5" />
+                                {t}
+                              </button>
+                            ))}
                         </div>
                         <input
                           type="text"
@@ -658,6 +993,11 @@ export default function App() {
             <p className="text-sm text-ink-400 mt-2 leading-relaxed max-w-xs mx-auto">
               Tap Start when a contraction begins. Tap Stop when it ends. The app handles the rest.
             </p>
+            {availableCommonTags.length > 0 && (
+              <p className="text-[11px] text-ink-500 mt-3 max-w-xs mx-auto">
+                Tip: after stopping, you can tag the contraction (back labor, pressure, etc).
+              </p>
+            )}
           </div>
         )}
       </main>
