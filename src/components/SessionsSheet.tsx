@@ -3,7 +3,7 @@
 // past and current labor sessions.
 
 import { useState } from 'react';
-import { Plus, Square, Trash2, Users, ArrowLeft, Play } from 'lucide-react';
+import { Plus, Square, Trash2, Users, ArrowLeft, Play, Eye } from 'lucide-react';
 import {
   PRIMARY_SESSION_ID,
   type Session,
@@ -24,6 +24,7 @@ type Props = {
   onClose: () => void;
   onOpenPeople: () => void;
   onOpenShare: (sessionId: string) => void;
+  onViewSession: (session: Session) => void;
 };
 
 export default function SessionsSheet({
@@ -33,6 +34,7 @@ export default function SessionsSheet({
   onClose,
   onOpenPeople,
   onOpenShare,
+  onViewSession,
 }: Props) {
   const [sessions, setSessions] = useState<Session[]>(() => getSessions());
   const [creating, setCreating] = useState(false);
@@ -167,6 +169,16 @@ export default function SessionsSheet({
                   >
                     <Users className="w-3.5 h-3.5" />
                   </button>
+                  {s.endedAt && (
+                    <button
+                      onClick={() => onViewSession(s)}
+                      className="p-1.5 text-ink-400 active:text-sage-300 transition-colors"
+                      aria-label="View"
+                      title="View"
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                   {s.id !== PRIMARY_SESSION_ID && (
                     <>
                       {!s.endedAt && (

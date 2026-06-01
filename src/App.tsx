@@ -17,6 +17,7 @@ import {
   Type,
   Moon,
   Tag,
+  ClipboardList,
 } from 'lucide-react';
 import {
   type Contraction,
@@ -59,10 +60,13 @@ import Timeline from './components/Timeline';
 import SessionsSheet from './components/SessionsSheet';
 import PeopleSheet from './components/PeopleSheet';
 import ShareSheet from './components/ShareSheet';
+import ChecklistSheet from './components/ChecklistSheet';
+import ViewSessionModal from './components/ViewSessionModal';
 import {
   contractionsInSession,
   getActiveSessionId,
   getSessions,
+  getShares,
   migrateContractionsToSessions,
   type Session,
 } from './lib/sessions';
@@ -70,6 +74,7 @@ import {
 const STORAGE_KEY = 'contraction-tracker:v1';
 const SESSION_KEY = 'contraction-tracker:current';
 const MUTED_KEY = 'contraction-tracker:muted';
+const BACKUP_REMINDER_KEY = 'contraction-tracker:backup-dismissed';
 
 type Stored = {
   contractions: Contraction[];
@@ -109,6 +114,27 @@ export default function App() {
   const [showShare, setShowShare] = useState<string | null>(null); // sessionId or null
   const [sessions, setSessions] = useState<Session[]>(() => getSessions());
   const [activeSessionId, setActiveId] = useState<string>(() => getActiveSessionId());
+
+  // Viewing an ended session read-only (without switching active session)
+  const [viewingSessionId, setViewingSessionId] = useState<string | null>(null);
+
+  // Hospital bag checklist sheet
+  const [showChecklist, setShowChecklist] = useState(false);
+
+  // Backup reminder — show if no share link created in last 4+ hours and not dismissed
+  const [dismissedBannerAt, setDismissedBannerAt] = useState<number | null>(() => {
+    const raw = localStorage.getItem(BACKUP_REMINDER_KEY);
+    return raw ? JSON.parse(raw) : null;
+  });
+  const shares = getShares();
+  const hasRecentShare = shares.some((s) => !s.revoked);
+  const showBackupBanner = !hasRecentShare && !(dismissedBannerAt && Date.now() - dismissedBannerAt < 24 * 60 * 60 * 1000);
+
+  // Onboarding tooltip steps: null = dismissed, 0/1/2 = step
+  const [onboardingStep, setOnboardingStep] = useState<number | null>(() => {
+    const seen = localStorage.getItem('contraction-tracker:onboarding-seen');
+    return seen ? null : 0;
+  });
 
   const undo = useUndo();
   const backupInfoTimeout = useRef<number | null>(null);
@@ -599,6 +625,10 @@ export default function App() {
             onClose={() => setShowSessions(false)}
             onOpenPeople={() => setShowPeople(true)}
             onOpenShare={(id) => setShowShare(id)}
+            onViewSession={(s) => {
+              setViewingSessionId(s.id);
+              setShowSessions(false);
+            }}
           />
         </>
       )}
@@ -679,6 +709,15 @@ export default function App() {
               clear
             </button>
           )}
+          {/* Hospital bag checklist */}
+          <button
+            onClick={() => setShowChecklist(true)}
+            className="p-1.5 rounded-lg text-ink-300 active:text-sage-300 active:bg-sage-300/10 transition-colors"
+            aria-label="Hospital bag checklist"
+            title="Hospital bag"
+          >
+            <ClipboardList className="w-4 h-4" strokeWidth={1.75} />
+          </button>
           {/* Sound on/off */}
           <button
             onClick={handleMuteToggle}
@@ -774,6 +813,31 @@ export default function App() {
         </div>
       )}
 
+      {/* Backup reminder banner — soft nudge if no share link has been created */}
+      {showBackupBanner && (
+        <div className="flex-shrink-0 mx-5 mb-3 rounded-2xl border border-sage-300/30 bg-sage-300/10 px-4 py-3 flex items-start gap-3 animate-fade-in">
+          <div className="w-8 h-8 rounded-full bg-sage-300/15 flex items-center justify-center flex-shrink-0">
+            <Shield className="w-4 h-4 text-sage-300" strokeWidth={1.75} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-semibold text-ink-100 font-display">Save a backup</div>
+            <div className="text-xs text-ink-300 mt-0.5 leading-relaxed">
+              Create a share link to back up your contraction history.
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              localStorage.setItem(BACKUP_REMINDER_KEY, JSON.stringify(Date.now()));
+              setDismissedBannerAt(Date.now());
+            }}
+            className="p-1.5 text-ink-400 active:text-ink-200 flex-shrink-0"
+            aria-label="Dismiss"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       <main className="flex-1 overflow-y-auto px-5 pb-8 w-full">
         {/* Hero CTA */}
         <div className="pt-2 pb-6">
@@ -801,8 +865,20 @@ export default function App() {
               <div className="font-display text-6xl font-light text-ink-50 tabular-nums leading-none">
                 {formatDuration(currentElapsed)}
               </div>
-              <div className="text-[11px] text-ink-400 mt-3 tracking-wide">
-                Started at {formatClock(current.start)}
+              <div className="text-[11px] text-ink-400 mt-3 tracking-wide flex items-center gap-2">
+                <span>Started at</span>
+                <input
+                  type="time"
+                  value={current.start ? new Date(current.start).toISOString().slice(11, 16) : ''}
+                  onChange={(e) => {
+                    const [h, m] = e.target.value.split(':');
+                    const d = new Date(current.start);
+                    d.setHours(Number(h), Number(m));
+                    setCurrent((c) => c ? { ...c, start: d.toISOString() } : null);
+                  }}
+                  className="bg-transparent text-ink-400 border-none outline-none focus:underline focus:text-rose-300 cursor-pointer"
+                  aria-label="Edit start time"
+                />
               </div>
               <div className="text-[10px] text-sage-300/80 mt-1.5 tracking-wide flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-sage-300/70" />
@@ -1033,11 +1109,42 @@ export default function App() {
                       <div className="flex items-center justify-between">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-baseline gap-2">
-                            <span className="font-display text-base font-medium text-ink-50">
-                              {formatClock(c.start)}
+                            <span className="flex items-center gap-1.5">
+                              <input
+                                type="time"
+                                value={c.start ? new Date(c.start).toISOString().slice(11, 16) : ''}
+                                onChange={(e) => {
+                                  const [h, m] = e.target.value.split(':');
+                                  const d = new Date(c.start);
+                                  d.setHours(Number(h), Number(m));
+                                  setContractions((prev) =>
+                                    prev.map((x) => x.id === c.id ? { ...x, start: d.toISOString() } : x),
+                                  );
+                                }}
+                                className="font-display text-base font-medium text-ink-50 bg-transparent border-none outline-none focus:underline focus:text-rose-300 w-[5.5rem] cursor-pointer"
+                                aria-label="Edit start time"
+                              />
                             </span>
                             <span className="font-display text-lg font-light text-rose-300 tabular-nums">
                               {formatDuration(dur)}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <span className="text-[10px] text-ink-500">–</span>
+                              <input
+                                type="time"
+                                value={c.end ? new Date(c.end).toISOString().slice(11, 16) : ''}
+                                onChange={(e) => {
+                                  if (!c.end) return;
+                                  const [h, m] = e.target.value.split(':');
+                                  const d = new Date(c.end);
+                                  d.setHours(Number(h), Number(m));
+                                  setContractions((prev) =>
+                                    prev.map((x) => x.id === c.id ? { ...x, end: d.toISOString() } : x),
+                                  );
+                                }}
+                                className="font-display text-sm font-medium text-ink-300 bg-transparent border-none outline-none focus:underline focus:text-rose-300 w-[5rem] cursor-pointer"
+                                aria-label="Edit end time"
+                              />
                             </span>
                             {c.intensity ? (
                               <span className="text-[10px] uppercase tracking-wider text-ink-400 font-semibold">
@@ -1083,7 +1190,14 @@ export default function App() {
 
         {/* Empty state */}
         {finished.length === 0 && !current && (
-          <div className="text-center pt-4 pb-2 animate-fade-in">
+          <div
+            className="text-center pt-4 pb-2 animate-fade-in cursor-pointer"
+            onClick={handleStart}
+            role="button"
+            aria-label="Tap to start a contraction"
+            tabIndex={0}
+            onKeyDown={(e) => e.key === 'Enter' && handleStart()}
+          >
             <div className="font-display text-2xl font-light text-ink-200 tracking-tight">
               When you're ready.
             </div>
@@ -1097,6 +1211,109 @@ export default function App() {
             )}
           </div>
         )}
+
+        {/* Onboarding tooltip — 3-step swipeable overlay for first-time users */}
+        {onboardingStep !== null && (
+          <>
+            <div
+              className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
+              onClick={() => {
+                localStorage.setItem('contraction-tracker:onboarding-seen', '1');
+                setOnboardingStep(null);
+              }}
+              aria-hidden="true"
+            />
+            <div className="fixed inset-x-4 bottom-24 z-50 rounded-2xl border border-rose-300/40 bg-plum-950/95 backdrop-blur-xl shadow-[0_8px_32px_-8px_rgba(0,0,0,0.7)] p-5 animate-fade-in">
+              {onboardingStep === 0 && (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-rose-300/20 flex items-center justify-center">
+                      <Play className="w-4 h-4 text-rose-300 fill-rose-300" />
+                    </div>
+                    <div className="font-display text-base font-semibold text-ink-50">Start a contraction</div>
+                  </div>
+                  <p className="text-sm text-ink-200 leading-relaxed">
+                    Tap the big Start button when a contraction begins. The screen will stay on and the timer will run.
+                  </p>
+                </div>
+              )}
+              {onboardingStep === 1 && (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-rose-300/20 flex items-center justify-center">
+                      <Square className="w-4 h-4 text-rose-300 fill-rose-300" />
+                    </div>
+                    <div className="font-display text-base font-semibold text-ink-50">Stop and add details</div>
+                  </div>
+                  <p className="text-sm text-ink-200 leading-relaxed">
+                    Tap Stop when it ends. You can add intensity, tags, and a note to remember how it felt.
+                  </p>
+                </div>
+              )}
+              {onboardingStep === 2 && (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-rose-300/20 flex items-center justify-center">
+                      <Share2 className="w-4 h-4 text-rose-300" />
+                    </div>
+                    <div className="font-display text-base font-semibold text-ink-50">Share with your team</div>
+                  </div>
+                  <p className="text-sm text-ink-200 leading-relaxed">
+                    Use the Share button to send a link with a midwife or your birth partner so they can follow along.
+                  </p>
+                </div>
+              )}
+              <div className="flex items-center justify-between mt-4">
+                <div className="flex gap-1.5">
+                  {[0, 1, 2].map((i) => (
+                    <div
+                      key={i}
+                      className={`w-2 h-2 rounded-full transition-colors ${i === onboardingStep ? 'bg-rose-300' : 'bg-ink-400/40'}`}
+                    />
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  {onboardingStep < 2 ? (
+                    <button
+                      onClick={() => setOnboardingStep((s) => (s !== null ? s + 1 : null))}
+                      className="text-xs bg-rose-300 active:bg-rose-400 text-plum-950 rounded-lg px-4 py-2 font-semibold transition-colors"
+                    >
+                      Next
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        localStorage.setItem('contraction-tracker:onboarding-seen', '1');
+                        setOnboardingStep(null);
+                      }}
+                      className="text-xs bg-rose-300 active:bg-rose-400 text-plum-950 rounded-lg px-4 py-2 font-semibold transition-colors"
+                    >
+                      Got it
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Checklist sheet (hospital bag) — opens from the header Briefcase icon */}
+        {showChecklist && (
+          <ChecklistSheet sessionId={activeSessionId} onClose={() => setShowChecklist(false)} />
+        )}
+
+        {/* View-session modal — read-only view of an ended session */}
+        {viewingSessionId && (() => {
+          const sess = sessions.find((s) => s.id === viewingSessionId);
+          if (!sess) return null;
+          return (
+            <ViewSessionModal
+              session={sess}
+              contractions={contractionsInSession(contractions, viewingSessionId)}
+              onClose={() => setViewingSessionId(null)}
+            />
+          );
+        })()}
       </main>
     </div>
   );
