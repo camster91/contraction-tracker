@@ -206,13 +206,15 @@ export default function App() {
     const prev = finished[finished.length - 2];
     const lastDur = durationSeconds(last, now);
     const lastGap = prev ? intervalSeconds(prev, last) : null;
+    // Each part is a clause. We join with ", " and add a final period so the
+    // voice reads naturally without double periods.
     const parts: string[] = [];
-    parts.push(pluralContraction(finished.length) + ' so far.');
-    parts.push(`Last contraction: ${formatDurationSpoken(lastDur)}`);
+    parts.push(`${pluralContraction(finished.length)} so far`);
+    parts.push(`last contraction was ${formatDurationSpoken(lastDur)}`);
     if (lastGap !== null) {
-      parts.push(`started ${formatDurationSpoken(lastGap)} after the previous one.`);
+      parts.push(`started ${formatDurationSpoken(lastGap)} after the previous one`);
     }
-    const summary = parts.join('. ');
+    const summary = parts.join(', ') + '.';
     speak(summary);
   };
 
@@ -394,6 +396,30 @@ export default function App() {
         </div>
       )}
 
+      {/* Stale in-progress timer warning.
+          If a current contraction is older than 4 hours, it's almost certainly
+          a forgotten timer from a previous session. Surface a warning + discard
+          option instead of just showing a 4-hour duration on the clock. */}
+      {current && !current.end && Date.now() - new Date(current.start).getTime() > 4 * 60 * 60 * 1000 && (
+        <div className="flex-shrink-0 mx-5 mb-3 rounded-2xl border border-amber-300/40 bg-amber-300/10 px-4 py-3 flex items-start gap-3 animate-fade-in">
+          <div className="w-8 h-8 rounded-full bg-amber-300/15 flex items-center justify-center flex-shrink-0">
+            <AlertTriangle className="w-4 h-4 text-amber-300" strokeWidth={2} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-semibold text-amber-200 font-display">Old timer</div>
+            <div className="text-xs text-ink-300 mt-0.5 leading-relaxed">
+              This contraction started {formatRelative(new Date(current.start), now)}. Did you forget to stop it?
+            </div>
+            <button
+              onClick={() => setCurrent(null)}
+              className="text-xs bg-amber-300/20 active:bg-amber-300/30 text-amber-200 rounded-lg px-3 py-1.5 font-semibold mt-2.5 transition-colors"
+            >
+              Discard timer
+            </button>
+          </div>
+        </div>
+      )}
+
       <main className="flex-1 overflow-y-auto px-5 pb-8 w-full">
         {/* Hero CTA */}
         <div className="pt-2 pb-6">
@@ -520,12 +546,14 @@ export default function App() {
                             {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
                               <button
                                 key={n}
-                                onClick={() => setIntensityDraft(String(n))}
+                                onClick={() => setIntensityDraft(intensityDraft === String(n) ? '' : String(n))}
                                 className={`w-6 h-6 rounded-full text-[10px] font-semibold transition-colors ${
                                   intensityDraft === String(n)
                                     ? 'bg-rose-300 text-plum-950'
                                     : 'bg-ink-100/10 text-ink-300 active:bg-ink-100/20'
                                 }`}
+                                aria-label={`Intensity ${n}`}
+                                title={intensityDraft === String(n) ? `${n} of 10 — tap to clear` : `Set intensity to ${n}`}
                               >
                                 {n}
                               </button>
