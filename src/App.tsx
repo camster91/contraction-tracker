@@ -14,10 +14,13 @@ import {
   Volume2,
   VolumeX,
   Undo2,
-  Type,
   Moon,
   Tag,
   ClipboardList,
+  PictureInPicture2,
+  ChevronDown,
+  Users2,
+  Cog,
 } from 'lucide-react';
 import {
   type Contraction,
@@ -36,6 +39,7 @@ import {
 } from './lib/contractions';
 import { load, save, uid } from './lib/storage';
 import { autoBackup, loadAutoBackup } from './lib/idb';
+import { initSync, broadcastContractions, broadcastCurrent } from './lib/sync';
 import {
   chimeAlert,
   chimeStart,
@@ -65,11 +69,13 @@ import ViewSessionModal from './components/ViewSessionModal';
 import {
   contractionsInSession,
   getActiveSessionId,
+  getPeople,
   getSessions,
   getShares,
   migrateContractionsToSessions,
   type Session,
 } from './lib/sessions';
+import { getChecklist, packedCount } from './lib/checklist';
 
 const STORAGE_KEY = 'contraction-tracker:v1';
 const SESSION_KEY = 'contraction-tracker:current';
@@ -137,7 +143,6 @@ export default function App() {
   });
 
   const undo = useUndo();
-  const backupInfoTimeout = useRef<number | null>(null);
   const alertAnnouncedRef = useRef<number>(0);
   const lastAnnouncedMinuteRef = useRef<number>(0);
 
@@ -167,6 +172,14 @@ export default function App() {
     return () => { mounted = false; };
   }, []);
 
+  // BroadcastChannel sync — keep other tabs up to date when data changes
+  useEffect(() => {
+    initSync(
+      (incoming) => setContractions(incoming),
+      (incoming) => setCurrent(incoming),
+    );
+  }, []);
+
   // Active session display name (or "Contractions" as fallback)
   const activeSessionName = useMemo(
     () => sessions.find((s) => s.id === activeSessionId)?.name ?? 'Contractions',
@@ -179,12 +192,14 @@ export default function App() {
     autoBackup(contractions, current).then((ok) => {
       if (ok) setSavedAt(new Date());
     });
+    broadcastContractions(contractions);
   }, [contractions, current]);
   useEffect(() => {
     save(SESSION_KEY, current);
     autoBackup(contractions, current).then((ok) => {
       if (ok) setSavedAt(new Date());
     });
+    broadcastCurrent(current);
   }, [current, contractions]);
 
   useEffect(() => {
@@ -265,6 +280,16 @@ export default function App() {
     });
   };
 
+  const handleEnterPip = async () => {
+    if (!document.pictureInPictureElement) return;
+    try {
+      const video = document.querySelector('video');
+      if (video) await video.requestPictureInPicture();
+    } catch {
+      // PIP not supported or denied — silently ignore
+    }
+  };
+
   const handleSaveEdit = () => {
     if (!editingId) return;
     const intensity = intensityDraft ? Math.max(1, Math.min(10, Number(intensityDraft))) : null;
@@ -318,18 +343,6 @@ export default function App() {
       kind: 'delete',
       label: `Deleted contraction (${formatDuration(durationSeconds(target, now))})`,
       contractions: contractions,
-      current: current,
-    });
-  };
-
-  const handleClearAll = () => {
-    if (!confirm('Delete all contractions? This cannot be undone.')) return;
-    const snapshot = contractions;
-    setContractions([]);
-    undo.push({
-      kind: 'clear',
-      label: `Cleared all ${snapshot.length} contractions`,
-      contractions: snapshot,
       current: current,
     });
   };
@@ -523,7 +536,7 @@ export default function App() {
           />
           <div className="absolute right-5 top-full mt-1 z-40 w-72 rounded-2xl border border-ink-200/30 bg-plum-950/95 backdrop-blur-xl shadow-[0_8px_32px_-8px_rgba(0,0,0,0.6)] p-4 animate-fade-in">
             <div className="flex items-center gap-2 mb-3">
-              <Type className="w-4 h-4 text-ink-300" strokeWidth={1.75} />
+              <Cog className="w-4 h-4 text-ink-300" strokeWidth={1.75} />
               <div className="text-sm font-semibold text-ink-50 font-display">Settings</div>
             </div>
 
@@ -675,41 +688,27 @@ export default function App() {
             setShowSettings(false);
             setShowBackupInfo(false);
           }}
-          className="flex items-center gap-2.5 active:opacity-70"
+          className="flex items-center gap-2 active:opacity-70"
           aria-label="Sessions"
         >
           <Heart className="w-5 h-5 text-rose-300 fill-rose-300/20" strokeWidth={1.5} />
           <h1 className="font-display text-xl font-medium tracking-tight text-ink-50">Luna</h1>
+          <ChevronDown className="w-3.5 h-3.5 text-ink-400 mt-0.5" strokeWidth={2} />
           <span className="text-[10px] uppercase tracking-[0.18em] text-ink-400 font-medium mt-0.5">
             {activeSessionName}
           </span>
         </button>
-        <div className="flex items-center gap-1">
-          {/* Saved-locally indicator — tappable for tooltip */}
+        <div className="flex items-center gap-0.5">
+          {/* Trusted people — opens PeopleSheet directly */}
           <button
-            onClick={() => {
-              setShowBackupInfo(true);
-              if (backupInfoTimeout.current) window.clearTimeout(backupInfoTimeout.current);
-              backupInfoTimeout.current = window.setTimeout(() => setShowBackupInfo(false), 6000);
-            }}
-            className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-[11px] text-sage-300 active:bg-sage-300/10 transition-colors font-medium"
-            aria-label="Saved locally — tap for details"
+            onClick={() => setShowPeople(true)}
+            className="p-1.5 rounded-lg text-ink-300 active:text-rose-300 active:bg-rose-300/10 transition-colors"
+            aria-label="Trusted people"
+            title="Trusted people"
           >
-            <span className="relative flex w-2 h-2">
-              <span className="absolute inset-0 rounded-full bg-sage-300 animate-pulse-live" />
-              <span className="relative w-2 h-2 rounded-full bg-sage-300" />
-            </span>
-            <span>saved</span>
+            <Users2 className="w-4 h-4" strokeWidth={1.75} />
           </button>
-          {finished.length > 0 && (
-            <button
-              onClick={handleClearAll}
-              className="text-[11px] text-ink-400 active:text-rose-300 px-2 py-1.5 font-medium transition-colors"
-            >
-              clear
-            </button>
-          )}
-          {/* Share with partner — opens the share sheet for the active session */}
+          {/* Share with partner */}
           {finished.length > 0 && (
             <button
               onClick={() => setShowShare(activeSessionId)}
@@ -747,9 +746,8 @@ export default function App() {
             aria-label="Settings"
             title="Settings"
           >
-            <Type className="w-4 h-4" strokeWidth={1.75} />
+            <Cog className="w-4 h-4" strokeWidth={1.75} />
           </button>
-          {/* Sessions toggle — opens the sessions sheet from the main button */}
         </div>
 
         {/* Tooltip — drops down from the saved indicator */}
@@ -872,6 +870,16 @@ export default function App() {
                 <div className="text-[10px] uppercase tracking-[0.25em] text-rose-300 font-semibold">
                   In progress
                 </div>
+                {document.pictureInPictureEnabled && (
+                  <button
+                    onClick={handleEnterPip}
+                    className="ml-1 p-1 rounded text-rose-300/60 active:text-rose-300 active:bg-rose-300/10 transition-colors"
+                    aria-label="Picture-in-Picture"
+                    title="Picture-in-Picture"
+                  >
+                    <PictureInPicture2 className="w-3.5 h-3.5" strokeWidth={1.75} />
+                  </button>
+                )}
               </div>
               <div className="font-display text-6xl font-light text-ink-50 tabular-nums leading-none">
                 {formatDuration(currentElapsed)}
@@ -912,7 +920,18 @@ export default function App() {
             first few seconds of the very first contraction. */}
         {!current && finished.length > 0 && secondsSinceFinish !== null && (
           <div className="mb-4 rounded-2xl border border-ink-200/30 bg-gradient-to-br from-ink-100/[0.04] to-transparent px-4 py-4 animate-fade-in">
-            <div className="text-[10px] uppercase tracking-[0.2em] text-ink-400 font-semibold">Since last</div>
+            <div className="flex items-center justify-between">
+              <div className="text-[10px] uppercase tracking-[0.2em] text-ink-400 font-semibold">Since last</div>
+              <button
+                onClick={handleReadSummary}
+                className="text-ink-300 active:text-rose-300 active:bg-ink-100/10 px-2 py-1 rounded-lg flex items-center gap-1 text-[11px] transition-colors"
+                title="Read aloud"
+                aria-label="Read aloud"
+              >
+                <Volume2 className="w-3.5 h-3.5" />
+                <span>Read</span>
+              </button>
+            </div>
             <div className="font-display text-4xl font-light text-ink-50 tabular-nums mt-1 leading-none">
               {formatDuration(secondsSinceFinish)}
             </div>
@@ -923,6 +942,12 @@ export default function App() {
             </div>
           </div>
         )}
+
+        {/* Friends banner — quick access to People */}
+        <PeopleBanner onOpenPeople={() => setShowPeople(true)} />
+
+        {/* Hospital bag progress pill */}
+        <HospitalBagPill sessionId={activeSessionId} onOpenChecklist={() => setShowChecklist(true)} />
 
         {/* Live stats */}
         {finished.length > 0 && (
@@ -1339,5 +1364,70 @@ function StatCard({ label, value, sub }: { label: string; value: string; sub?: s
       </div>
       {sub && <div className="text-[10px] text-ink-500 mt-1.5 tracking-wide">{sub}</div>}
     </div>
+  );
+}
+
+// FriendsBanner — shows the top 3 people as tappable pills, or a CTA if empty.
+// Inline below the "Since last" stat so the People feature is visible, not buried.
+function PeopleBanner({ onOpenPeople }: { onOpenPeople: () => void }) {
+  const people = getPeople().slice(0, 3);
+  return (
+    <div className="mb-3 flex items-center gap-2 flex-wrap">
+      {people.length === 0 ? (
+        <button
+          onClick={onOpenPeople}
+          className="flex items-center gap-1.5 text-[11px] text-rose-300/80 active:text-rose-200 px-2.5 py-1.5 rounded-full border border-rose-300/20 active:bg-rose-300/10 transition-colors"
+        >
+          <Users2 className="w-3.5 h-3.5" strokeWidth={1.75} />
+          Add partner, midwife, family
+        </button>
+      ) : (
+        <>
+          <span className="text-[10px] text-ink-500 font-medium">Care circle:</span>
+          {people.map((p) => (
+            <button
+              key={p.id}
+              onClick={onOpenPeople}
+              className="text-[11px] text-ink-200 active:text-rose-200 px-2.5 py-1 rounded-full border border-ink-200/30 active:bg-ink-100/10 transition-colors"
+            >
+              {p.name}
+            </button>
+          ))}
+          {getPeople().length > 3 && (
+            <button
+              onClick={onOpenPeople}
+              className="text-[10px] text-ink-500 active:text-ink-200 transition-colors"
+            >
+              +{getPeople().length - 3} more
+            </button>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+// HospitalBagPill — inline progress indicator for the checklist.
+// Promotes the hospital bag feature from "hidden icon" to first-class visible status.
+function HospitalBagPill({ sessionId, onOpenChecklist }: { sessionId: string; onOpenChecklist: () => void }) {
+  const items = getChecklist(sessionId);
+  const packed = packedCount(items);
+  const total = items.length;
+  const isComplete = packed === total && total > 0;
+  return (
+    <button
+      onClick={onOpenChecklist}
+      className="mb-4 flex items-center gap-2 text-[11px] rounded-full border px-3 py-1.5 transition-colors active:bg-ink-100/10 w-fit"
+      style={{
+        borderColor: isComplete ? 'rgba(168,218,168,0.4)' : 'rgba(148,163,184,0.3)',
+        background: isComplete ? 'rgba(168,218,168,0.08)' : 'transparent',
+      }}
+    >
+      <ClipboardList className="w-3.5 h-3.5" strokeWidth={1.75} style={{ color: isComplete ? '#a3c9a8' : undefined }} />
+      <span style={{ color: isComplete ? '#a3c9a8' : undefined }}>
+        {isComplete ? 'Hospital bag: complete' : `Hospital bag: ${packed}/${total} packed`}
+      </span>
+      {isComplete && <Check className="w-3 h-3" strokeWidth={2.5} style={{ color: '#a3c9a8' }} />}
+    </button>
   );
 }
