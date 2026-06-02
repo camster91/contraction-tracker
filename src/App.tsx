@@ -52,7 +52,7 @@ import {
   rotateBackup,
   validateBackup,
 } from './lib/backup';
-import { initSync, broadcastContractions, broadcastCurrent } from './lib/sync';
+import { initSync, broadcastContractions, broadcastCurrent, isReceiving } from './lib/sync';
 import {
   chimeAlert,
   chimeStart,
@@ -99,7 +99,7 @@ import { getExams } from './lib/hospital';
 
 const STORAGE_KEY = 'contraction-tracker:v1';
 const SESSION_KEY = 'contraction-tracker:current';
-const APP_VERSION = '1.33';
+const APP_VERSION = '1.34';
 const MUTED_KEY = 'contraction-tracker:muted';
 const BACKUP_REMINDER_KEY = 'contraction-tracker:backup-dismissed';
 
@@ -252,14 +252,14 @@ export default function App() {
     autoBackup(contractions, current).then((ok) => {
       if (ok) setSavedAt(new Date());
     });
-    broadcastContractions(contractions);
+    if (!isReceiving()) broadcastContractions(contractions);
   }, [contractions, current]);
   useEffect(() => {
     save(SESSION_KEY, current);
     autoBackup(contractions, current).then((ok) => {
       if (ok) setSavedAt(new Date());
     });
-    broadcastCurrent(current);
+    if (!isReceiving()) broadcastCurrent(current);
     // Auto-sync to relay if a share is active for this session
     try {
       const activeShares = getShares().filter(s => !s.revoked && s.sessionId === activeSessionId);
