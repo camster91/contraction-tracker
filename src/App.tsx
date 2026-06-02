@@ -98,9 +98,10 @@ import {
 } from './lib/sessions';
 import { getChecklist, packedCount, saveChecklist } from './lib/checklist';
 import { getExams } from './lib/hospital';
-import { postMessage } from './lib/feed';
+import { postMessage, type MessageKind } from './lib/feed';
 import { pushContractionsToRelay } from './lib/relay';
-import BabyIsHereModal from './components/BabyIsHereModal';
+import Onboarding from './components/Onboarding';
+import StatusUpdatePrompt from './components/StatusUpdatePrompt';
 
 const STORAGE_KEY = 'contraction-tracker:v1';
 const SESSION_KEY = 'contraction-tracker:current';
@@ -187,8 +188,8 @@ export default function App() {
   // State change toast — shown when the host manually changes the share's labor stage
   const [stateToast, setStateToast] = useState<string | null>(null);
 
-  // BabyIsHere modal — shown when the host clicks "Baby is here" in the share sheet
-  const [babyModalShareCode, setBabyModalShareCode] = useState<string | null>(null);
+  // Status update prompt — bottom-sheet replacing the old window.prompt
+  const [showStatusPrompt, setShowStatusPrompt] = useState(false);
 
   // Hidden file input for importing backups
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -998,22 +999,6 @@ export default function App() {
         </div>
       )}
 
-      {/* Baby is here modal — celebratory postpartum announcement */}
-      {babyModalShareCode && (
-        <BabyIsHereModal
-          code={babyModalShareCode}
-          onClose={() => setBabyModalShareCode(null)}
-          onBabyPosted={() => {
-            // Transition the share to postpartum on the relay so viewers see it
-            const shares = getShares().filter((s) => s.id === babyModalShareCode);
-            if (shares[0]) {
-              // Optimistically mark locally — relay will sync on next push
-              setStateToast('postpartum');
-            }
-          }}
-        />
-      )}
-
       {/* Hidden file input for backup import */}
       <input
         ref={fileInputRef}
@@ -1285,9 +1270,22 @@ export default function App() {
               setSessions(getSessions());
             }}
             onStateChange={(st) => setStateToast(st)}
-            onBabyIsHere={(code) => setBabyModalShareCode(code)}
           />
         </>
+      )}
+
+      {/* Status update prompt — bottom-sheet replacing window.prompt */}
+      {showStatusPrompt && (
+        <StatusUpdatePrompt
+          share={activeSessionId}
+          onClose={() => setShowStatusPrompt(false)}
+          onPost={(kind, content) => {
+            const shares = getShares().filter(s => s.sessionId === activeSessionId && !s.revoked);
+            if (shares[0]) {
+              postMessage(shares[0].id, kind as MessageKind, content, 'Cam', undefined).catch(() => {});
+            }
+          }}
+        />
       )}
 
       {/* Header */}
@@ -1318,27 +1316,9 @@ export default function App() {
           >
             <Share2 className="w-4 h-4" strokeWidth={1.75} />
           </button>
-          {/* Status update — quick post to activity feed */}
+          {/* Status update — opens bottom-sheet prompt */}
           <button
-            onClick={() => {
-              const options = [
-                { label: 'Heading to hospital', value: 'Heading to hospital' },
-                { label: 'At the hospital', value: 'At the hospital' },
-                { label: 'Admitted', value: 'Admitted' },
-                { label: 'Baby is here 🎉', value: 'Baby is here 🎉' },
-              ];
-              const choice = window.prompt(
-                'Post a status update:\n\n' + options.map((o, i) => `${i + 1}. ${o.label}`).join('\n') + '\n\nOr type a custom message.',
-              );
-              if (!choice) return;
-              const idx = parseInt(choice, 10) - 1;
-              const shares = getShares().filter(s => s.sessionId === activeSessionId && !s.revoked);
-              if (!shares[0]) return;
-              const content = idx >= 0 && idx < options.length ? options[idx].value : choice.trim();
-              if (content) {
-                postMessage(shares[0].id, 'status', content, 'Cam', undefined).catch(() => {});
-              }
-            }}
+            onClick={() => setShowStatusPrompt(true)}
             className="p-2 rounded-lg text-ink-300 active:text-sage-300 active:bg-sage-300/10 transition-colors"
             aria-label="Post status update"
             title="Post status update"
@@ -1650,73 +1630,9 @@ export default function App() {
           </div>
         )}
 
-        {/* Onboarding — 3 inline hint cards in the empty-state area. Shown
-            above the carousel so first-time users see the steps without
-            scrolling. Non-blocking (no backdrop blur). */}
+        {/* Onboarding — 3 inline hint cards for first-time users */}
         {onboardingStep !== null && finished.length === 0 && !current && (
-          <div className="mb-4 rounded-2xl border border-rose-300/30 bg-rose-300/[0.06] px-4 py-3 animate-fade-in">
-            <div className="flex items-start gap-3">
-              <div className="w-7 h-7 rounded-full bg-rose-300/20 flex items-center justify-center flex-shrink-0">
-                {onboardingStep === 0 && <Play className="w-3.5 h-3.5 text-rose-300 fill-rose-300" />}
-                {onboardingStep === 1 && <Square className="w-3.5 h-3.5 text-rose-300 fill-rose-300" />}
-                {onboardingStep === 2 && <Share2 className="w-3.5 h-3.5 text-rose-300" />}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-sm font-semibold text-ink-100 font-display">
-                  {onboardingStep === 0 && '1. Tap Start when it begins'}
-                  {onboardingStep === 1 && '2. Tap Stop when it ends'}
-                  {onboardingStep === 2 && '3. Share with your team'}
-                </div>
-                <div className="text-xs text-ink-300 mt-1 leading-relaxed">
-                  {onboardingStep === 0 && 'The screen stays on while the timer runs.'}
-                  {onboardingStep === 1 && 'Add intensity, tags, or a quick note.'}
-                  {onboardingStep === 2 && 'A link lets your partner or midwife follow along live.'}
-                </div>
-              </div>
-              <button
-                onClick={() => {
-                  localStorage.setItem('contraction-tracker:onboarding-seen', '1');
-                  setOnboardingStep(null);
-                }}
-                className="text-[11px] text-ink-400 active:text-ink-200 px-2 py-1 min-h-[32px]"
-                aria-label="Dismiss onboarding"
-              >
-                Skip
-              </button>
-            </div>
-            <div className="flex items-center justify-between mt-3">
-              <div className="flex gap-1.5">
-                {[0, 1, 2].map((i) => (
-                  <button
-                    key={i}
-                    onClick={() => setOnboardingStep(i)}
-                    className={`h-1.5 rounded-full transition-all ${
-                      i === onboardingStep ? 'w-6 bg-rose-300' : 'w-1.5 bg-ink-400/40 active:bg-ink-400/60'
-                    }`}
-                    aria-label={`Go to step ${i + 1}`}
-                  />
-                ))}
-              </div>
-              {onboardingStep < 2 ? (
-                <button
-                  onClick={() => setOnboardingStep((s) => (s !== null ? s + 1 : null))}
-                  className="text-xs bg-rose-300 active:bg-rose-400 text-plum-950 rounded-lg px-3 py-1.5 font-semibold transition-colors min-h-[32px]"
-                >
-                  Next
-                </button>
-              ) : (
-                <button
-                  onClick={() => {
-                    localStorage.setItem('contraction-tracker:onboarding-seen', '1');
-                    setOnboardingStep(null);
-                  }}
-                  className="text-xs bg-rose-300 active:bg-rose-400 text-plum-950 rounded-lg px-3 py-1.5 font-semibold transition-colors min-h-[32px]"
-                >
-                  Got it
-                </button>
-              )}
-            </div>
-          </div>
+          <Onboarding onDismiss={() => setOnboardingStep(null)} />
         )}
 
         {/* Feature carousel — swipeable cards for quick access to every feature.
@@ -2132,7 +2048,6 @@ export default function App() {
           </div>
         )}
 
-        {/* Onboarding was moved above the carousel — see earlier block. */}
 
         {/* Checklist sheet (hospital bag) — opens from the header Briefcase icon */}
         {showChecklist && (
