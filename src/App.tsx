@@ -1226,11 +1226,14 @@ export default function App() {
                 <span>Started at</span>
                 <input
                   type="time"
-                  value={current.start ? new Date(current.start).toISOString().slice(11, 16) : ''}
+                  step="1"
+                  value={current.start ? new Date(current.start).toISOString().slice(11, 19) : ''}
                   onChange={(e) => {
-                    const [h, m] = e.target.value.split(':');
+                    const parts = e.target.value.split(':');
+                    if (parts.length < 2) return;
                     const d = new Date(current.start);
-                    d.setHours(Number(h), Number(m));
+                    d.setHours(Number(parts[0]), Number(parts[1]));
+                    if (parts[2]) d.setSeconds(Number(parts[2]));
                     setCurrent((c) => c ? { ...c, start: d.toISOString() } : null);
                   }}
                   className="bg-transparent text-ink-400 border-none outline-none focus:underline focus:text-rose-300 cursor-pointer"
@@ -1461,6 +1464,27 @@ export default function App() {
                             ))}
                           </div>
                         </div>
+                        {/* Quick-adjust end time — for when you stopped late */}
+                        <div className="flex items-center gap-1.5 text-[10px] text-ink-500">
+                          <span>Stop was late?</span>
+                          {[-5, -10, -15, -30].map((sec) => (
+                            <button
+                              key={sec}
+                              onClick={() => {
+                                const target = contractions.find((c) => c.id === editingId);
+                                if (!target || !target.end) return;
+                                const d = new Date(target.end);
+                                d.setSeconds(d.getSeconds() + sec);
+                                setContractions((prev) =>
+                                  prev.map((x) => x.id === editingId ? { ...x, end: d.toISOString() } : x),
+                                );
+                              }}
+                              className="px-2 py-0.5 rounded-full border border-ink-300/30 text-ink-400 active:bg-rose-300/10 active:text-rose-300 active:border-rose-300/40 transition-colors"
+                            >
+                              {sec}s
+                            </button>
+                          ))}
+                        </div>
                         {/* Quick-tag chips — tap to toggle inclusion on this contraction */}
                         <div className="flex flex-wrap gap-1.5">
                           {COMMON_TAGS.map((t) => {
@@ -1533,11 +1557,14 @@ export default function App() {
                             <span className="flex items-center gap-1.5">
                               <input
                                 type="time"
-                                value={c.start ? new Date(c.start).toISOString().slice(11, 16) : ''}
+                                step="1"
+                                value={c.start ? new Date(c.start).toISOString().slice(11, 19) : ''}
                                 onChange={(e) => {
-                                  const [h, m] = e.target.value.split(':');
+                                  const parts = e.target.value.split(':');
+                                  if (parts.length < 2) return;
                                   const d = new Date(c.start);
-                                  d.setHours(Number(h), Number(m));
+                                  d.setHours(Number(parts[0]), Number(parts[1]));
+                                  if (parts[2]) d.setSeconds(Number(parts[2]));
                                   setContractions((prev) =>
                                     prev.map((x) => x.id === c.id ? { ...x, start: d.toISOString() } : x),
                                   );
@@ -1553,12 +1580,15 @@ export default function App() {
                               <span className="text-[10px] text-ink-500">–</span>
                               <input
                                 type="time"
-                                value={c.end ? new Date(c.end).toISOString().slice(11, 16) : ''}
+                                step="1"
+                                value={c.end ? new Date(c.end).toISOString().slice(11, 19) : ''}
                                 onChange={(e) => {
                                   if (!c.end) return;
-                                  const [h, m] = e.target.value.split(':');
+                                  const parts = e.target.value.split(':');
+                                  if (parts.length < 2) return;
                                   const d = new Date(c.end);
-                                  d.setHours(Number(h), Number(m));
+                                  d.setHours(Number(parts[0]), Number(parts[1]));
+                                  if (parts[2]) d.setSeconds(Number(parts[2]));
                                   setContractions((prev) =>
                                     prev.map((x) => x.id === c.id ? { ...x, end: d.toISOString() } : x),
                                   );
