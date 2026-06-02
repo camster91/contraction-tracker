@@ -6,7 +6,6 @@ import {
   Trash2,
   Share2,
   Download,
-  Upload,
   AlertTriangle,
   Pencil,
   X,
@@ -16,7 +15,6 @@ import {
   Volume2,
   VolumeX,
   Undo2,
-  Moon,
   Tag,
   ClipboardList,
   PictureInPicture2,
@@ -83,6 +81,7 @@ import SessionsSheet from './components/SessionsSheet';
 import PeopleSheet from './components/PeopleSheet';
 import ShareSheet from './components/ShareSheet';
 import ChecklistSheet from './components/ChecklistSheet';
+import SettingsSheet from './components/SettingsSheet';
 import HospitalSheet from './components/HospitalSheet';
 import ViewSessionModal from './components/ViewSessionModal';
 import ActiveLaborBanner from './components/ActiveLaborBanner';
@@ -1096,205 +1095,28 @@ export default function App() {
 
       {/* Settings sheet — bottom overlay */}
       {showSettings && (
-        <>
-          <div
-            className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
-            onClick={() => setShowSettings(false)}
-            aria-hidden="true"
-          />
-          <div className="fixed inset-x-0 bottom-0 z-50 rounded-t-3xl border-t border-ink-200/30 bg-plum-950/98 backdrop-blur-xl shadow-[0_-8px_32px_-8px_rgba(0,0,0,0.6)] max-h-[85dvh] flex flex-col animate-slide-up">
-            <div className="flex justify-center pt-3 pb-2">
-              <div className="w-8 h-1 rounded-full bg-ink-200/40" />
-            </div>
-            <div className="flex-1 overflow-y-auto px-5 pb-6">
-            <div className="flex items-center gap-2 mb-3">
-              <Cog className="w-4 h-4 text-ink-300" strokeWidth={1.75} />
-              <div className="text-sm font-semibold text-ink-50 font-display">Settings</div>
-            </div>
-
-            {/* Big text toggle */}
-            <label className="flex items-center justify-between py-2 cursor-pointer">
-              <span className="text-sm text-ink-200">Big text</span>
-              <button
-                role="switch"
-                aria-checked={bigText}
-                onClick={() => setBigTextState((v) => !v)}
-                className={`w-10 h-6 rounded-full transition-colors ${
-                  bigText ? 'bg-rose-300/60' : 'bg-ink-100/20'
-                }`}
-              >
-                <span
-                  className={`block w-5 h-5 rounded-full bg-ink-50 shadow transition-transform ${
-                    bigText ? 'translate-x-5' : 'translate-x-0.5'
-                  }`}
-                />
-              </button>
-            </label>
-
-            {/* Mute schedule */}
-            <div className="border-t border-ink-200/20 mt-2 pt-3">
-              <label className="flex items-center justify-between py-2 cursor-pointer">
-                <span className="text-sm text-ink-200 flex items-center gap-1.5">
-                  <Moon className="w-3.5 h-3.5" /> Quiet hours
-                </span>
-                <button
-                  role="switch"
-                  aria-checked={muteSchedule.enabled}
-                  onClick={() =>
-                    setMuteScheduleState((s) => ({ ...s, enabled: !s.enabled }))
-                  }
-                  className={`w-10 h-6 rounded-full transition-colors ${
-                    muteSchedule.enabled ? 'bg-rose-300/60' : 'bg-ink-100/20'
-                  }`}
-                >
-                  <span
-                    className={`block w-5 h-5 rounded-full bg-ink-50 shadow transition-transform ${
-                      muteSchedule.enabled ? 'translate-x-5' : 'translate-x-0.5'
-                    }`}
-                  />
-                </button>
-              </label>
-              {muteSchedule.enabled && (
-                <div className="flex items-center gap-2 mt-2 text-xs text-ink-400">
-                  <span>From</span>
-                  <select
-                    value={muteSchedule.startHour}
-                    onChange={(e) =>
-                      setMuteScheduleState((s) => ({ ...s, startHour: Number(e.target.value) }))
-                    }
-                    className="bg-ink-100/10 border border-ink-200/30 rounded px-2 py-1 text-ink-100"
-                  >
-                    {Array.from({ length: 24 }, (_, h) => (
-                      <option key={h} value={h}>{h.toString().padStart(2, '0')}:00</option>
-                    ))}
-                  </select>
-                  <span>to</span>
-                  <select
-                    value={muteSchedule.endHour}
-                    onChange={(e) =>
-                      setMuteScheduleState((s) => ({ ...s, endHour: Number(e.target.value) }))
-                    }
-                    className="bg-ink-100/10 border border-ink-200/30 rounded px-2 py-1 text-ink-100"
-                  >
-                    {Array.from({ length: 24 }, (_, h) => (
-                      <option key={h} value={h}>{h.toString().padStart(2, '0')}:00</option>
-                    ))}
-                  </select>
-                </div>
-              )}
-              {muteSchedule.enabled && isInQuietHours(muteSchedule) && (
-                <div className="text-[10px] text-amber-300 mt-2">
-                  Quiet hours are active now. Only the 5-1-1 alert will play.
-                </div>
-              )}
-            </div>
-
-            {/* Theme variant */}
-            <div className="border-t border-ink-200/20 mt-3 pt-3">
-              <div className="text-[10px] uppercase tracking-[0.15em] text-ink-400 font-semibold mb-2">Theme</div>
-              <div className="flex gap-1.5">
-                {(['calm', 'cool'] as const).map((v) => (
-                  <button
-                    key={v}
-                    onClick={() => {
-                      setThemeVariant(v);
-                      localStorage.setItem('contraction-tracker:theme', v);
-                    }}
-                    className={`text-[11px] px-3 py-1.5 rounded-lg font-medium transition-colors ${
-                      themeVariant === v
-                        ? v === 'calm'
-                          ? 'bg-rose-300/20 text-rose-200 border border-rose-300/40'
-                          : 'bg-blue-300/20 text-blue-200 border border-blue-300/40'
-                        : 'bg-ink-100/5 text-ink-400 border border-ink-200/30 active:bg-ink-100/10'
-                    }`}
-                  >
-                    {v === 'calm' ? '🌸 Calm' : '❄️ Cool'}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Time format */}
-            <div className="mt-3">
-              <div className="text-[10px] uppercase tracking-[0.15em] text-ink-400 font-semibold mb-2">Time</div>
-              <div className="flex gap-1.5">
-                {([false, true] as const).map((v) => (
-                  <button
-                    key={String(v)}
-                    onClick={() => {
-                      setHour12(v);
-                      setHour12Preferred(v);
-                    }}
-                    className={`text-[11px] px-3 py-1.5 rounded-lg font-medium transition-colors ${
-                      hour12 === v
-                        ? 'bg-rose-300/20 text-rose-200 border border-rose-300/40'
-                        : 'bg-ink-100/5 text-ink-400 border border-ink-200/30 active:bg-ink-100/10'
-                    }`}
-                  >
-                    {v ? '12-hour' : '24-hour'}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Backup section */}
-            <div className="border-t border-ink-200/20 mt-3 pt-3">
-              <div className="text-[10px] uppercase tracking-[0.15em] text-ink-400 font-semibold mb-2">Backup</div>
-              <div className="space-y-2">
-                <button
-                  onClick={handleExportBackup}
-                  className="w-full text-left text-sm text-ink-200 bg-ink-100/5 active:bg-ink-100/10 border border-ink-200/30 rounded-xl px-3 py-2.5 flex items-center gap-2 transition-colors"
-                >
-                  <Download className="w-4 h-4 text-sage-300" strokeWidth={1.75} />
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium">Export backup</div>
-                    <div className="text-[10px] text-ink-500">Download .json file</div>
-                  </div>
-                </button>
-                <button
-                  onClick={handleSendVia}
-                  className="w-full text-left text-sm text-ink-200 bg-ink-100/5 active:bg-ink-100/10 border border-ink-200/30 rounded-xl px-3 py-2.5 flex items-center gap-2 transition-colors"
-                >
-                  <Share2 className="w-4 h-4 text-rose-300" strokeWidth={1.75} />
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium">Send via…</div>
-                    <div className="text-[10px] text-ink-500">AirDrop, message, email</div>
-                  </div>
-                </button>
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="w-full text-left text-sm text-ink-200 bg-ink-100/5 active:bg-ink-100/10 border border-ink-200/30 rounded-xl px-3 py-2.5 flex items-center gap-2 transition-colors"
-                >
-                  <Upload className="w-4 h-4 text-sage-300" strokeWidth={1.75} />
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium">Import from backup</div>
-                    <div className="text-[10px] text-ink-500">Restore from .json file</div>
-                  </div>
-                </button>
-              </div>
-            </div>
-
-            {/* Version & update */}
-            <div className="border-t border-ink-200/20 mt-3 pt-3">
-              <div className="flex items-center justify-between mb-2">
-                <div>
-                  <div className="text-[10px] uppercase tracking-[0.15em] text-ink-400 font-semibold">App version</div>
-                  <div className="text-[11px] text-ink-300 mt-0.5">Luna v{APP_VERSION}</div>
-                </div>
-              </div>
-              <button
-                onClick={() => handleAppUpdate()}
-                className="w-full bg-rose-300 active:bg-rose-400 text-plum-950 rounded-xl py-2.5 text-sm font-semibold transition-colors"
-              >
-                Update to latest version
-              </button>
-              <div className="text-[9px] text-ink-600 mt-1.5 text-center">
-                Clears old cache and loads the newest version. Your data is safe.
-              </div>
-            </div>
-        </div>
-      </div>
-        </>
+        <SettingsSheet
+          bigText={bigText}
+          setBigTextState={setBigTextState}
+          muteSchedule={muteSchedule}
+          setMuteScheduleState={setMuteScheduleState}
+          themeVariant={themeVariant}
+          setThemeVariant={(v) => {
+            setThemeVariant(v);
+            localStorage.setItem('contraction-tracker:theme', v);
+          }}
+          hour12={hour12}
+          setHour12={(v) => {
+            setHour12(v);
+            setHour12Preferred(v);
+          }}
+          handleExportBackup={handleExportBackup}
+          handleSendVia={handleSendVia}
+          handleAppUpdate={handleAppUpdate}
+          fileInputRef={fileInputRef}
+          appVersion={APP_VERSION}
+          onClose={() => setShowSettings(false)}
+        />
       )}
 
       {/* Sessions sheet — drops from the Luna wordmark */}
