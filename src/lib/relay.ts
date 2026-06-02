@@ -10,12 +10,13 @@ export async function createShareOnRelay(input: {
   pin?: string;
   ttlHours?: number;
   mode?: string;
-}): Promise<{ code: string; expiresAt: string; pin: string | null } | null> {
+  state?: string;
+}): Promise<{ code: string; expiresAt: string; pin: string | null; state: string } | null> {
   try {
     const res = await fetch(`${RELAY_URL}/api/shares`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionId: input.sessionId, pin: input.pin, ttlHours: input.ttlHours, mode: input.mode }),
+      body: JSON.stringify({ sessionId: input.sessionId, pin: input.pin, ttlHours: input.ttlHours, mode: input.mode, state: input.state }),
     });
     if (!res.ok) return null;
     return await res.json();
@@ -63,6 +64,7 @@ export async function getShareFromRelay(code: string): Promise<{
   code: string;
   sessionId: string;
   hasPin: boolean;
+  state: string;
   expiresAt: string;
   lastOpenedAt: string | null;
   createdAt: string;
@@ -108,6 +110,19 @@ export async function markShareOpenedOnRelay(code: string): Promise<boolean> {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'opened' }),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+export async function setShareStateOnRelay(code: string, state: string): Promise<boolean> {
+  try {
+    const res = await fetch(`${RELAY_URL}/api/shares/${code}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'set-state', state }),
     });
     return res.ok;
   } catch {

@@ -54,6 +54,7 @@ export default function ShareSheet({ sessionId, contractions, onClose }: Props) 
   const [copied, setCopied] = useState<string | null>(null);
   const [requirePin, setRequirePin] = useState(false);
   const [shareMode, setShareMode] = useState<'full' | 'stats' | 'track'>('full');
+  const [shareState, setShareState] = useState<'prenatal' | 'labor' | 'postpartum' | 'archived'>('prenatal');
 
   // Resolve the session's display name from the sessions list
   const sessions = JSON.parse(localStorage.getItem('contraction-tracker:sessions') || '[]');
@@ -68,14 +69,14 @@ export default function ShareSheet({ sessionId, contractions, onClose }: Props) 
     setRelayError(null);
     setCreating(true);
     const pin = requirePin ? String(Math.floor(1000 + Math.random() * 9000)) : undefined;
-    createShare({ sessionId, ttlHours: 24, pin, mode: shareMode });
+    createShare({ sessionId, ttlHours: 720, pin, mode: shareMode });
     setShares(getShares());
     setRequirePin(false);
     // Also create on the relay server for multi-device sharing.
     // createShareOnRelay returns null on any failure (network, 5xx, etc) —
     // we surface a clear error instead of letting the user think the share
     // works when no one in another browser can actually open it.
-    const relayResult = await createShareOnRelay({ sessionId, pin, ttlHours: 24, mode: shareMode });
+    const relayResult = await createShareOnRelay({ sessionId, pin, ttlHours: 720, mode: shareMode, state: 'prenatal' });
     if (!relayResult) {
       setRelayError(
         'Could not reach the share server. Your link will work on this device only — viewers in other browsers will not see updates until the relay reconnects.',
@@ -158,8 +159,8 @@ export default function ShareSheet({ sessionId, contractions, onClose }: Props) 
       </div>
 
       <div className="text-[11px] text-ink-400 mb-3 leading-relaxed">
-        Generate a link someone can open to follow along. Same-device for now;
-        multi-device realtime sync would need a server.
+        Generate a link that your circle can open to follow along in real time.
+        Create your forever link — it won't expire.
       </div>
 
       {/* Share mode selector */}
@@ -182,6 +183,29 @@ export default function ShareSheet({ sessionId, contractions, onClose }: Props) 
             >
               <div className="font-medium">{opt.label}</div>
               <div className="text-[10px] text-ink-500">{opt.desc}</div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* State picker */}
+      <div className="mb-3">
+        <div className="text-[10px] uppercase tracking-[0.15em] text-ink-400 font-semibold mb-1.5">Labor stage</div>
+        <div className="flex gap-1.5 flex-wrap">
+          {(['prenatal', 'labor', 'postpartum', 'archived'] as const).map((st) => (
+            <button
+              key={st}
+              onClick={() => setShareState(st)}
+              className={`px-3 py-1.5 rounded-full text-[10px] font-medium border transition-colors ${
+                shareState === st
+                  ? st === 'prenatal' ? 'bg-ink-200/20 border-ink-300/40 text-ink-200' :
+                    st === 'labor' ? 'bg-rose-300/20 border-rose-300/40 text-rose-300' :
+                    st === 'postpartum' ? 'bg-sage-300/20 border-sage-300/40 text-sage-300' :
+                    'bg-ink-100/10 border-ink-200/30 text-ink-500'
+                  : 'border-ink-200/30 bg-ink-100/5 text-ink-400 active:bg-ink-100/10'
+              }`}
+            >
+              {st}
             </button>
           ))}
         </div>
@@ -287,7 +311,16 @@ export default function ShareSheet({ sessionId, contractions, onClose }: Props) 
                       PIN: {s.pin}
                     </span>
                   )}
-                  <span>expires {new Date(s.expiresAt).toLocaleString()}</span>
+                  {s.state && (
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-medium ${
+                      s.state === 'prenatal' ? 'bg-ink-200/20 text-ink-300' :
+                      s.state === 'labor' ? 'bg-rose-300/20 text-rose-300' :
+                      s.state === 'postpartum' ? 'bg-sage-300/20 text-sage-300' :
+                      'bg-ink-100/10 text-ink-500'
+                    }`}>
+                      {s.state}
+                    </span>
+                  )}
                 </div>
                 {s.lastOpenedAt && (
                   <div className="text-[10px] text-ink-500 mt-0.5">

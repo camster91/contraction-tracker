@@ -1,5 +1,5 @@
 // Read-only share view rendered at `/?share=CODE`.
-// v2 — bulletproof version with no abstractions, inline styles, and error handling.
+// v3 — state-aware with activity feed.
 
 import { useEffect, useMemo, useState } from 'react';
 import { Heart, Shield, AlertTriangle, Clock } from 'lucide-react';
@@ -24,6 +24,7 @@ import {
   markShareOpenedOnRelay,
   RELAY_URL,
 } from '../lib/relay';
+import ActivityFeed from './ActivityFeed';
 
 export default function ShareView({ code }: { code: string }) {
   const [pinInput, setPinInput] = useState('');
@@ -75,6 +76,7 @@ export default function ShareView({ code }: { code: string }) {
           setShare({
             id: code,
             sessionId: relayShare.sessionId,
+            state: relayShare.state || 'prenatal',
             expiresAt: relayShare.expiresAt,
             revoked: false,
             createdAt: relayShare.createdAt,
@@ -207,6 +209,7 @@ export default function ShareView({ code }: { code: string }) {
   }, [unlocked, share, code]);
 
   // ---- Derived ----
+  const shareState = share?.state || 'prenatal';
   const finished = useMemo(
     () => contractions.filter((c: any) => c.end).sort((a: any, b: any) => a.start.localeCompare(b.start)),
     [contractions],
@@ -336,6 +339,44 @@ export default function ShareView({ code }: { code: string }) {
           <span style={{ fontSize: 10, color: textMuted, textTransform: 'uppercase', letterSpacing: 2, marginTop: 2 }}>Labor tracker</span>
         </div>
 
+        {/* State banner */}
+        {shareState === 'prenatal' && (
+          <div style={{ borderRadius: 14, border: '1px solid rgba(232,149,122,0.25)', background: 'rgba(232,149,122,0.08)', padding: '10px 14px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#8a6f64', flexShrink: 0 }} />
+            <div>
+              <div style={{ fontSize: 12, color: '#e8957a', fontWeight: 600 }}>Waiting for labor to begin</div>
+              <div style={{ fontSize: 10, color: '#8a6f64', marginTop: 2 }}>Share this link with your circle — they'll see updates in real time</div>
+            </div>
+          </div>
+        )}
+        {shareState === 'labor' && (
+          <div style={{ borderRadius: 14, border: '1px solid rgba(232,149,122,0.4)', background: 'rgba(232,149,122,0.12)', padding: '10px 14px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#e8957a', flexShrink: 0, animation: 'pulse 2s infinite' }} />
+            <div>
+              <div style={{ fontSize: 12, color: '#e8957a', fontWeight: 600 }}>Active labor</div>
+              <div style={{ fontSize: 10, color: '#b89184', marginTop: 2 }}>{finished.length} contraction{finished.length !== 1 ? 's' : ''} so far</div>
+            </div>
+          </div>
+        )}
+        {shareState === 'postpartum' && (
+          <div style={{ borderRadius: 14, border: '1px solid rgba(142,175,132,0.4)', background: 'rgba(142,175,132,0.1)', padding: '10px 14px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ fontSize: 16 }}>🎉</div>
+            <div>
+              <div style={{ fontSize: 12, color: '#a8bf8a', fontWeight: 600 }}>Baby is here — welcome!</div>
+              <div style={{ fontSize: 10, color: '#8a9f7a', marginTop: 2 }}>Share the moment, post updates</div>
+            </div>
+          </div>
+        )}
+        {shareState === 'archived' && (
+          <div style={{ borderRadius: 14, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.03)', padding: '10px 14px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ fontSize: 16 }}>📖</div>
+            <div>
+              <div style={{ fontSize: 12, color: '#8a6f64', fontWeight: 600 }}>This labor has ended</div>
+              <div style={{ fontSize: 10, color: '#6a5f54', marginTop: 2 }}>Read-only keepsake · <a href="#" style={{ color: '#b89184' }}>Download PDF</a></div>
+            </div>
+          </div>
+        )}
+
         {/* 5-1-1 alert */}
         {showAlert && (
           <div style={{ borderRadius: 16, border: `1px solid ${rose}44`, background: `${rose}15`, padding: 12, display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 16 }}>
@@ -441,6 +482,14 @@ export default function ShareView({ code }: { code: string }) {
           <div style={{ textAlign: 'center', padding: '32px 0', fontSize: 13, color: textMuted }}>
             <Clock size={24} style={{ margin: '0 auto 8px', opacity: 0.5 }} />
             Waiting for the first contraction…
+          </div>
+        )}
+
+        {/* Activity feed — always shown after contractions display */}
+        {(shareState === 'prenatal' || shareState === 'postpartum' || shareState === 'archived' || finished.length > 0) && (
+          <div style={{ marginTop: 24 }}>
+            <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 2, color: textMuted, fontWeight: 600, marginBottom: 14, paddingLeft: 4 }}>Activity</div>
+            <ActivityFeed code={code} shareState={shareState} />
           </div>
         )}
 
