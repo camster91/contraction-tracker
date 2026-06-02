@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Play,
+  Plus,
   Square,
   Trash2,
   Share2,
@@ -85,6 +86,7 @@ import ActiveLaborBanner from './components/ActiveLaborBanner';
 import PainLocationPicker from './components/PainLocationPicker';
 import {
   contractionsInSession,
+  createSession,
   getSessions,
   getActiveSessionId,
   getPeople,
@@ -1409,6 +1411,21 @@ export default function App() {
             <PeopleCard
               onClick={() => setShowPeople(true)}
             />
+            {/* New session */}
+            <FeatureCard
+              icon={<Plus className="w-4 h-4" />}
+              label="New session"
+              sub="Start fresh"
+              onClick={() => {
+                const name = prompt('Name this session (e.g. Day 2):');
+                if (name) {
+                  const sess = createSession(name);
+                  setActiveId(sess.id);
+                  setSessions(getSessions());
+                }
+              }}
+              accent="sage"
+            />
             {/* Backup */}
             <FeatureCard
               icon={<Download className="w-4 h-4" />}
@@ -1523,7 +1540,7 @@ export default function App() {
               </div>
             )}
 
-            <ul className="space-y-2">
+            <ul className="space-y-3">
               {[...visibleFinished].reverse().map((c, idx) => {
                 const dur = durationSeconds(c, now);
                 const interval = idx < finished.length - 1 ? intervalSeconds(finished[finished.length - 2 - idx], c) : null;
@@ -1531,7 +1548,7 @@ export default function App() {
                 return (
                   <li
                     key={c.id}
-                    className="rounded-2xl border border-ink-200/30 bg-gradient-to-br from-ink-100/[0.04] to-transparent px-5 py-4 overflow-hidden"
+                    className="rounded-2xl border border-ink-200/30 bg-gradient-to-br from-ink-100/[0.04] to-transparent px-4 py-5 overflow-hidden"
                   >
                     {isEditing ? (
                       <div className="space-y-2.5 animate-fade-in">
