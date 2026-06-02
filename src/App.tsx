@@ -102,7 +102,7 @@ import { postMessage } from './lib/feed';
 
 const STORAGE_KEY = 'contraction-tracker:v1';
 const SESSION_KEY = 'contraction-tracker:current';
-const APP_VERSION = '1.46';
+const APP_VERSION = '1.47';
 const MUTED_KEY = 'contraction-tracker:muted';
 const BACKUP_REMINDER_KEY = 'contraction-tracker:backup-dismissed';
 
@@ -182,6 +182,9 @@ export default function App() {
   // Data integrity toast — shown when corrupted data was detected and recovered
   const [dataDamagedToast, setDataDamagedToast] = useState(false);
 
+  // State change toast — shown when the host manually changes the share's labor stage
+  const [stateToast, setStateToast] = useState<string | null>(null);
+
   // Hidden file input for importing backups
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -216,6 +219,13 @@ export default function App() {
       }
     } catch { /* ignore */ }
   }, []);
+
+  // Auto-dismiss state change toast after 4 seconds
+  useEffect(() => {
+    if (!stateToast) return;
+    const timer = setTimeout(() => setStateToast(null), 4000);
+    return () => clearTimeout(timer);
+  }, [stateToast]);
 
   // Auto-discard stale in-progress timer. If a "current" contraction has been
   // running for more than 12 hours, it's almost certainly a forgotten timer
@@ -960,6 +970,31 @@ export default function App() {
         </div>
       )}
 
+      {/* State change toast — shown when the host manually changes the share's labor stage */}
+      {stateToast && (
+        <div
+          className="fixed inset-x-0 top-6 z-50 flex justify-center pointer-events-none"
+          role="status"
+          aria-live="polite"
+        >
+          <div className="pointer-events-auto mx-4 flex items-start gap-3 bg-sage-300/15 border border-sage-300/40 backdrop-blur-xl rounded-2xl px-4 py-3 shadow-[0_8px_32px_-8px_rgba(0,0,0,0.6)] max-w-sm animate-fade-in">
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-semibold text-sage-200">Stage set to {stateToast}</div>
+              <div className="text-xs text-ink-300 mt-0.5">
+                Your circle will be notified.
+              </div>
+            </div>
+            <button
+              onClick={() => setStateToast(null)}
+              className="p-1 text-ink-400 active:text-ink-200 flex-shrink-0"
+              aria-label="Dismiss"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Hidden file input for backup import */}
       <input
         ref={fileInputRef}
@@ -1230,6 +1265,7 @@ export default function App() {
               setShowShare(null);
               setSessions(getSessions());
             }}
+            onStateChange={(st) => setStateToast(st)}
           />
         </>
       )}

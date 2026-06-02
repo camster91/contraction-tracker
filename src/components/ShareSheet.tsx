@@ -19,6 +19,7 @@ type Props = {
   sessionId: string;
   contractions: Contraction[];
   onClose: () => void;
+  onStateChange?: (state: 'prenatal' | 'labor' | 'postpartum' | 'archived') => void;
 };
 
 function buildShareUrl(code: string): string {
@@ -47,7 +48,7 @@ function buildUpdateText(contractions: Contraction[], sessionName: string): stri
   return lines.join(' ');
 }
 
-export default function ShareSheet({ sessionId, contractions, onClose }: Props) {
+export default function ShareSheet({ sessionId, contractions, onClose, onStateChange }: Props) {
   const [relayError, setRelayError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [shares, setShares] = useState<Share[]>(() => getShares());
@@ -134,6 +135,11 @@ export default function ShareSheet({ sessionId, contractions, onClose }: Props) 
     }
   };
 
+  const handleStateChange = (st: 'prenatal' | 'labor' | 'postpartum' | 'archived') => {
+    setShareState(st);
+    onStateChange?.(st);
+  };
+
   return (
     <>
       <div
@@ -195,7 +201,7 @@ export default function ShareSheet({ sessionId, contractions, onClose }: Props) 
           {(['prenatal', 'labor', 'postpartum', 'archived'] as const).map((st) => (
             <button
               key={st}
-              onClick={() => setShareState(st)}
+              onClick={() => handleStateChange(st)}
               className={`px-3 py-1.5 rounded-full text-[10px] font-medium border transition-colors ${
                 shareState === st
                   ? st === 'prenatal' ? 'bg-ink-200/20 border-ink-300/40 text-ink-200' :
