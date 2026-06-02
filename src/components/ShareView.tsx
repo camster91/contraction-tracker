@@ -22,6 +22,7 @@ import {
   getShareFromRelay,
   pullContractionsFromRelay,
   markShareOpenedOnRelay,
+  RELAY_URL,
 } from '../lib/relay';
 
 export default function ShareView({ code }: { code: string }) {
@@ -135,6 +136,75 @@ export default function ShareView({ code }: { code: string }) {
       setContractions(all.filter((c: any) => sessionIdOf(c) === (share.sessionId || 'primary')));
     } catch { /* ignore */ }
   }, [unlocked, share]);
+
+  // SSE live updates — replaces 1s polling when the relay supports it.
+  // Falls back to adaptive polling (1s during contraction, 15s otherwise)
+  // if EventSource fails to connect. This is the single fix that lets 20
+  // viewers watch a labor without hammering the relay with 1200 req/min.
+  useEffect(() => {
+    if (!unlocked || !share) return;
+    const url = `${RELAY_URL}/api/shares/${code}/stream`;
+    let es: EventSource | null = null;
+    let pollTimer: ReturnType<typeof setTimeout> | null = null;
+    let sseWorking = false;
+    const startPolling = () => {
+      if (pollTimer) return;
+      const tick = async () => {
+        let latest: any = null;
+        try {
+          latest = await pullContractionsFromRelay(code);
+          if (latest?.contractions) {
+            setContractions(latest.contractions);
+          }
+        } catch { /* ignore */ }
+        // Adaptive: 1s while a contraction is in progress, 15s otherwise
+        const next = latest && latest.current ? 1000 : 15000;
+        pollTimer = setTimeout(tick, next);
+      };
+      tick();
+    };
+    const stopPolling = () => {
+      if (pollTimer) { clearTimeout(pollTimer); pollTimer = null; }
+    };
+    try {
+      es = new EventSource(url);
+      es.onopen = () => {
+        sseWorking = true;
+        stopPolling();
+      };
+      es.onmessage = async (e: MessageEvent) => {
+        try {
+          const payload = JSON.parse(e.data);
+          if (payload.type === 'snapshot' || payload.type === 'update') {
+            if (payload.contractions) setContractions(payload.contractions);
+            // Re-fetch the latest from /contractions so we get the canonical state
+            // (the SSE message only carries a count + updatedAt for the update type)
+            try {
+              const fresh: any = await pullContractionsFromRelay(code);
+              if (fresh?.contractions) setContractions(fresh.contractions);
+            } catch { /* ignore */ }
+          } else if (payload.type === 'revoked') {
+            setShare((s: any) => s ? { ...s, revoked: true } : s);
+          }
+        } catch { /* ignore malformed event */ }
+      };
+      es.onerror = () => {
+        // EventSource auto-reconnects; if we never connected, fall back to polling
+        if (!sseWorking) {
+          es?.close();
+          es = null;
+          startPolling();
+        }
+      };
+    } catch {
+      // Browser doesn't support EventSource (very rare) — fall back
+      startPolling();
+    }
+    return () => {
+      es?.close();
+      stopPolling();
+    };
+  }, [unlocked, share, code]);
 
   // ---- Derived ----
   const finished = useMemo(

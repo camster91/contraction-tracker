@@ -3,7 +3,7 @@
 //
 // Used by: ShareSheet (push) and ShareView (pull)
 
-const RELAY_URL = 'https://relay.ashbi.ca';
+export const RELAY_URL = 'https://relay.ashbi.ca';
 
 export async function createShareOnRelay(input: {
   sessionId: string;
