@@ -23,6 +23,8 @@ import {
   Users2,
   Cog,
   Stethoscope,
+  Mic,
+  MicOff,
 } from 'lucide-react';
 import {
   type Contraction,
@@ -70,6 +72,7 @@ import {
   type MuteSchedule,
 } from './lib/settings';
 import { useUndo } from './lib/undo';
+import { isVoiceSupported, startListening, stopListening } from './lib/voice';
 import Timeline from './components/Timeline';
 import FrequencyChart from './components/FrequencyChart';
 import SessionsSheet from './components/SessionsSheet';
@@ -135,6 +138,7 @@ export default function App() {
   const [showShare, setShowShare] = useState<string | null>(null); // sessionId or null
   const [sessions, setSessions] = useState<Session[]>(() => getSessions());
   const [activeSessionId, setActiveId] = useState<string>(() => getActiveSessionId());
+  const [voiceActive, setVoiceActive] = useState(false);
 
   // Viewing an ended session read-only (without switching active session)
   const [viewingSessionId, setViewingSessionId] = useState<string | null>(null);
@@ -275,7 +279,7 @@ export default function App() {
     // Install the visibility-change re-acquire handler for the wake lock
     installWakeLockVisibilityHandler();
     // Release the wake lock if the page is being torn down
-    return () => disableWakeLock();
+    return () => { disableWakeLock(); stopListening(); };
   }, []);
 
   // Keep the audio module in sync with the muted state
@@ -483,6 +487,18 @@ export default function App() {
   const handleMuteToggle = () => {
     unlockAudio();
     setMutedState((m) => !m);
+  };
+
+  const handleVoiceToggle = () => {
+    setVoiceActive((v) => {
+      if (v) {
+        stopListening();
+        return false;
+      } else {
+        startListening(handleStart, handleStop);
+        return true;
+      }
+    });
   };
 
   const handleShare = async () => {
@@ -1099,6 +1115,17 @@ export default function App() {
           >
             <Cog className="w-4 h-4" strokeWidth={1.75} />
           </button>
+          {/* Voice control — mic for hands-free start/stop */}
+          {isVoiceSupported() && (
+            <button
+              onClick={handleVoiceToggle}
+              className={`p-2 rounded-lg transition-colors ${voiceActive ? 'text-rose-300 bg-rose-300/10 animate-pulse-subtle' : 'text-ink-300 active:text-rose-300'}`}
+              aria-label={voiceActive ? 'Voice listening — tap to stop' : 'Voice control — tap to enable'}
+              title={voiceActive ? 'Voice on' : 'Voice off'}
+            >
+              {voiceActive ? <Mic className="w-4 h-4" strokeWidth={1.75} /> : <MicOff className="w-4 h-4" strokeWidth={1.75} />}
+            </button>
+          )}
         </div>
 
         {/* Tooltip — drops down from the saved indicator */}
@@ -1246,10 +1273,10 @@ export default function App() {
                   <button
                     onClick={handleEnterPip}
                     className="ml-1 p-1 rounded text-rose-300/60 active:text-rose-300 active:bg-rose-300/10 transition-colors"
-                    aria-label="Picture-in-Picture"
+                    aria-label="Floating timer"
                     title="Picture-in-Picture"
                   >
-                    <PictureInPicture2 className="w-3.5 h-3.5" strokeWidth={1.75} />
+                    <PictureInPicture2 className="w-4 h-4" strokeWidth={1.75} />
                   </button>
                 )}
               </div>
@@ -1467,7 +1494,7 @@ export default function App() {
                 return (
                   <li
                     key={c.id}
-                    className="rounded-2xl border border-ink-200/30 bg-gradient-to-br from-ink-100/[0.04] to-transparent px-4 py-3"
+                    className="rounded-2xl border border-ink-200/30 bg-gradient-to-br from-ink-100/[0.04] to-transparent px-5 py-4"
                   >
                     {isEditing ? (
                       <div className="space-y-2.5 animate-fade-in">
@@ -1607,7 +1634,7 @@ export default function App() {
                                 aria-label="Edit start time"
                               />
                             </span>
-                            <span className="font-display text-lg font-light text-rose-300 tabular-nums">
+                            <span className="font-display text-xl font-light text-rose-300 tabular-nums">
                               {formatDuration(dur)}
                             </span>
                             <span className="flex items-center gap-1">

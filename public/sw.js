@@ -1,7 +1,7 @@
 /* Luna — Contraction Timer PWA service worker.
  * Cache-first for app shell, network-first for HTML. */
 
-const CACHE_NAME = 'luna-v19';
+const CACHE_NAME = 'luna-v20';
 const APP_SHELL = [
   '/',
   '/index.html',
