@@ -264,8 +264,14 @@ export default function App() {
         worker.terminate();
       };
     } else {
-      const idleTick = window.setInterval(() => setNow(Date.now()), 1000);
-      return () => window.clearInterval(idleTick);
+      // Use requestAnimationFrame for drift-free real-time display
+      let frame = 0;
+      const tick = () => {
+        setNow(Date.now());
+        frame = requestAnimationFrame(tick);
+      };
+      frame = requestAnimationFrame(tick);
+      return () => cancelAnimationFrame(frame);
     }
   }, [current]);
 
@@ -1288,7 +1294,7 @@ export default function App() {
                 <input
                   type="time"
                   step="1"
-                  value={current.start ? new Date(current.start).toISOString().slice(11, 19) : ''}
+                  value={current.start ? `${String(new Date(current.start).getHours()).padStart(2,'0')}:${String(new Date(current.start).getMinutes()).padStart(2,'0')}:${String(new Date(current.start).getSeconds()).padStart(2,'0')}` : ''}
                   onChange={(e) => {
                     const parts = e.target.value.split(':');
                     if (parts.length < 2) return;
@@ -1619,7 +1625,7 @@ export default function App() {
                               <input
                                 type="time"
                                 step="1"
-                                value={c.start ? new Date(c.start).toISOString().slice(11, 19) : ''}
+                                value={c.start ? `${String(new Date(c.start).getHours()).padStart(2,'0')}:${String(new Date(c.start).getMinutes()).padStart(2,'0')}:${String(new Date(c.start).getSeconds()).padStart(2,'0')}` : ''}
                                 onChange={(e) => {
                                   const parts = e.target.value.split(':');
                                   if (parts.length < 2) return;
@@ -1642,7 +1648,7 @@ export default function App() {
                               <input
                                 type="time"
                                 step="1"
-                                value={c.end ? new Date(c.end).toISOString().slice(11, 19) : ''}
+                                value={c.end ? `${String(new Date(c.end).getHours()).padStart(2,'0')}:${String(new Date(c.end).getMinutes()).padStart(2,'0')}:${String(new Date(c.end).getSeconds()).padStart(2,'0')}` : ''}
                                 onChange={(e) => {
                                   if (!c.end) return;
                                   const parts = e.target.value.split(':');
