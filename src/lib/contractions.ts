@@ -77,7 +77,27 @@ export function formatDuration(totalSeconds: number): string {
 
 export function formatClock(iso: string): string {
   const d = new Date(iso);
-  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+  const hour12 = isHour12Preferred();
+  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12 });
+}
+
+// Read the 12-hour time preference from localStorage. Defaults to 24h
+// (matches the medical convention used in contraction tracking).
+const HOUR12_KEY = 'contraction-tracker:hour12';
+export function isHour12Preferred(): boolean {
+  try {
+    return localStorage.getItem(HOUR12_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+export function setHour12Preferred(on: boolean): void {
+  try {
+    if (on) localStorage.setItem(HOUR12_KEY, '1');
+    else localStorage.removeItem(HOUR12_KEY);
+  } catch {
+    /* ignore */
+  }
 }
 
 export function formatRelative(past: Date, now: number = Date.now()): string {

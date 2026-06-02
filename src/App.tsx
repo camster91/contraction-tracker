@@ -40,7 +40,9 @@ import {
   getTags,
   intervalSeconds,
   isFiveOneOne,
+  isHour12Preferred,
   secondsSinceLastFinish,
+  setHour12Preferred,
 } from './lib/contractions';
 import { load, save, uid } from './lib/storage';
 import { autoBackup, loadAutoBackup } from './lib/idb';
@@ -99,7 +101,7 @@ import { getExams } from './lib/hospital';
 
 const STORAGE_KEY = 'contraction-tracker:v1';
 const SESSION_KEY = 'contraction-tracker:current';
-const APP_VERSION = '1.36';
+const APP_VERSION = '1.37';
 const MUTED_KEY = 'contraction-tracker:muted';
 const BACKUP_REMINDER_KEY = 'contraction-tracker:backup-dismissed';
 
@@ -169,6 +171,12 @@ export default function App() {
   const [themeVariant, setThemeVariant] = useState<'calm' | 'cool'>(() => {
     return (localStorage.getItem('contraction-tracker:theme') as 'calm' | 'cool') || 'calm';
   });
+
+  // 12-hour time format toggle. Defaults to 24h.
+  const [hour12, setHour12] = useState<boolean>(() => isHour12Preferred());
+  // Bump a counter when this changes so consumers re-read the preference.
+  // (formatClock reads localStorage on every call, so a simple state change
+  // is enough — React re-renders and all the formatted clocks update.)
 
   // Data integrity toast — shown when corrupted data was detected and recovered
   const [dataDamagedToast, setDataDamagedToast] = useState(false);
@@ -1035,6 +1043,29 @@ export default function App() {
                     }`}
                   >
                     {v === 'calm' ? '🌸 Calm' : '❄️ Cool'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Time format */}
+            <div className="mt-3">
+              <div className="text-[10px] uppercase tracking-[0.15em] text-ink-400 font-semibold mb-2">Time</div>
+              <div className="flex gap-1.5">
+                {([false, true] as const).map((v) => (
+                  <button
+                    key={String(v)}
+                    onClick={() => {
+                      setHour12(v);
+                      setHour12Preferred(v);
+                    }}
+                    className={`text-[11px] px-3 py-1.5 rounded-lg font-medium transition-colors ${
+                      hour12 === v
+                        ? 'bg-rose-300/20 text-rose-200 border border-rose-300/40'
+                        : 'bg-ink-100/5 text-ink-400 border border-ink-200/30 active:bg-ink-100/10'
+                    }`}
+                  >
+                    {v ? '12-hour' : '24-hour'}
                   </button>
                 ))}
               </div>

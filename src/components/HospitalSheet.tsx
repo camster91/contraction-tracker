@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { X, Plus, Trash2, Stethoscope } from 'lucide-react';
 import { addExam, deleteExam, getExams, type CervicalExam } from '../lib/hospital';
+import { isHour12Preferred } from '../lib/contractions';
 
 type Props = {
   sessionId: string;
@@ -189,7 +190,7 @@ export default function HospitalSheet({ sessionId, onClose }: Props) {
                 <div className="flex items-start justify-between">
                   <div>
                     <div className="font-display text-lg font-medium text-ink-50">
-                      {time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      {time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: isHour12Preferred() })}
                     </div>
                     <div className="text-[10px] text-ink-500 mt-0.5">
                       {time.toLocaleDateString([], { month: 'short', day: 'numeric' })}

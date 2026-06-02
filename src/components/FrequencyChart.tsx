@@ -3,7 +3,7 @@
 // to show how interval is trending. Uses the same visual style as Timeline.tsx.
 
 import type { Contraction } from '../lib/contractions';
-import { durationSeconds, intervalSeconds, formatClock } from '../lib/contractions';
+import { durationSeconds, intervalSeconds, formatClock, isHour12Preferred } from '../lib/contractions';
 
 type Props = {
   contractions: Contraction[];
@@ -113,7 +113,7 @@ export default function FrequencyChart({ contractions, now = Date.now() }: Props
               className="absolute top-0 text-[9px] text-ink-500 tracking-wider font-medium -translate-x-1/2"
               style={{ left: `${xPct}%` }}
             >
-              {new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}
+              {new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: isHour12Preferred() })}
             </div>
           );
         })}
