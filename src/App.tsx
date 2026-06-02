@@ -99,7 +99,7 @@ import { getExams } from './lib/hospital';
 
 const STORAGE_KEY = 'contraction-tracker:v1';
 const SESSION_KEY = 'contraction-tracker:current';
-const APP_VERSION = '1.32';
+const APP_VERSION = '1.33';
 const MUTED_KEY = 'contraction-tracker:muted';
 const BACKUP_REMINDER_KEY = 'contraction-tracker:backup-dismissed';
 
@@ -1583,12 +1583,12 @@ export default function App() {
                           <label className="text-[11px] uppercase tracking-[0.15em] text-ink-400 font-semibold">
                             Intensity
                           </label>
-                          <div className="flex gap-1">
+                          <div className="flex gap-1.5 flex-wrap">
                             {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
                               <button
                                 key={n}
                                 onClick={() => setIntensityDraft(intensityDraft === String(n) ? '' : String(n))}
-                                className={`w-8 h-8 rounded-full text-[12px] font-semibold transition-colors ${
+                                className={`w-10 h-10 rounded-full text-[13px] font-semibold transition-colors min-w-[40px] min-h-[40px] ${
                                   intensityDraft === String(n)
                                     ? 'bg-rose-300 text-plum-950'
                                     : 'bg-ink-100/10 text-ink-300 active:bg-ink-100/20'
