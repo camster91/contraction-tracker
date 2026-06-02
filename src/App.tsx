@@ -246,26 +246,23 @@ export default function App() {
   }, [current, contractions]);
 
   useEffect(() => {
-    // Live timer Web Worker — accurate ticking even when tab is throttled.
-    // Created once per session; posted 'start'/'stop' messages.
-    // Additionally, always run a 1-second fallback tick so the "Since last"
-    // stat and other time displays stay accurate even when idle.
-    const worker = new Worker('/timer-worker.js');
-    worker.onmessage = (e) => {
-      if (e.data.type === 'tick') setNow(e.data.now);
-    };
-    if (current && !current.end) {
+    // Timer tick source: Web Worker for accuracy during contractions,
+    // setInterval for idle "Since last" stat accuracy. Never both.
+    const inProgress = current && !current.end;
+    if (inProgress) {
+      const worker = new Worker('/timer-worker.js');
+      worker.onmessage = (e) => {
+        if (e.data.type === 'tick') setNow(e.data.now);
+      };
       worker.postMessage({ type: 'start' });
+      return () => {
+        worker.postMessage({ type: 'stop' });
+        worker.terminate();
+      };
+    } else {
+      const idleTick = window.setInterval(() => setNow(Date.now()), 1000);
+      return () => window.clearInterval(idleTick);
     }
-    // Always-on tick for idle display accuracy
-    const idleTick = window.setInterval(() => {
-      setNow(Date.now());
-    }, 1000);
-    return () => {
-      worker.postMessage({ type: 'stop' });
-      worker.terminate();
-      window.clearInterval(idleTick);
-    };
   }, [current]);
 
   useEffect(() => {
@@ -552,6 +549,24 @@ export default function App() {
     });
     downloadBackup(data);
     rotateBackup(data);
+  };
+
+  // ---- Safe app update (preserves data across SW reload) ----
+  const handleAppUpdate = async () => {
+    // 1. Force a backup to be extra safe
+    await handleExportBackup();
+    // 2. Unregister all service workers
+    if ('serviceWorker' in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map((r) => r.unregister()));
+    }
+    // 3. Clear caches so the new SW picks up the latest bundle
+    if ('caches' in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map((k) => caches.delete(k)));
+    }
+    // 4. Reload — data is in localStorage + IDB, will be restored on mount
+    window.location.reload();
   };
 
   // ---- Backup import ----
@@ -951,6 +966,25 @@ export default function App() {
                     <div className="text-[10px] text-ink-500">Restore from .json file</div>
                   </div>
                 </button>
+              </div>
+            </div>
+
+            {/* Version & update */}
+            <div className="border-t border-ink-200/20 mt-3 pt-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-[10px] uppercase tracking-[0.15em] text-ink-400 font-semibold">App version</div>
+                  <div className="text-[11px] text-ink-300 mt-0.5">Luna v1.17</div>
+                </div>
+                <button
+                  onClick={() => handleAppUpdate()}
+                  className="text-xs bg-rose-300/20 active:bg-rose-300/30 text-rose-200 border border-rose-300/40 rounded-lg px-3 py-1.5 font-semibold transition-colors"
+                >
+                  Update
+                </button>
+              </div>
+              <div className="text-[9px] text-ink-600 mt-1 leading-relaxed">
+                Updates the app to the latest version. Your data is saved automatically.
               </div>
             </div>
           </div>
