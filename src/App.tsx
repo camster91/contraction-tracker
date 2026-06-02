@@ -331,11 +331,43 @@ export default function App() {
     });
   };
 
+  const pipCanvasRef = useRef<HTMLCanvasElement | null>(null);
+
   const handleEnterPip = async () => {
-    if (!document.pictureInPictureElement) return;
+    if (!document.pictureInPictureEnabled) return;
     try {
-      const video = document.querySelector('video');
-      if (video) await video.requestPictureInPicture();
+      // If we already have a PiP window open, exit
+      if (document.pictureInPictureElement) {
+        await document.exitPictureInPicture();
+        return;
+      }
+      // Create a canvas, render the timer to it, then PiP via a video element
+      const canvas = document.createElement('canvas');
+      canvas.width = 400;
+      canvas.height = 120;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      // Draw the timer
+      const draw = () => {
+        if (!ctx) return;
+        ctx.fillStyle = '#120c10';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#faf6f4';
+        ctx.font = '64px Fraunces, Georgia, serif';
+        ctx.textAlign = 'center';
+        const elapsed = current && !current.end ? durationSeconds(current, Date.now()) : 0;
+        ctx.fillText(formatDuration(elapsed), canvas.width / 2, 80);
+      };
+      draw();
+      // Create a video from canvas stream
+      const stream = canvas.captureStream(30);
+      const video = document.createElement('video');
+      video.srcObject = stream;
+      video.muted = true;
+      video.playsInline = true;
+      await video.play();
+      await video.requestPictureInPicture();
+      pipCanvasRef.current?.remove();
     } catch {
       // PIP not supported or denied — silently ignore
     }
@@ -642,6 +674,16 @@ export default function App() {
   const gaps = finished.slice(1).map((c, i) => intervalSeconds(finished[i], c));
   const avgGap = gaps.length ? Math.round(gaps.reduce((a, b) => a + b, 0) / gaps.length) : null;
   const showAlert = isFiveOneOne(contractions, now);
+
+  // 5-1-1 progress: count how many recent contractions match the pattern
+  const onTrackCount = useMemo(() => {
+    const finished = contractions.filter((c) => c.end).sort((a, b) => a.start.localeCompare(b.start));
+    const oneHourAgo = now - 60 * 60 * 1000;
+    const recent = finished.filter((c) => new Date(c.start).getTime() >= oneHourAgo);
+    if (recent.length < 3) return null;
+    return recent.filter((c) => durationSeconds(c, now) >= 45).length;
+  }, [contractions, now]);
+  const showOnTrack = !showAlert && onTrackCount !== null && onTrackCount >= 3;
   const currentElapsed = current && !current.end ? durationSeconds(current, now) : 0;
   const secondsSinceFinish = secondsSinceLastFinish(contractions, now);
   const firstStart = finished[0]?.start;
@@ -1061,6 +1103,24 @@ export default function App() {
             <div className="text-sm font-semibold text-rose-200 font-display">5-1-1 pattern</div>
             <div className="text-xs text-ink-300 mt-0.5 leading-relaxed">
               ~1 min long, ~5 min apart, for ~1 hour. Time to call your provider.
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 5-1-1 "on track" indicator — shown when 3+ contractions match the
+          pattern (≥45s) but the full 5-1-1 hasn't triggered yet. Helps users
+          know they're approaching hospital-go time without alarmism. */}
+      {showOnTrack && (
+        <div className="flex-shrink-0 mx-5 mb-3 rounded-2xl border border-sage-300/40 bg-sage-300/10 px-4 py-3 flex items-start gap-3 animate-fade-in">
+          <div className="w-8 h-8 rounded-full bg-sage-300/15 flex items-center justify-center flex-shrink-0">
+            <Shield className="w-4 h-4 text-sage-300" strokeWidth={2} />
+          </div>
+          <div>
+            <div className="text-sm font-semibold text-sage-200 font-display">Getting close</div>
+            <div className="text-xs text-ink-300 mt-0.5 leading-relaxed">
+              {onTrackCount} of {finished.filter((c) => new Date(c.start).getTime() >= now - 60*60*1000).length} contractions in the last hour are 45s or longer.
+              Keep tracking — the 5-1-1 alert will fire when the pattern is clear.
             </div>
           </div>
         </div>
