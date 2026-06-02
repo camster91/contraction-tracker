@@ -98,10 +98,11 @@ import {
 } from './lib/sessions';
 import { getChecklist, packedCount, saveChecklist } from './lib/checklist';
 import { getExams } from './lib/hospital';
+import { postMessage } from './lib/feed';
 
 const STORAGE_KEY = 'contraction-tracker:v1';
 const SESSION_KEY = 'contraction-tracker:current';
-const APP_VERSION = '1.45';
+const APP_VERSION = '1.46';
 const MUTED_KEY = 'contraction-tracker:muted';
 const BACKUP_REMINDER_KEY = 'contraction-tracker:backup-dismissed';
 
@@ -1260,6 +1261,33 @@ export default function App() {
             title="Share with partner"
           >
             <Share2 className="w-4 h-4" strokeWidth={1.75} />
+          </button>
+          {/* Status update — quick post to activity feed */}
+          <button
+            onClick={() => {
+              const options = [
+                { label: 'Heading to hospital', value: 'Heading to hospital' },
+                { label: 'At the hospital', value: 'At the hospital' },
+                { label: 'Admitted', value: 'Admitted' },
+                { label: 'Baby is here 🎉', value: 'Baby is here 🎉' },
+              ];
+              const choice = window.prompt(
+                'Post a status update:\n\n' + options.map((o, i) => `${i + 1}. ${o.label}`).join('\n') + '\n\nOr type a custom message.',
+              );
+              if (!choice) return;
+              const idx = parseInt(choice, 10) - 1;
+              const shares = getShares().filter(s => s.sessionId === activeSessionId && !s.revoked);
+              if (!shares[0]) return;
+              const content = idx >= 0 && idx < options.length ? options[idx].value : choice.trim();
+              if (content) {
+                postMessage(shares[0].id, 'status', content, 'Cam', undefined).catch(() => {});
+              }
+            }}
+            className="p-2 rounded-lg text-ink-300 active:text-sage-300 active:bg-sage-300/10 transition-colors"
+            aria-label="Post status update"
+            title="Post status update"
+          >
+            <Tag className="w-4 h-4" strokeWidth={1.75} />
           </button>
           {/* Sound on/off */}
           <button

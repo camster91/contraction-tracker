@@ -30,6 +30,7 @@ export type Share = {
   sessionId: string;
   mode?: string;         // 'full' | 'stats' | 'track' — default 'full'
   pin?: string;          // optional 4-digit PIN
+  state?: 'prenatal' | 'labor' | 'postpartum' | 'archived'; // default 'prenatal'
   expiresAt: string;     // ISO
   revoked: boolean;
   createdAt: string;
@@ -180,12 +181,13 @@ export function createShare(input: {
     // Astronomically unlikely but handle it
     return createShare(input);
   }
-  const ttl = input.ttlHours ?? 24;
+  const ttl = input.ttlHours ?? 720; // 30 days default
   const share: Share = {
     id,
     sessionId: input.sessionId,
     mode: input.mode || 'full',
     pin: input.pin,
+    state: 'prenatal',
     expiresAt: new Date(Date.now() + ttl * 60 * 60 * 1000).toISOString(),
     revoked: false,
     createdAt: new Date().toISOString(),
@@ -211,6 +213,10 @@ export function isShareValid(share: Share | null): share is Share {
 
 export function markShareOpened(id: string) {
   setShares(getShares().map((s) => (s.id === id ? { ...s, lastOpenedAt: new Date().toISOString() } : s)));
+}
+
+export function setShareState(id: string, state: 'prenatal' | 'labor' | 'postpartum' | 'archived') {
+  setShares(getShares().map((s) => (s.id === id ? { ...s, state } : s)));
 }
 
 // ---- Contraction filter by session ----
