@@ -117,9 +117,19 @@ function pluralContraction(n: number): string {
 }
 
 export default function App() {
-  const [contractions, setContractions] = useState<Contraction[]>(() =>
-    load<Stored>(STORAGE_KEY, { contractions: [] }).contractions,
-  );
+  const [contractions, setContractions] = useState<Contraction[]>(() => {
+    const stored = load<Stored>(STORAGE_KEY, { contractions: [] });
+    // Validate: ensure contractions is an array, each has at least id + start
+    if (!Array.isArray(stored.contractions)) {
+      setDataDamagedToast(true);
+      return [];
+    }
+    const valid = stored.contractions.filter((c: any) => c && typeof c.id === 'string' && typeof c.start === 'string');
+    if (valid.length < stored.contractions.length) {
+      setDataDamagedToast(true);
+    }
+    return valid;
+  });
   const [current, setCurrent] = useState<Contraction | null>(() => load(SESSION_KEY, null));
   const [now, setNow] = useState(Date.now());
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -247,6 +257,13 @@ export default function App() {
       if (ok) setSavedAt(new Date());
     });
     broadcastCurrent(current);
+    // Auto-sync to relay if a share is active for this session
+    try {
+      const activeShares = getShares().filter(s => !s.revoked && s.sessionId === activeSessionId);
+      for (const s of activeShares) {
+        import('./lib/relay').then(r => r.pushContractionsToRelay(s.id, contractions, current)).catch(() => {});
+      }
+    } catch { /* relay sync is best-effort */ }
   }, [current, contractions]);
 
   useEffect(() => {
