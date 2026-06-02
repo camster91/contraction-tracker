@@ -101,7 +101,7 @@ import { getExams } from './lib/hospital';
 
 const STORAGE_KEY = 'contraction-tracker:v1';
 const SESSION_KEY = 'contraction-tracker:current';
-const APP_VERSION = '1.40';
+const APP_VERSION = '1.41';
 const MUTED_KEY = 'contraction-tracker:muted';
 const BACKUP_REMINDER_KEY = 'contraction-tracker:backup-dismissed';
 
@@ -842,12 +842,6 @@ export default function App() {
   }, [finished, tagFilter]);
   // All tags used anywhere, for the filter chip row
   const knownTags = useMemo(() => allTags(contractions), [contractions]);
-  // Available common tags that haven't been applied yet
-  const availableCommonTags = useMemo(() => {
-    const used = new Set<string>();
-    for (const c of contractions) for (const t of getTags(c)) used.add(t);
-    return COMMON_TAGS.filter((t) => !used.has(t));
-  }, [contractions]);
 
   // Voice the 5-1-1 alert once when it transitions from off → on.
   // Guarded by a timestamp so it doesn't re-trigger every render.
@@ -1356,28 +1350,50 @@ export default function App() {
       {/* Active labor indicator */}
       <ActiveLaborBanner contractions={contractions} now={now} />
 
-      {/* Backup reminder banner — soft nudge if no share link has been created */}
+      {/* Backup reminder banner — soft nudge if no share link has been created.
+          Includes a "Back up now" CTA that opens the Share sheet directly so the
+          user doesn't have to hunt for the action. */}
       {showBackupBanner && (
-        <div className="flex-shrink-0 mx-5 mb-3 rounded-2xl border border-sage-300/30 bg-sage-300/10 px-4 py-3 flex items-start gap-3 animate-fade-in">
-          <div className="w-8 h-8 rounded-full bg-sage-300/15 flex items-center justify-center flex-shrink-0">
-            <Shield className="w-4 h-4 text-sage-300" strokeWidth={1.75} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="text-sm font-semibold text-ink-100 font-display">Save a backup</div>
-            <div className="text-xs text-ink-300 mt-0.5 leading-relaxed">
-              Create a share link to back up your contraction history.
+        <div className="flex-shrink-0 mx-5 mb-3 rounded-2xl border border-sage-300/30 bg-sage-300/10 px-4 py-3 animate-fade-in">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-full bg-sage-300/15 flex items-center justify-center flex-shrink-0">
+              <Shield className="w-4 h-4 text-sage-300" strokeWidth={1.75} />
             </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-semibold text-ink-100 font-display">Save a backup</div>
+              <div className="text-xs text-ink-300 mt-0.5 leading-relaxed">
+                Create a share link to back up your contraction history.
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                localStorage.setItem(BACKUP_REMINDER_KEY, JSON.stringify(Date.now()));
+                setDismissedBannerAt(Date.now());
+              }}
+              className="p-1 text-ink-400 active:text-ink-200 flex-shrink-0"
+              aria-label="Dismiss backup reminder"
+              title="Dismiss"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
-          <button
-            onClick={() => {
-              localStorage.setItem(BACKUP_REMINDER_KEY, JSON.stringify(Date.now()));
-              setDismissedBannerAt(Date.now());
-            }}
-            className="p-1.5 text-ink-400 active:text-ink-200 flex-shrink-0"
-            aria-label="Dismiss"
-          >
-            <X className="w-4 h-4" />
-          </button>
+          <div className="flex gap-2 mt-2.5">
+            <button
+              onClick={() => setShowShare(activeSessionId)}
+              className="flex-1 text-xs font-semibold bg-sage-300/20 active:bg-sage-300/30 text-sage-100 rounded-lg px-3 py-2 transition-colors min-h-[36px]"
+            >
+              Back up now
+            </button>
+            <button
+              onClick={() => {
+                localStorage.setItem(BACKUP_REMINDER_KEY, JSON.stringify(Date.now()));
+                setDismissedBannerAt(Date.now());
+              }}
+              className="text-xs text-ink-400 active:text-ink-200 rounded-lg px-3 py-2 min-h-[36px] border border-ink-200/20"
+            >
+              Not now
+            </button>
+          </div>
         </div>
       )}
 
@@ -1498,6 +1514,75 @@ export default function App() {
               {finished.length === 1
                 ? 'since first contraction'
                 : `${pluralContraction(finished.length)} logged · started ${formatElapsed(totalLogElapsedSec)} ago`}
+            </div>
+          </div>
+        )}
+
+        {/* Onboarding — 3 inline hint cards in the empty-state area. Shown
+            above the carousel so first-time users see the steps without
+            scrolling. Non-blocking (no backdrop blur). */}
+        {onboardingStep !== null && finished.length === 0 && !current && (
+          <div className="mb-4 rounded-2xl border border-rose-300/30 bg-rose-300/[0.06] px-4 py-3 animate-fade-in">
+            <div className="flex items-start gap-3">
+              <div className="w-7 h-7 rounded-full bg-rose-300/20 flex items-center justify-center flex-shrink-0">
+                {onboardingStep === 0 && <Play className="w-3.5 h-3.5 text-rose-300 fill-rose-300" />}
+                {onboardingStep === 1 && <Square className="w-3.5 h-3.5 text-rose-300 fill-rose-300" />}
+                {onboardingStep === 2 && <Share2 className="w-3.5 h-3.5 text-rose-300" />}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-semibold text-ink-100 font-display">
+                  {onboardingStep === 0 && '1. Tap Start when it begins'}
+                  {onboardingStep === 1 && '2. Tap Stop when it ends'}
+                  {onboardingStep === 2 && '3. Share with your team'}
+                </div>
+                <div className="text-xs text-ink-300 mt-1 leading-relaxed">
+                  {onboardingStep === 0 && 'The screen stays on while the timer runs.'}
+                  {onboardingStep === 1 && 'Add intensity, tags, or a quick note.'}
+                  {onboardingStep === 2 && 'A link lets your partner or midwife follow along live.'}
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  localStorage.setItem('contraction-tracker:onboarding-seen', '1');
+                  setOnboardingStep(null);
+                }}
+                className="text-[11px] text-ink-400 active:text-ink-200 px-2 py-1 min-h-[32px]"
+                aria-label="Dismiss onboarding"
+              >
+                Skip
+              </button>
+            </div>
+            <div className="flex items-center justify-between mt-3">
+              <div className="flex gap-1.5">
+                {[0, 1, 2].map((i) => (
+                  <button
+                    key={i}
+                    onClick={() => setOnboardingStep(i)}
+                    className={`h-1.5 rounded-full transition-all ${
+                      i === onboardingStep ? 'w-6 bg-rose-300' : 'w-1.5 bg-ink-400/40 active:bg-ink-400/60'
+                    }`}
+                    aria-label={`Go to step ${i + 1}`}
+                  />
+                ))}
+              </div>
+              {onboardingStep < 2 ? (
+                <button
+                  onClick={() => setOnboardingStep((s) => (s !== null ? s + 1 : null))}
+                  className="text-xs bg-rose-300 active:bg-rose-400 text-plum-950 rounded-lg px-3 py-1.5 font-semibold transition-colors min-h-[32px]"
+                >
+                  Next
+                </button>
+              ) : (
+                <button
+                  onClick={() => {
+                    localStorage.setItem('contraction-tracker:onboarding-seen', '1');
+                    setOnboardingStep(null);
+                  }}
+                  className="text-xs bg-rose-300 active:bg-rose-400 text-plum-950 rounded-lg px-3 py-1.5 font-semibold transition-colors min-h-[32px]"
+                >
+                  Got it
+                </button>
+              )}
             </div>
           </div>
         )}
@@ -1888,100 +1973,12 @@ export default function App() {
               When you're ready.
             </div>
             <p className="text-sm text-ink-400 mt-2 leading-relaxed max-w-xs mx-auto">
-              Tap Start when a contraction begins. Tap Stop when it ends. The app handles the rest.
+              Tap the big button when a contraction begins.
             </p>
-            {availableCommonTags.length > 0 && (
-              <p className="text-[11px] text-ink-500 mt-3 max-w-xs mx-auto">
-                Tip: after stopping, you can tag the contraction (back labor, pressure, etc).
-              </p>
-            )}
           </div>
         )}
 
-        {/* Onboarding tooltip — 3-step swipeable overlay for first-time users */}
-        {onboardingStep !== null && (
-          <>
-            <div
-              className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
-              onClick={() => {
-                localStorage.setItem('contraction-tracker:onboarding-seen', '1');
-                setOnboardingStep(null);
-              }}
-              aria-hidden="true"
-            />
-            <div className="fixed inset-x-4 bottom-24 z-50 rounded-2xl border border-rose-300/40 bg-plum-950/95 backdrop-blur-xl shadow-[0_8px_32px_-8px_rgba(0,0,0,0.7)] p-5 animate-fade-in">
-              {onboardingStep === 0 && (
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-rose-300/20 flex items-center justify-center">
-                      <Play className="w-4 h-4 text-rose-300 fill-rose-300" />
-                    </div>
-                    <div className="font-display text-base font-semibold text-ink-50">Start a contraction</div>
-                  </div>
-                  <p className="text-sm text-ink-200 leading-relaxed">
-                    Tap the big Start button when a contraction begins. The screen will stay on and the timer will run.
-                  </p>
-                </div>
-              )}
-              {onboardingStep === 1 && (
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-rose-300/20 flex items-center justify-center">
-                      <Square className="w-4 h-4 text-rose-300 fill-rose-300" />
-                    </div>
-                    <div className="font-display text-base font-semibold text-ink-50">Stop and add details</div>
-                  </div>
-                  <p className="text-sm text-ink-200 leading-relaxed">
-                    Tap Stop when it ends. You can add intensity, tags, and a note to remember how it felt.
-                  </p>
-                </div>
-              )}
-              {onboardingStep === 2 && (
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-rose-300/20 flex items-center justify-center">
-                      <Share2 className="w-4 h-4 text-rose-300" />
-                    </div>
-                    <div className="font-display text-base font-semibold text-ink-50">Share with your team</div>
-                  </div>
-                  <p className="text-sm text-ink-200 leading-relaxed">
-                    Use the Share button to send a link with a midwife or your birth partner so they can follow along.
-                  </p>
-                </div>
-              )}
-              <div className="flex items-center justify-between mt-4">
-                <div className="flex gap-1.5">
-                  {[0, 1, 2].map((i) => (
-                    <div
-                      key={i}
-                      className={`w-2 h-2 rounded-full transition-colors ${i === onboardingStep ? 'bg-rose-300' : 'bg-ink-400/40'}`}
-                    />
-                  ))}
-                </div>
-                <div className="flex gap-2">
-                  {onboardingStep < 2 ? (
-                    <button
-                      onClick={() => setOnboardingStep((s) => (s !== null ? s + 1 : null))}
-                      className="text-xs bg-rose-300 active:bg-rose-400 text-plum-950 rounded-lg px-4 py-2 font-semibold transition-colors"
-                    >
-                      Next
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => {
-                        localStorage.setItem('contraction-tracker:onboarding-seen', '1');
-                        setOnboardingStep(null);
-                      }}
-                      className="text-xs bg-rose-300 active:bg-rose-400 text-plum-950 rounded-lg px-4 py-2 font-semibold transition-colors"
-                    >
-                      Got it
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-          </>
-        )}
+        {/* Onboarding was moved above the carousel — see earlier block. */}
 
         {/* Checklist sheet (hospital bag) — opens from the header Briefcase icon */}
         {showChecklist && (
