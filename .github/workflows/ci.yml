@@ -1,0 +1,47 @@
+# Luna — Contraction Timer PWA
+# CI: typecheck + build on every PR and push to main. Cheap, fast.
+
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck + build
+        # `tsc -b && vite build` is the npm `build` script. If it fails, the
+        # bundle is bad — stop the train here.
+        run: npm run build
+
+      - name: Bundle size check
+        # Soft gate: warn if dist/ grows over 200KB. The whole PWA should
+        # stay small for labor-ward WiFi reliability.
+        run: |
+          ASSET_DIR=dist/assets
+          if [ -d "$ASSET_DIR" ]; then
+            LARGEST=$(ls -S "$ASSET_DIR"/*.js 2>/dev/null | head -1)
+            if [ -n "$LARGEST" ]; then
+              SIZE=$(stat -c %s "$LARGEST")
+              SIZE_KB=$((SIZE / 1024))
+              echo "Largest bundle: $(basename "$LARGEST") = ${SIZE_KB}KB"
+              if [ "$SIZE" -gt 200000 ]; then
+                echo "::warning::Bundle over 200KB — consider code-splitting or pruning lucide imports"
+              fi
+            fi
+          fi

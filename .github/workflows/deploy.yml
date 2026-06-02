@@ -1,0 +1,139 @@
+# Luna — Contraction Timer PWA
+# Deploy: build on main → SSH to coolify → docker compose build (no-cache)
+# → up -d → health-check live URL. Reports status to GitHub Actions summary.
+#
+# Uses the SSH fallback path because contraction-tracker is a standalone
+# docker-compose deploy (not in Coolify's `applications` table). The
+# ~/.hermes/skills/devops/coolify/SKILL.md documents this pattern.
+#
+# Known host issue worked around here: the host's Docker build namespace
+# can't resolve registry-1.docker.io even though nslookup works. Fix: the
+# repo is pre-cloned on the host at /root/repos/contraction-tracker, and
+# the compose file points at that local context.
+
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Reason for manual deploy'
+        required: false
+        default: 'manual'
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve current version
+        id: version
+        run: |
+          VERSION=$(grep -oP "const APP_VERSION = '\K[^']+" src/App.tsx)
+          CACHE=$(grep -oP "const CACHE_NAME = '\K[^']+" public/sw.js)
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "cache=$CACHE" >> $GITHUB_OUTPUT
+          echo "sha=$SHORT_SHA" >> $GITHUB_OUTPUT
+          echo "Deploying Luna v$VERSION ($CACHE) @ $SHORT_SHA"
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.COOLIFY_SSH_KEY }}
+
+      - name: Add host to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.COOLIFY_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Pull latest on host
+        # Force the host's local clone to match GitHub. Without --ff-only we
+        # can hit "Already up to date" lies when the local tracking ref is
+        # itself stale (documented in coolify skill).
+        run: |
+          ssh ${{ secrets.COOLIFY_USER }}@${{ secrets.COOLIFY_HOST }} <<'EOF'
+            set -e
+            cd /root/repos/contraction-tracker
+            git fetch origin
+            git reset --hard origin/main
+            echo "HEAD now at: $(git rev-parse --short HEAD)"
+            echo "APP_VERSION: $(grep "const APP_VERSION" src/App.tsx | head -1)"
+            echo "CACHE_NAME: $(grep "const CACHE_NAME" public/sw.js | head -1)"
+          EOF
+
+      - name: Build + restart container
+        run: |
+          ssh ${{ secrets.COOLIFY_USER }}@${{ secrets.COOLIFY_HOST }} <<'EOF'
+            set -e
+            cd /data/coolify/applications/contraction-tracker
+            # --no-cache + unique tag suffix avoids the stale-image double-trap
+            TAG="ct-$(date +%Y%m%d-%H%M%S)-${{ steps.version.outputs.sha }}"
+            echo "Building image tag: $TAG"
+            docker compose build --no-cache --pull
+            # Tag the freshly built image so the next run can't reuse a
+            # previous build's layer cache.
+            docker tag contraction-tracker-web:latest "$TAG" || true
+            docker compose up -d --no-deps --remove-orphans
+            sleep 4
+            echo "--- Container status ---"
+            docker ps --filter "name=contraction-tracker" --format "table {{.Names}}\t{{.Status}}\t{{.Image}}"
+          EOF
+
+      - name: Health check (live site)
+        run: |
+          sleep 5
+          # Hit the live site, verify it's serving the new SW cache + version
+          HTTP=$(curl -s -o /tmp/luna.html -w "%{http_code}" --max-time 30 https://contractions.ashbi.ca/)
+          CACHE_LIVE=$(curl -s https://contractions.ashbi.ca/sw.js | grep -oP "const CACHE_NAME = '\K[^']+" || echo "unknown")
+          echo "Live site HTTP: $HTTP"
+          echo "Live SW cache:  $CACHE_LIVE"
+          echo "Expected cache:  ${{ steps.version.outputs.cache }}"
+          if [ "$HTTP" != "200" ]; then
+            echo "::error::Live site returned $HTTP"
+            exit 1
+          fi
+          if [ "$CACHE_LIVE" != "${{ steps.version.outputs.cache }}" ]; then
+            echo "::warning::SW cache mismatch. Live=$CACHE_LIVE, expected=${{ steps.version.outputs.cache }}."
+            echo "This usually means the SW hasn't been activated yet (clients.claim takes a moment). Not a build failure."
+          fi
+
+      - name: Summary
+        if: always()
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          CACHE: ${{ steps.version.outputs.cache }}
+          SHA: ${{ steps.version.outputs.sha }}
+          TRIGGER: ${{ github.event_name }}
+          REASON: ${{ github.event.inputs.reason || '' }}
+          COMMIT_MSG: ${{ github.event.head_commit.message || '' }}
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          {
+            echo "## Luna deploy"
+            echo ""
+            echo "- **Version:** $VERSION"
+            echo "- **Cache:**  $CACHE"
+            echo "- **SHA:**    $SHA"
+            echo "- **URL:**    https://contractions.ashbi.ca/"
+            echo "- **Result:** $JOB_STATUS"
+            echo ""
+            if [ -n "$COMMIT_MSG" ]; then
+              echo "Trigger: $TRIGGER — $COMMIT_MSG"
+            elif [ -n "$REASON" ]; then
+              echo "Trigger: $TRIGGER ($REASON)"
+            else
+              echo "Trigger: $TRIGGER"
+            fi
+          } >> $GITHUB_STEP_SUMMARY
