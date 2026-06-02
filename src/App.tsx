@@ -250,17 +250,23 @@ export default function App() {
   }, [current, contractions]);
 
   useEffect(() => {
-    // Persistent rAF tick — never restarts, always accurate.
-    // This runs from mount to unmount. No React state interaction
-    // causes it to restart. The timer display is always live.
+    // Persistent tick — uses rAF for smooth display but only fires setState
+    // when the second actually changes. This prevents 60fps re-renders when
+    // the display value is the same (which is 59 out of 60 frames).
     let frame = 0;
+    let lastSec = -1;
     const tick = () => {
-      setNow(Date.now());
+      const now = Date.now();
+      const sec = Math.floor(now / 1000);
+      if (sec !== lastSec) {
+        lastSec = sec;
+        setNow(now);
+      }
       frame = requestAnimationFrame(tick);
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, []); // empty deps = mount once, never restart
+  }, []); // mount once, never restart
 
   // Worker for contraction tick — managed separately so the
   // main rAF loop above never pauses.
