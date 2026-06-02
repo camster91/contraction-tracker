@@ -99,6 +99,7 @@ import {
 import { getChecklist, packedCount, saveChecklist } from './lib/checklist';
 import { getExams } from './lib/hospital';
 import { postMessage } from './lib/feed';
+import { pushContractionsToRelay } from './lib/relay';
 import BabyIsHereModal from './components/BabyIsHereModal';
 
 const STORAGE_KEY = 'contraction-tracker:v1';
@@ -309,7 +310,7 @@ export default function App() {
     try {
       const activeShares = getShares().filter(s => !s.revoked && s.sessionId === activeSessionId);
       for (const s of activeShares) {
-        import('./lib/relay').then(r => r.pushContractionsToRelay(s.id, contractions, current)).catch(() => {});
+        pushContractionsToRelay(s.id, contractions, current).catch(() => {});
       }
     } catch { /* relay sync is best-effort */ }
   }, [current, contractions]);
@@ -684,7 +685,6 @@ export default function App() {
     const people = getPeople();
     const shares = getShares();
     // Dynamically import to avoid circular deps and use proper ESM types
-    const { getExams } = await import('./lib/hospital');
     const exams: Record<string, unknown[]> = {};
     for (const s of sessions) {
       exams[s.id] = getExams(s.id);
@@ -786,9 +786,9 @@ export default function App() {
       // Apply merged data
       setContractions([...existingContractions.values()]);
       setSessions([...existingSessions.values()]);
-      const { setPeople: sp, setShares: ss } = await import('./lib/sessions');
-      sp([...existingPeople.values()] as never[]);
-      ss([...existingShares.values()] as never[]);
+      const { setPeople, setShares } = await import('./lib/sessions');
+      setPeople([...existingPeople.values()] as never[]);
+      setShares([...existingShares.values()] as never[]);
 
       // Persist exams and checklists
       for (const [sid, examMap] of existingExams) {

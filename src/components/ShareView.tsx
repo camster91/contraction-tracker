@@ -22,6 +22,7 @@ import {
   getShareFromRelay,
   pullContractionsFromRelay,
   markShareOpenedOnRelay,
+  pushContractionsToRelay,
   RELAY_URL,
 } from '../lib/relay';
 import ActivityFeed from './ActivityFeed';
@@ -233,7 +234,6 @@ export default function ShareView({ code }: { code: string }) {
     try {
       const all = [...contractions, c];
       setContractions(all);
-      const { pushContractionsToRelay } = await import('../lib/relay');
       await pushContractionsToRelay(code, all, c);
     } catch {}
   };
