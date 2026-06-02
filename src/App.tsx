@@ -248,6 +248,8 @@ export default function App() {
   useEffect(() => {
     // Live timer Web Worker — accurate ticking even when tab is throttled.
     // Created once per session; posted 'start'/'stop' messages.
+    // Additionally, always run a 1-second fallback tick so the "Since last"
+    // stat and other time displays stay accurate even when idle.
     const worker = new Worker('/timer-worker.js');
     worker.onmessage = (e) => {
       if (e.data.type === 'tick') setNow(e.data.now);
@@ -255,9 +257,14 @@ export default function App() {
     if (current && !current.end) {
       worker.postMessage({ type: 'start' });
     }
+    // Always-on tick for idle display accuracy
+    const idleTick = window.setInterval(() => {
+      setNow(Date.now());
+    }, 1000);
     return () => {
       worker.postMessage({ type: 'stop' });
       worker.terminate();
+      window.clearInterval(idleTick);
     };
   }, [current]);
 
