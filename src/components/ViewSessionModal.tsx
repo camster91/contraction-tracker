@@ -22,7 +22,7 @@ export default function ViewSessionModal({ session, contractions, onClose }: Pro
         onClick={onClose}
         aria-hidden="true"
       />
-      <div className="fixed inset-x-0 bottom-0 z-50 rounded-t-3xl border-t border-ink-200/30 bg-plum-950/98 backdrop-blur-xl shadow-[0_-8px_32px_-8px_rgba(0,0,0,0.6)] max-h-[90dvh] flex flex-col animate-slide-up">
+      <div className="fixed inset-x-0 bottom-0 z-50 rounded-t-3xl border-t border-ink-200/30 bg-plum-950/98  shadow-[0_-8px_32px_-8px_rgba(0,0,0,0.6)] max-h-[90dvh] flex flex-col animate-slide-up">
         {/* Handle + header */}
         <div className="flex justify-center pt-3 pb-2">
           <div className="w-8 h-1 rounded-full bg-ink-200/40" />

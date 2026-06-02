@@ -76,7 +76,7 @@ export default function SessionsSheet({
   };
 
   return (
-    <div className="absolute right-5 top-full mt-1 z-40 w-80 max-w-[calc(100vw-2.5rem)] rounded-2xl border border-ink-200/30 bg-plum-950/95 backdrop-blur-xl shadow-[0_8px_32px_-8px_rgba(0,0,0,0.6)] p-4 animate-fade-in">
+    <div className="absolute right-5 top-full mt-1 z-40 w-80 max-w-[calc(100vw-2.5rem)] rounded-2xl border border-ink-200/30 bg-plum-950/95  shadow-[0_8px_32px_-8px_rgba(0,0,0,0.6)] p-4 animate-fade-in">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <button

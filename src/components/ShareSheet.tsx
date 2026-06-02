@@ -48,6 +48,8 @@ function buildUpdateText(contractions: Contraction[], sessionName: string): stri
 }
 
 export default function ShareSheet({ sessionId, contractions, onClose }: Props) {
+  const [relayError, setRelayError] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
   const [shares, setShares] = useState<Share[]>(() => getShares());
   const [copied, setCopied] = useState<string | null>(null);
   const [requirePin, setRequirePin] = useState(false);
@@ -63,16 +65,29 @@ export default function ShareSheet({ sessionId, contractions, onClose }: Props) 
   );
 
   const handleCreate = async () => {
+    setRelayError(null);
+    setCreating(true);
     const pin = requirePin ? String(Math.floor(1000 + Math.random() * 9000)) : undefined;
     createShare({ sessionId, ttlHours: 24, pin, mode: shareMode });
     setShares(getShares());
     setRequirePin(false);
-    // Also create on the relay server for multi-device sharing
+    // Also create on the relay server for multi-device sharing.
+    // createShareOnRelay returns null on any failure (network, 5xx, etc) —
+    // we surface a clear error instead of letting the user think the share
+    // works when no one in another browser can actually open it.
     const relayResult = await createShareOnRelay({ sessionId, pin, ttlHours: 24, mode: shareMode });
-    if (relayResult) {
-      // Push current contractions to the relay immediately
-      await pushContractionsToRelay(relayResult.code, contractions, null);
+    if (!relayResult) {
+      setRelayError(
+        'Could not reach the share server. Your link will work on this device only — viewers in other browsers will not see updates until the relay reconnects.',
+      );
+    } else {
+      try {
+        await pushContractionsToRelay(relayResult.code, contractions, null);
+      } catch (err) {
+        setRelayError('Share created, but initial sync to viewers failed. They may see no data until your next contraction is saved.');
+      }
     }
+    setCreating(false);
   };
 
   const handleRevoke = (id: string) => {
@@ -125,7 +140,7 @@ export default function ShareSheet({ sessionId, contractions, onClose }: Props) 
         onClick={onClose}
         aria-hidden="true"
       />
-      <div className="fixed inset-x-0 bottom-0 z-50 rounded-t-3xl border-t border-ink-200/30 bg-plum-950/98 backdrop-blur-xl shadow-[0_-8px_32px_-8px_rgba(0,0,0,0.6)] max-h-[85dvh] flex flex-col animate-slide-up">
+      <div className="fixed inset-x-0 bottom-0 z-50 rounded-t-3xl border-t border-ink-200/30 bg-plum-950/98  shadow-[0_-8px_32px_-8px_rgba(0,0,0,0.6)] max-h-[85dvh] flex flex-col animate-slide-up">
         {/* Drag handle */}
         <div className="flex justify-center pt-3 pb-2">
           <div className="w-8 h-1 rounded-full bg-ink-200/40" />
@@ -200,10 +215,21 @@ export default function ShareSheet({ sessionId, contractions, onClose }: Props) 
 
       <button
         onClick={handleCreate}
-        className="w-full bg-rose-300 active:bg-rose-400 text-plum-950 rounded-xl py-2.5 text-sm font-semibold transition-colors mb-3"
+        disabled={creating}
+        className="w-full bg-rose-300 active:bg-rose-400 disabled:bg-rose-300/60 disabled:text-plum-950/60 text-plum-950 rounded-xl py-2.5 text-sm font-semibold transition-colors mb-3"
       >
-        {activeShares.length > 0 ? 'Create another link' : 'Create share link'}
+        {creating ? 'Creating…' : (activeShares.length > 0 ? 'Create another link' : 'Create share link')}
       </button>
+
+      {/* Inline error if the relay create or push failed.
+          Without this, the user sees "Create share link" succeed and assumes
+          the link works — but it only works on this device until the relay
+          reconnects. We tell them explicitly. */}
+      {relayError && (
+        <div className="mb-3 rounded-xl border border-amber-300/40 bg-amber-300/10 px-3 py-2.5 text-xs text-amber-100 leading-relaxed">
+          {relayError}
+        </div>
+      )}
 
       {/* Active links */}
       {activeShares.length > 0 && (

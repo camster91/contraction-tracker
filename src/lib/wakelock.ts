@@ -58,3 +58,9 @@ export function installWakeLockVisibilityHandler() {
     }
   });
 }
+
+/** True only when the wake lock is actually held. Lets the UI distinguish
+ *  "lock acquired" from "lock not supported / denied / failed". */
+export function isWakeLockHeld(): boolean {
+  return wakeLock !== null;
+}

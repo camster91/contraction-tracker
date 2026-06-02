@@ -65,7 +65,7 @@ import {
   stopSpeaking,
   unlockAudio,
 } from './lib/audio';
-import { disableWakeLock, enableWakeLock, installWakeLockVisibilityHandler } from './lib/wakelock';
+import { disableWakeLock, enableWakeLock, installWakeLockVisibilityHandler, isWakeLockHeld } from './lib/wakelock';
 import {
   getMuteSchedule,
   isBigText,
@@ -101,7 +101,7 @@ import { getExams } from './lib/hospital';
 
 const STORAGE_KEY = 'contraction-tracker:v1';
 const SESSION_KEY = 'contraction-tracker:current';
-const APP_VERSION = '1.42';
+const APP_VERSION = '1.44';
 const MUTED_KEY = 'contraction-tracker:muted';
 const BACKUP_REMINDER_KEY = 'contraction-tracker:backup-dismissed';
 
@@ -389,6 +389,8 @@ export default function App() {
     setCurrent({ id: uid(), start: new Date().toISOString(), end: null, intensity: null });
     chimeStart();
     enableWakeLock();
+    // Tactile feedback — vital when phone is in a pillow or screen is dim
+    try { navigator.vibrate?.(80); } catch { /* unsupported */ }
   };
 
   const handleStop = () => {
@@ -398,6 +400,9 @@ export default function App() {
     setCurrent(null);
     disableWakeLock();
     chimeStop();
+    // Tactile feedback — distinct double-pulse for stop so the user can
+    // feel the difference between start and stop without looking.
+    try { navigator.vibrate?.([60, 40, 60]); } catch { /* unsupported */ }
     // Voice readout of the contraction we just finished
     const dur = durationSeconds(finished);
     speak(`That was ${formatDurationSpoken(dur)}.`);
@@ -1454,8 +1459,8 @@ export default function App() {
                 />
               </div>
               <div className="text-[10px] text-sage-300/80 mt-1.5 tracking-wide flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-sage-300/70" />
-                <span>Screen will stay on</span>
+                <span className={`w-1.5 h-1.5 rounded-full ${isWakeLockHeld() ? 'bg-sage-300/70' : 'bg-amber-300/70'}`} />
+                <span>{isWakeLockHeld() ? 'Screen will stay on' : 'Screen may dim — tap to keep awake'}</span>
               </div>
               <button
                 onClick={handleStop}
@@ -1772,7 +1777,7 @@ export default function App() {
                                 onClick={() => setIntensityDraft(intensityDraft === String(n) ? '' : String(n))}
                                 className={`w-10 h-10 rounded-full text-[13px] font-semibold transition-colors min-w-[40px] min-h-[40px] ${
                                   intensityDraft === String(n)
-                                    ? 'bg-rose-300 text-plum-950'
+                                    ? 'bg-rose-300 text-plum-950 ring-2 ring-rose-200 ring-offset-2 ring-offset-plum-950'
                                     : 'bg-ink-100/10 text-ink-300 active:bg-ink-100/20'
                                 }`}
                                 aria-label={`Intensity ${n}`}
