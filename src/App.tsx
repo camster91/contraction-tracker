@@ -99,7 +99,7 @@ import { getExams } from './lib/hospital';
 
 const STORAGE_KEY = 'contraction-tracker:v1';
 const SESSION_KEY = 'contraction-tracker:current';
-const APP_VERSION = '1.35';
+const APP_VERSION = '1.36';
 const MUTED_KEY = 'contraction-tracker:muted';
 const BACKUP_REMINDER_KEY = 'contraction-tracker:backup-dismissed';
 
@@ -332,6 +332,17 @@ export default function App() {
       navigator.serviceWorker.register('/sw.js').catch(() => {
         /* PWA install is optional; fail silently */
       });
+      // When the waiting worker takes over (via skipWaiting + clients.claim),
+      // reload the page so the new bundle is loaded. The Update button does
+      // this by posting 'SKIP_WAITING'; the auto-skipWaiting on install also
+      // triggers this for users who just leave the app open.
+      let reloading = false;
+      const onChange = () => {
+        if (reloading) return;
+        reloading = true;
+        window.location.reload();
+      };
+      navigator.serviceWorker.addEventListener('controllerchange', onChange);
     }
     // Install the visibility-change re-acquire handler for the wake lock
     installWakeLockVisibilityHandler();
@@ -625,19 +636,40 @@ export default function App() {
   };
 
   // ---- Safe app update (preserves data across SW reload) ----
+  // Tries the soft path first: if a new SW is waiting, just tell it to take
+  // over and the page reloads itself. Falls back to the heavy "unregister +
+  // wipe cache + reload" path if no worker is waiting (e.g. the page is being
+  // visited for the first time in a while and the install hasn't even run).
   const handleAppUpdate = async () => {
     if (!confirm('Update to the latest version? Your data is preserved and will be restored.')) return;
-    // Unregister all service workers
+    if ('serviceWorker' in navigator) {
+      const reg = await navigator.serviceWorker.getRegistration();
+      if (reg && reg.waiting) {
+        reg.waiting.postMessage('SKIP_WAITING');
+        // The new worker will call clients.claim(); we reload on controllerchange.
+        return;
+      }
+      if (reg && reg.installing) {
+        reg.installing.addEventListener('statechange', () => {
+          if (reg.installing && reg.installing.state === 'installed' && navigator.serviceWorker.controller) {
+            reg.installing.postMessage('SKIP_WAITING');
+          }
+        });
+        return;
+      }
+      // No waiting/incoming worker — do a fresh registration so the next
+      // page load picks up the latest sw.js.
+      try { await reg?.update(); } catch { /* ignore */ }
+    }
+    // Last-resort: unregister everything and reload to force a clean SW.
     if ('serviceWorker' in navigator) {
       const regs = await navigator.serviceWorker.getRegistrations();
       await Promise.all(regs.map((r) => r.unregister()));
     }
-    // Clear caches so the new SW picks up the latest bundle
     if ('caches' in window) {
       const keys = await caches.keys();
       await Promise.all(keys.map((k) => caches.delete(k)));
     }
-    // Reload — data is in localStorage + IDB, will be restored on mount
     window.location.reload();
   };
 

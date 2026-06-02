@@ -1,7 +1,7 @@
 /* Luna — Contraction Timer PWA service worker.
  * Cache-first for app shell, network-first for HTML. */
 
-const CACHE_NAME = 'luna-v36';
+const CACHE_NAME = 'luna-v37';
 const APP_SHELL = [
   '/',
   '/index.html',
@@ -15,6 +15,7 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)).catch(() => {}),
   );
+  // Activate the new worker as soon as install finishes. Clients will reload.
   self.skipWaiting();
 });
 
@@ -24,7 +25,17 @@ self.addEventListener('activate', (event) => {
       Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))),
     ),
   );
+  // Take control of all open tabs immediately so the user doesn't have to
+  // close+reopen the app to see the new version.
   self.clients.claim();
+});
+
+// Manual trigger from the Settings "Update" button — skips waiting and
+// posts a message back to the page so it can reload itself.
+self.addEventListener('message', (event) => {
+  if (event.data === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener('fetch', (event) => {
