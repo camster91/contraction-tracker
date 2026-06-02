@@ -20,6 +20,7 @@ type Props = {
   contractions: Contraction[];
   onClose: () => void;
   onStateChange?: (state: 'prenatal' | 'labor' | 'postpartum' | 'archived') => void;
+  onBabyIsHere?: (shareCode: string) => void;
 };
 
 function buildShareUrl(code: string): string {
@@ -48,7 +49,7 @@ function buildUpdateText(contractions: Contraction[], sessionName: string): stri
   return lines.join(' ');
 }
 
-export default function ShareSheet({ sessionId, contractions, onClose, onStateChange }: Props) {
+export default function ShareSheet({ sessionId, contractions, onClose, onStateChange, onBabyIsHere }: Props) {
   const [relayError, setRelayError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [shares, setShares] = useState<Share[]>(() => getShares());
@@ -216,6 +217,25 @@ export default function ShareSheet({ sessionId, contractions, onClose, onStateCh
           ))}
         </div>
       </div>
+
+      {/* Baby is here button */}
+      <button
+        onClick={() => {
+          const active = activeShares[0];
+          if (active && onBabyIsHere) {
+            onBabyIsHere(active.id);
+          } else if (!active) {
+            alert('Create a share link first so your circle can see the update.');
+          }
+        }}
+        className="w-full mb-3 text-left text-sm text-ink-100 bg-sage-300/10 active:bg-sage-300/20 border border-sage-300/30 rounded-xl px-3 py-2.5 flex items-center gap-2 transition-colors"
+      >
+        <span className="text-lg">🎉</span>
+        <div className="flex-1 min-w-0">
+          <div className="font-medium text-sage-200">Baby is here!</div>
+          <div className="text-[10px] text-ink-500">Share the happy news with your circle</div>
+        </div>
+      </button>
 
       {/* Send update (works without a share link) */}
       <button

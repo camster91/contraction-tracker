@@ -99,10 +99,11 @@ import {
 import { getChecklist, packedCount, saveChecklist } from './lib/checklist';
 import { getExams } from './lib/hospital';
 import { postMessage } from './lib/feed';
+import BabyIsHereModal from './components/BabyIsHereModal';
 
 const STORAGE_KEY = 'contraction-tracker:v1';
 const SESSION_KEY = 'contraction-tracker:current';
-const APP_VERSION = '1.47';
+const APP_VERSION = '1.48';
 const MUTED_KEY = 'contraction-tracker:muted';
 const BACKUP_REMINDER_KEY = 'contraction-tracker:backup-dismissed';
 
@@ -184,6 +185,9 @@ export default function App() {
 
   // State change toast — shown when the host manually changes the share's labor stage
   const [stateToast, setStateToast] = useState<string | null>(null);
+
+  // BabyIsHere modal — shown when the host clicks "Baby is here" in the share sheet
+  const [babyModalShareCode, setBabyModalShareCode] = useState<string | null>(null);
 
   // Hidden file input for importing backups
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -995,6 +999,22 @@ export default function App() {
         </div>
       )}
 
+      {/* Baby is here modal — celebratory postpartum announcement */}
+      {babyModalShareCode && (
+        <BabyIsHereModal
+          code={babyModalShareCode}
+          onClose={() => setBabyModalShareCode(null)}
+          onBabyPosted={() => {
+            // Transition the share to postpartum on the relay so viewers see it
+            const shares = getShares().filter((s) => s.id === babyModalShareCode);
+            if (shares[0]) {
+              // Optimistically mark locally — relay will sync on next push
+              setStateToast('postpartum');
+            }
+          }}
+        />
+      )}
+
       {/* Hidden file input for backup import */}
       <input
         ref={fileInputRef}
@@ -1266,6 +1286,7 @@ export default function App() {
               setSessions(getSessions());
             }}
             onStateChange={(st) => setStateToast(st)}
+            onBabyIsHere={(code) => setBabyModalShareCode(code)}
           />
         </>
       )}
