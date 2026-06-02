@@ -709,6 +709,17 @@ export default function App() {
               clear
             </button>
           )}
+          {/* Share with partner — opens the share sheet for the active session */}
+          {finished.length > 0 && (
+            <button
+              onClick={() => setShowShare(activeSessionId)}
+              className="p-1.5 rounded-lg text-ink-300 active:text-rose-300 active:bg-rose-300/10 transition-colors"
+              aria-label="Share with partner"
+              title="Share with partner"
+            >
+              <Share2 className="w-4 h-4" strokeWidth={1.75} />
+            </button>
+          )}
           {/* Hospital bag checklist */}
           <button
             onClick={() => setShowChecklist(true)}
