@@ -40,6 +40,19 @@ export default function ShareView({ code }: { code: string }) {
   useEffect(() => {
     let mounted = true;
     (async () => {
+      // Sanitize the code up front. Valid codes are 6 chars from a 30-char
+      // alphabet (lowercase a-z minus ambiguous + digits 2-9). Reject anything
+      // else so a malformed URL doesn't waste a relay call and so we can show
+      // a precise "This doesn't look like a Luna share link" error.
+      const codePattern = /^[a-z2-9]{6}$/;
+      if (!code || !codePattern.test(code)) {
+        if (mounted) {
+          setError('This doesn\u2019t look like a Luna share link. Check the URL and try again.');
+          setChecked(true);
+        }
+        return;
+      }
+
       try {
         // Try relay first
         const relayShare = await getShareFromRelay(code);
@@ -51,6 +64,12 @@ export default function ShareView({ code }: { code: string }) {
           if (!relayShare.hasPin) {
             setUnlocked(true);
             markShareOpenedOnRelay(code).catch(() => {});
+          }
+          // Distinguish expired shares from "not found" for a clearer error.
+          if (relayShare.expiresAt && Date.now() > new Date(relayShare.expiresAt).getTime()) {
+            setError('This share link has expired. Ask for a new one.');
+            setChecked(true);
+            return;
           }
           setShare({
             id: code,
@@ -71,6 +90,16 @@ export default function ShareView({ code }: { code: string }) {
       try {
         const s = getShare(code);
         if (mounted) {
+          if (s && s.expiresAt && Date.now() > new Date(s.expiresAt).getTime()) {
+            setError('This share link has expired. Ask for a new one.');
+            setChecked(true);
+            return;
+          }
+          if (s && s.revoked) {
+            setError('This share link was revoked. Ask for a new one.');
+            setChecked(true);
+            return;
+          }
           setShare(s);
           setChecked(true);
           if (s && isShareValid(s) && !s.pin) {
