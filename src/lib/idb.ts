@@ -64,6 +64,64 @@ export async function autoBackup(contractions: unknown, current: unknown): Promi
   });
 }
 
+// Dedicated backup just for the in-progress current timer.
+export async function saveCurrentToIdb(current: unknown): Promise<boolean> {
+  const db = await openDB();
+  if (!db) return false;
+  return new Promise((resolve) => {
+    try {
+      const tx = db.transaction(STORE, 'readwrite');
+      const store = tx.objectStore(STORE);
+      const req = store.put({ version: 1, savedAt: new Date().toISOString(), current, contractions: [] }, 'current');
+      req.onsuccess = () => resolve(true);
+      req.onerror = () => resolve(false);
+    } catch {
+      resolve(false);
+    }
+  });
+}
+
+// Clear the current timer backup from IDB (when stopped or restored)
+export async function clearCurrentFromIdb(): Promise<boolean> {
+  const db = await openDB();
+  if (!db) return false;
+  return new Promise((resolve) => {
+    try {
+      const tx = db.transaction(STORE, 'readwrite');
+      const store = tx.objectStore(STORE);
+      const req = store.delete('current');
+      req.onsuccess = () => resolve(true);
+      req.onerror = () => resolve(false);
+    } catch {
+      resolve(false);
+    }
+  });
+}
+
+// Re-export openDB for use in App.tsx mount effect (inline IDB read without a wrapper)
+export { openDB as openDBForLoad };
+
+// Load the standalone current-timer backup (no full history restore needed)
+export async function loadCurrentBackup<T>(): Promise<{ current: T | null; savedAt: string | null } | null> {
+  const db = await openDB();
+  if (!db) return null;
+  return new Promise((resolve) => {
+    try {
+      const tx = db.transaction(STORE, 'readonly');
+      const store = tx.objectStore(STORE);
+      const req = store.get('current');
+      req.onsuccess = () => {
+        const rec = req.result;
+        if (!rec) { resolve(null); return; }
+        resolve({ current: (rec.current as T | null) ?? null, savedAt: rec.savedAt ?? null });
+      };
+      req.onerror = () => resolve(null);
+    } catch {
+      resolve(null);
+    }
+  });
+}
+
 export async function loadAutoBackup<T>(): Promise<{ contractions: T[]; current: T | null; savedAt: string | null } | null> {
   const db = await openDB();
   if (!db) return null;

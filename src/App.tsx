@@ -26,6 +26,7 @@ import {
   Stethoscope,
   Mic,
   MicOff,
+  Clock,
 } from 'lucide-react';
 import {
   type Contraction,
@@ -45,7 +46,7 @@ import {
   setHour12Preferred,
 } from './lib/contractions';
 import { load, save, uid } from './lib/storage';
-import { autoBackup, loadAutoBackup } from './lib/idb';
+import { autoBackup, loadAutoBackup, saveCurrentToIdb, clearCurrentFromIdb, loadCurrentBackup } from './lib/idb';
 import {
   buildBackup,
   downloadBackup,
@@ -185,6 +186,11 @@ export default function App() {
   // Data integrity toast — shown when corrupted data was detected and recovered
   const [dataDamagedToast, setDataDamagedToast] = useState(false);
 
+  // Pending restore: when IDB has a saved current timer that localStorage doesn't have,
+  // this holds it so we can show the "Resume?" prompt at the top of the screen.
+  const [pendingRestore, setPendingRestore] = useState<Contraction | null>(null);
+  const [pendingRestoreAt, setPendingRestoreAt] = useState<string | null>(null);
+
   // State change toast — shown when the host manually changes the share's labor stage
   const [stateToast, setStateToast] = useState<string | null>(null);
 
@@ -258,7 +264,7 @@ export default function App() {
   }, [current && current.start]);
 
   // On first mount: if localStorage is empty but IndexedDB has a backup, restore it.
-
+  // Also check for a solo current-timer backup (separate from the full backup).
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -274,12 +280,34 @@ export default function App() {
           if (backup.current) setCurrent(backup.current);
           if (backup.savedAt) setSavedAt(new Date(backup.savedAt));
         }
+        // Check for a standalone current timer backup (no history in localStorage,
+        // but an in-progress timer may have been saved by the 5s interval loop).
+        if (mounted && localStored.contractions.length === 0) {
+          const timerBackup = await loadCurrentBackup<Contraction>();
+          if (mounted && timerBackup && timerBackup.current && !timerBackup.current.end) {
+            setPendingRestore(timerBackup.current);
+            setPendingRestoreAt(timerBackup.savedAt);
+          }
+        }
       } catch {
         /* IDB not available; localStorage is the only copy */
       }
     })();
     return () => { mounted = false; };
   }, []);
+
+  // Backup current timer to IndexedDB every 5s while it is running.
+  // This guards against localStorage wipe (iOS tab kill, quota pressure).
+  useEffect(() => {
+    if (!current || current.end) {
+      clearCurrentFromIdb().catch(() => {});
+      return;
+    }
+    const id = setInterval(() => {
+      saveCurrentToIdb(current).catch(() => {});
+    }, 5_000);
+    return () => clearInterval(id);
+  }, [current]);
 
   // BroadcastChannel sync — keep other tabs up to date when data changes
   useEffect(() => {
@@ -985,6 +1013,47 @@ export default function App() {
             >
               <X className="w-4 h-4" />
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Timer restore prompt — shown when IDB has an in-progress timer but localStorage doesn't */}
+      {pendingRestore && (
+        <div
+          className="flex-shrink-0 mx-5 mt-4 rounded-2xl border border-amber-300/40 bg-amber-300/10 px-4 py-3 flex items-start gap-3 animate-fade-in"
+        >
+          <div className="w-8 h-8 rounded-full bg-amber-300/15 flex items-center justify-center flex-shrink-0">
+            <Clock className="w-4 h-4 text-amber-300" strokeWidth={2} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-semibold text-amber-200 font-display">In-progress timer found</div>
+            <div className="text-xs text-ink-300 mt-0.5 leading-relaxed">
+              {pendingRestoreAt ? `Saved at ${new Date(pendingRestoreAt).toLocaleTimeString()}. ` : ''}
+              Resume tracking from where you left off?
+            </div>
+            <div className="flex gap-2 mt-2">
+              <button
+                onClick={() => {
+                  setCurrent(pendingRestore);
+                  clearCurrentFromIdb().catch(() => {});
+                  setPendingRestore(null);
+                  setPendingRestoreAt(null);
+                }}
+                className="text-xs px-3 py-1.5 rounded-lg bg-amber-300/20 text-amber-200 font-semibold active:bg-amber-300/30 transition-colors"
+              >
+                Resume
+              </button>
+              <button
+                onClick={() => {
+                  clearCurrentFromIdb().catch(() => {});
+                  setPendingRestore(null);
+                  setPendingRestoreAt(null);
+                }}
+                className="text-xs text-ink-400 hover:text-ink-200 active:text-ink-100 transition-colors px-2 py-1.5"
+              >
+                Dismiss
+              </button>
+            </div>
           </div>
         </div>
       )}
