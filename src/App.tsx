@@ -101,7 +101,7 @@ import { getExams } from './lib/hospital';
 
 const STORAGE_KEY = 'contraction-tracker:v1';
 const SESSION_KEY = 'contraction-tracker:current';
-const APP_VERSION = '1.41';
+const APP_VERSION = '1.42';
 const MUTED_KEY = 'contraction-tracker:muted';
 const BACKUP_REMINDER_KEY = 'contraction-tracker:backup-dismissed';
 
@@ -1352,8 +1352,9 @@ export default function App() {
 
       {/* Backup reminder banner — soft nudge if no share link has been created.
           Includes a "Back up now" CTA that opens the Share sheet directly so the
-          user doesn't have to hunt for the action. */}
-      {showBackupBanner && (
+          user doesn't have to hunt for the action. Hidden during active timing
+          and while editing a contraction so it doesn't obstruct those flows. */}
+      {showBackupBanner && !current && !editingId && (
         <div className="flex-shrink-0 mx-5 mb-3 rounded-2xl border border-sage-300/30 bg-sage-300/10 px-4 py-3 animate-fade-in">
           <div className="flex items-start gap-3">
             <div className="w-8 h-8 rounded-full bg-sage-300/15 flex items-center justify-center flex-shrink-0">
