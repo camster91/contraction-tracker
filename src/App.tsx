@@ -102,10 +102,12 @@ import { postMessage, type MessageKind } from './lib/feed';
 import { pushContractionsToRelay } from './lib/relay';
 import Onboarding from './components/Onboarding';
 import StatusUpdatePrompt from './components/StatusUpdatePrompt';
+import TagFilter from './components/TagFilter';
+import HistoryHeader from './components/HistoryHeader';
 
 const STORAGE_KEY = 'contraction-tracker:v1';
 const SESSION_KEY = 'contraction-tracker:current';
-const APP_VERSION = '1.49';
+const APP_VERSION = '1.53';
 const MUTED_KEY = 'contraction-tracker:muted';
 const BACKUP_REMINDER_KEY = 'contraction-tracker:backup-dismissed';
 
@@ -1646,68 +1648,19 @@ export default function App() {
         {/* History list */}
         {finished.length > 0 && (
           <div className="mb-4">
-            <div className="flex items-center justify-between mb-2.5 ml-1 flex-wrap gap-2">
-              <div className="text-[10px] uppercase tracking-[0.2em] text-ink-400 font-semibold">
-                History
-              </div>
-              <div className="flex gap-1 flex-wrap">
-                <button
-                  onClick={handleReadSummary}
-                  className="text-ink-300 active:text-rose-300 active:bg-ink-100/10 px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 text-xs transition-colors"
-                  title="Read summary aloud"
-                >
-                  <Volume2 className="w-3.5 h-3.5" />
-                  <span>Read</span>
-                </button>
-                <button
-                  onClick={handleShare}
-                  className="text-ink-300 active:text-rose-300 active:bg-ink-100/10 px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 text-xs transition-colors"
-                >
-                  <Share2 className="w-3.5 h-3.5" />
-                  <span>Share</span>
-                </button>
-                <button
-                  onClick={handleDownload}
-                  className="text-ink-300 active:text-rose-300 active:bg-ink-100/10 px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 text-xs transition-colors"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  <span>.txt</span>
-                </button>
-              </div>
-            </div>
+            <HistoryHeader
+              onReadSummary={handleReadSummary}
+              onShare={handleShare}
+              onDownload={handleDownload}
+            />
 
-            {/* Tag filter chips — only shown when there are tagged contractions.
-                Tap a tag to filter the history list to that tag; tap All to clear. */}
-            {knownTags.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mb-3 ml-1">
-                <button
-                  onClick={() => setTagFilter(null)}
-                  className={`text-[11px] px-2.5 py-1 rounded-full font-medium transition-colors ${
-                    tagFilter === null
-                      ? 'bg-rose-300/20 text-rose-200 border border-rose-300/40'
-                      : 'bg-ink-100/5 text-ink-400 border border-ink-200/30 active:bg-ink-100/10'
-                  }`}
-                >
-                  All ({finished.length})
-                </button>
-                {knownTags.map(({ tag, count }) => (
-                  <button
-                    key={tag}
-                    onClick={() => setTagFilter((f) => (f === tag ? null : tag))}
-                    className={`text-[11px] px-2.5 py-1 rounded-full font-medium transition-colors flex items-center gap-1 ${
-                      tagFilter === tag
-                        ? 'bg-rose-300/20 text-rose-200 border border-rose-300/40'
-                        : 'bg-ink-100/5 text-ink-300 border border-ink-200/30 active:bg-ink-100/10'
-                    }`}
-                  >
-                    <Tag className="w-2.5 h-2.5" />
-                    {tag}
-                    <span className="opacity-60">({count})</span>
-                  </button>
-                ))}
-              </div>
-            )}
-
+            {/* Tag filter chips — only shown when there are tagged contractions */}
+            <TagFilter
+              knownTags={knownTags}
+              finishedCount={finished.length}
+              tagFilter={tagFilter}
+              onSetTagFilter={setTagFilter}
+            />
             <ul className="space-y-3">
               {[...visibleFinished].reverse().map((c, idx) => {
                 const dur = durationSeconds(c, now);
