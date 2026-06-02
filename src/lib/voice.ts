@@ -4,6 +4,8 @@
 //
 // Keywords: "start", "stop", "done", "begin", "end"
 // When listening, a small mic icon pulses in the header.
+// Stop actions require 2-tap confirmation: same phrase spoken twice within 3s.
+// Start actions are single-tap.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 let recognition: any = null;
@@ -11,8 +13,24 @@ let listening = false;
 let onStartCallback: (() => void) | null = null;
 let onStopCallback: (() => void) | null = null;
 
+// Pending stop confirmation state: requires the same phrase twice within 3s
+let pendingStop: string | null = null;
+let pendingStopAt: number = 0;
+const STOP_CONFIRM_WINDOW_MS = 3_000;
+
 const START_WORDS = ['start', 'begin', 'go', 'now'];
 const STOP_WORDS = ['stop', 'done', 'end', 'over', 'finished'];
+
+export function getPendingVoiceStop(): { phrase: string; msRemaining: number } | null {
+  if (!pendingStop) return null;
+  const elapsed = Date.now() - pendingStopAt;
+  const remaining = STOP_CONFIRM_WINDOW_MS - elapsed;
+  if (remaining <= 0) {
+    pendingStop = null;
+    return null;
+  }
+  return { phrase: pendingStop, msRemaining: remaining };
+}
 
 function getRecognition(): any {
   if (typeof window === 'undefined') return null;
@@ -34,24 +52,31 @@ function getRecognition(): any {
         if (words.length > 4) continue;
         // First word wins — if the user says "start now", we start.
         const first = words[0]?.replace(/[^a-z]/g, '');
+        // Clear any expired pending stop
+        if (pendingStop && Date.now() - pendingStopAt > STOP_CONFIRM_WINDOW_MS) {
+          pendingStop = null;
+        }
         if (first && START_WORDS.includes(first)) {
+          // Start is single-tap — cancel any pending stop first
+          pendingStop = null;
           onStartCallback?.();
           return;
         }
         if (first && STOP_WORDS.includes(first)) {
-          onStopCallback?.();
-          return;
-        }
-        // Fallback for single-word transcripts: any matching word counts.
-        if (words.length === 1) {
-          if (START_WORDS.includes(first)) {
-            onStartCallback?.();
-            return;
-          }
-          if (STOP_WORDS.includes(first)) {
+          if (pendingStop === first) {
+            // Same phrase spoken twice within window — confirmed stop
+            pendingStop = null;
             onStopCallback?.();
             return;
           }
+          // First occurrence — set pending confirmation
+          pendingStop = first;
+          pendingStopAt = Date.now();
+          return;
+        }
+        // Non-command word heard — cancel pending stop
+        if (first && !START_WORDS.includes(first) && !STOP_WORDS.includes(first)) {
+          pendingStop = null;
         }
       }
     };
@@ -79,6 +104,8 @@ export function startListening(onStart: () => void, onStop: () => void) {
   onStartCallback = onStart;
   onStopCallback = onStop;
   listening = true;
+  // Reset pending state on fresh start
+  pendingStop = null;
   try {
     sr.start();
   } catch {
@@ -90,6 +117,7 @@ export function stopListening() {
   listening = false;
   onStartCallback = null;
   onStopCallback = null;
+  pendingStop = null;
   try {
     recognition?.stop();
   } catch {
