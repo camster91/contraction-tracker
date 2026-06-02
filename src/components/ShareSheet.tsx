@@ -111,7 +111,18 @@ export default function ShareSheet({ sessionId, contractions, onClose }: Props) 
   };
 
   return (
-    <div className="absolute right-5 top-full mt-1 z-40 w-80 max-w-[calc(100vw-2.5rem)] rounded-2xl border border-ink-200/30 bg-plum-950/95 backdrop-blur-xl shadow-[0_8px_32px_-8px_rgba(0,0,0,0.6)] p-4 animate-fade-in max-h-[80vh] overflow-y-auto">
+    <>
+      <div
+        className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
+        onClick={onClose}
+        aria-hidden="true"
+      />
+      <div className="fixed inset-x-0 bottom-0 z-50 rounded-t-3xl border-t border-ink-200/30 bg-plum-950/98 backdrop-blur-xl shadow-[0_-8px_32px_-8px_rgba(0,0,0,0.6)] max-h-[85dvh] flex flex-col animate-slide-up">
+        {/* Drag handle */}
+        <div className="flex justify-center pt-3 pb-2">
+          <div className="w-8 h-1 rounded-full bg-ink-200/40" />
+        </div>
+        <div className="flex-1 overflow-y-auto px-5 pb-6">
       <div className="flex items-center justify-between mb-3">
         <div className="text-sm font-semibold text-ink-50 font-display">Share</div>
         <button
@@ -229,11 +240,8 @@ export default function ShareSheet({ sessionId, contractions, onClose }: Props) 
           })}
         </div>
       )}
-
-      <div className="text-[10px] text-ink-600 mt-3 leading-relaxed">
-        Links are device-local. To enable true multi-device live tracking, a
-        backend relay (e.g. Supabase realtime) would be needed.
-      </div>
+        </div>
     </div>
+  </>
   );
 }
