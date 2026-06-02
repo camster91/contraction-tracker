@@ -1073,7 +1073,7 @@ export default function App() {
           {/* Share with partner — always visible */}
           <button
             onClick={() => setShowShare(activeSessionId)}
-            className="p-1.5 rounded-lg text-ink-300 active:text-rose-300 active:bg-rose-300/10 transition-colors"
+            className="p-2 rounded-lg text-ink-300 active:text-rose-300 active:bg-rose-300/10 transition-colors"
             aria-label="Share with partner"
             title="Share with partner"
           >
@@ -1082,7 +1082,7 @@ export default function App() {
           {/* Sound on/off */}
           <button
             onClick={handleMuteToggle}
-            className={`p-1.5 rounded-lg transition-colors ${
+            className={`p-2 rounded-lg transition-colors ${
               muted ? 'text-ink-500 active:text-ink-300' : 'text-ink-300 active:text-rose-300'
             }`}
             aria-label={muted ? 'Sound off — tap to enable' : 'Sound on — tap to mute'}
@@ -1093,7 +1093,7 @@ export default function App() {
           {/* Settings */}
           <button
             onClick={() => setShowSettings((s) => !s)}
-            className="p-1.5 rounded-lg text-ink-300 active:text-rose-300 active:bg-ink-100/10 transition-colors"
+            className="p-2 rounded-lg text-ink-300 active:text-rose-300 active:bg-ink-100/10 transition-colors"
             aria-label="Settings"
             title="Settings"
           >
@@ -1485,7 +1485,7 @@ export default function App() {
                               <button
                                 key={n}
                                 onClick={() => setIntensityDraft(intensityDraft === String(n) ? '' : String(n))}
-                                className={`w-6 h-6 rounded-full text-[10px] font-semibold transition-colors ${
+                                className={`w-8 h-8 rounded-full text-[12px] font-semibold transition-colors ${
                                   intensityDraft === String(n)
                                     ? 'bg-rose-300 text-plum-950'
                                     : 'bg-ink-100/10 text-ink-300 active:bg-ink-100/20'
@@ -1531,7 +1531,7 @@ export default function App() {
                                     active ? cur.filter((x) => x !== t) : [...cur, t],
                                   )
                                 }
-                                className={`text-[10px] uppercase tracking-wider px-2.5 py-1.5 rounded-full font-semibold transition-colors flex items-center gap-1 ${
+                                className={`text-[11px] uppercase tracking-wider px-3 py-2 rounded-full font-semibold transition-colors flex items-center gap-1 ${
                                   active
                                     ? 'bg-rose-300/20 text-rose-200 border border-rose-300/40'
                                     : 'bg-ink-100/5 text-ink-300 border border-ink-200/30 active:bg-ink-100/10'
