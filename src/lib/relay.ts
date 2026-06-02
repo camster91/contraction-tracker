@@ -29,16 +29,20 @@ export async function pushContractionsToRelay(
   contractions: unknown[],
   current: unknown,
 ): Promise<boolean> {
-  try {
-    const res = await fetch(`${RELAY_URL}/api/shares/${code}/contractions`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contractions, current }),
-    });
-    return res.ok;
-  } catch {
-    return false;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const res = await fetch(`${RELAY_URL}/api/shares/${code}/contractions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contractions, current }),
+      });
+      if (res.ok) return true;
+    } catch {
+      // Retry once on network failure
+      if (attempt === 0) await new Promise(r => setTimeout(r, 500));
+    }
   }
+  return false;
 }
 
 export async function pullContractionsFromRelay(code: string): Promise<{

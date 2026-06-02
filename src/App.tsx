@@ -1023,20 +1023,20 @@ export default function App() {
 
             {/* Version & update */}
             <div className="border-t border-ink-200/20 mt-3 pt-3">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between mb-2">
                 <div>
                   <div className="text-[10px] uppercase tracking-[0.15em] text-ink-400 font-semibold">App version</div>
                   <div className="text-[11px] text-ink-300 mt-0.5">Luna v{APP_VERSION}</div>
                 </div>
-                <button
-                  onClick={() => handleAppUpdate()}
-                  className="text-xs bg-rose-300/20 active:bg-rose-300/30 text-rose-200 border border-rose-300/40 rounded-lg px-3 py-1.5 font-semibold transition-colors"
-                >
-                  Update
-                </button>
               </div>
-              <div className="text-[9px] text-ink-600 mt-1 leading-relaxed">
-                Updates the app to the latest version. Your data is saved automatically.
+              <button
+                onClick={() => handleAppUpdate()}
+                className="w-full bg-rose-300 active:bg-rose-400 text-plum-950 rounded-xl py-2.5 text-sm font-semibold transition-colors"
+              >
+                Update to latest version
+              </button>
+              <div className="text-[9px] text-ink-600 mt-1.5 text-center">
+                Clears old cache and loads the newest version. Your data is safe.
               </div>
             </div>
         </div>
