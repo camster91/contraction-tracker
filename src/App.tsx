@@ -5,6 +5,7 @@ import {
   Trash2,
   Share2,
   Download,
+  Upload,
   AlertTriangle,
   Pencil,
   X,
@@ -40,6 +41,14 @@ import {
 } from './lib/contractions';
 import { load, save, uid } from './lib/storage';
 import { autoBackup, loadAutoBackup } from './lib/idb';
+import {
+  buildBackup,
+  downloadBackup,
+  readBackupFile,
+  mergeBackup,
+  rotateBackup,
+  validateBackup,
+} from './lib/backup';
 import { initSync, broadcastContractions, broadcastCurrent } from './lib/sync';
 import {
   chimeAlert,
@@ -73,14 +82,14 @@ import ActiveLaborBanner from './components/ActiveLaborBanner';
 import PainLocationPicker from './components/PainLocationPicker';
 import {
   contractionsInSession,
+  getSessions,
   getActiveSessionId,
   getPeople,
-  getSessions,
   getShares,
   migrateContractionsToSessions,
   type Session,
 } from './lib/sessions';
-import { getChecklist, packedCount } from './lib/checklist';
+import { getChecklist, packedCount, saveChecklist } from './lib/checklist';
 
 const STORAGE_KEY = 'contraction-tracker:v1';
 const SESSION_KEY = 'contraction-tracker:current';
@@ -143,6 +152,12 @@ export default function App() {
     return (localStorage.getItem('contraction-tracker:theme') as 'calm' | 'cool') || 'calm';
   });
 
+  // Data integrity toast — shown when corrupted data was detected and recovered
+  const [dataDamagedToast, setDataDamagedToast] = useState(false);
+
+  // Hidden file input for importing backups
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   // Backup reminder — show if no share link created in last 4+ hours and not dismissed
   const [dismissedBannerAt, setDismissedBannerAt] = useState<number | null>(() => {
     const raw = localStorage.getItem(BACKUP_REMINDER_KEY);
@@ -161,6 +176,19 @@ export default function App() {
   const undo = useUndo();
   const alertAnnouncedRef = useRef<number>(0);
   const lastAnnouncedMinuteRef = useRef<number>(0);
+
+  // Check for data integrity issues surfaced by validateStoredData on load.
+  // If the primary was corrupted but shadow restored, show the recovery toast.
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem('luna:data-damaged');
+      if (raw) {
+        sessionStorage.removeItem('luna:data-damaged');
+        setDataDamagedToast(true);
+        setTimeout(() => setDataDamagedToast(false), 6000);
+      }
+    } catch { /* ignore */ }
+  }, []);
 
   // On first mount: if localStorage is empty but IndexedDB has a backup, restore it.
   // This is the recovery path for "I cleared my browser data but the app is still installed."
@@ -458,6 +486,136 @@ export default function App() {
     URL.revokeObjectURL(url);
   };
 
+  // ---- Backup export ----
+  const handleExportBackup = async () => {
+    const sessions = getSessions();
+    const people = getPeople();
+    const shares = getShares();
+    // Dynamically import to avoid circular deps and use proper ESM types
+    const { getExams } = await import('./lib/hospital');
+    const exams: Record<string, unknown[]> = {};
+    for (const s of sessions) {
+      exams[s.id] = getExams(s.id);
+    }
+    const checklists: Record<string, unknown[]> = {};
+    for (const s of sessions) {
+      checklists[s.id] = getChecklist(s.id);
+    }
+    const data = buildBackup({
+      contractions,
+      current,
+      sessions,
+      people,
+      shares,
+      exams,
+      checklists,
+    });
+    downloadBackup(data);
+    rotateBackup(data);
+  };
+
+  // ---- Backup import ----
+  const handleImportBackup = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const parsed = await readBackupFile(file);
+      if (!validateBackup(parsed)) {
+        alert('This file is not a valid Luna backup.');
+        return;
+      }
+      // Build existing maps using proper types
+      const allPeople = getPeople();
+      const allShares = getShares();
+      const existingContractions = new Map<string, Contraction>(contractions.map((c) => [c.id, c]));
+      const existingSessions = new Map<string, Session>(sessions.map((s) => [s.id, s]));
+      const existingPeople = new Map<string, { id: string }>(allPeople.map((p: { id: string }) => [p.id, p]));
+      const existingShares = new Map<string, { id: string }>(allShares.map((sh: { id: string }) => [sh.id, sh]));
+      const existingExams = new Map<string, Map<string, { id: string }>>();
+      const existingChecklists = new Map<string, Map<string, { id: string }>>();
+
+      const { getExams: geom, writeExams } = await import('./lib/hospital');
+      for (const s of sessions) {
+        const ex = geom(s.id) as Array<{ id: string }>;
+        existingExams.set(s.id, new Map(ex.map((x) => [x.id, x])));
+      }
+      for (const s of sessions) {
+        const cl = getChecklist(s.id);
+        existingChecklists.set(s.id, new Map(cl.map((i) => [i.id, i])));
+      }
+
+      const result = mergeBackup(parsed, {
+        contractions: existingContractions,
+        sessions: existingSessions,
+        people: existingPeople,
+        shares: existingShares,
+        exams: existingExams,
+        checklists: existingChecklists,
+      });
+
+      // Apply merged data
+      setContractions([...existingContractions.values()]);
+      setSessions([...existingSessions.values()]);
+      const { setPeople: sp, setShares: ss } = await import('./lib/sessions');
+      sp([...existingPeople.values()] as never[]);
+      ss([...existingShares.values()] as never[]);
+
+      // Persist exams and checklists
+      for (const [sid, examMap] of existingExams) {
+        writeExams(sid, [...examMap.values()] as never[]);
+      }
+      for (const [sid, itemMap] of existingChecklists) {
+        saveChecklist(sid, [...itemMap.values()] as never[]);
+      }
+      alert(`Imported ${result.contractions} contractions, ${result.sessions} session(s), ${result.people} contacts, ${result.exams} exams.`);
+    } catch (err) {
+      alert('Failed to import backup: ' + (err instanceof Error ? err.message : String(err)));
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  // ---- Send via share (Web Share API with file) ----
+  const handleSendVia = async () => {
+    const sessions = getSessions();
+    const people = getPeople();
+    const shares = getShares();
+    const { getExams } = await import('./lib/hospital');
+    const exams: Record<string, unknown[]> = {};
+    for (const s of sessions) {
+      exams[s.id] = getExams(s.id);
+    }
+    const checklists: Record<string, unknown[]> = {};
+    for (const s of sessions) {
+      checklists[s.id] = getChecklist(s.id);
+    }
+    const data = buildBackup({
+      contractions,
+      current,
+      sessions,
+      people,
+      shares,
+      exams,
+      checklists,
+    });
+    const json = JSON.stringify(data, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const date = new Date().toISOString().split('T')[0];
+    const file = new File([blob], `luna-backup-${date}.json`, { type: 'application/json' });
+    if (navigator.canShare?.({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: 'Labor backup', text: 'Here is my contraction log' });
+        return;
+      } catch { /* cancelled */ }
+    }
+    try {
+      await navigator.clipboard.writeText(json);
+      alert('Backup copied to clipboard. Paste it into a message to send.');
+    } catch {
+      alert('Could not share the backup file.');
+    }
+  };
+
   const finished = useMemo(
     () => contractions.filter((c) => c.end).sort((a, b) => a.start.localeCompare(b.start)),
     [contractions],
@@ -555,6 +713,43 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* Data integrity recovery toast — shown when corrupted primary was healed from shadow */}
+      {dataDamagedToast && (
+        <div
+          className="fixed inset-x-0 top-6 z-50 flex justify-center pointer-events-none"
+          role="alert"
+          aria-live="assertive"
+        >
+          <div className="pointer-events-auto mx-4 flex items-start gap-3 bg-amber-300/15 border border-amber-300/40 backdrop-blur-xl rounded-2xl px-4 py-3 shadow-[0_8px_32px_-8px_rgba(0,0,0,0.6)] max-w-sm animate-fade-in">
+            <AlertTriangle className="w-4 h-4 text-amber-300 flex-shrink-0 mt-0.5" strokeWidth={2} />
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-semibold text-amber-200">Data restored</div>
+              <div className="text-xs text-ink-300 mt-0.5">
+                Some data was repaired automatically. If anything looks wrong, try restoring from a backup.
+              </div>
+            </div>
+            <button
+              onClick={() => setDataDamagedToast(false)}
+              className="p-1 text-ink-400 active:text-ink-200 flex-shrink-0"
+              aria-label="Dismiss"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Hidden file input for backup import */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".json,application/json"
+        onChange={handleImportBackup}
+        className="hidden"
+        aria-hidden="true"
+        tabIndex={-1}
+      />
 
       {/* Settings sheet — drops down from the settings button */}
       {showSettings && (
@@ -669,6 +864,43 @@ export default function App() {
                     {v === 'calm' ? '🌸 Calm' : '❄️ Cool'}
                   </button>
                 ))}
+              </div>
+            </div>
+
+            {/* Backup section */}
+            <div className="border-t border-ink-200/20 mt-3 pt-3">
+              <div className="text-[10px] uppercase tracking-[0.15em] text-ink-400 font-semibold mb-2">Backup</div>
+              <div className="space-y-2">
+                <button
+                  onClick={handleExportBackup}
+                  className="w-full text-left text-sm text-ink-200 bg-ink-100/5 active:bg-ink-100/10 border border-ink-200/30 rounded-xl px-3 py-2.5 flex items-center gap-2 transition-colors"
+                >
+                  <Download className="w-4 h-4 text-sage-300" strokeWidth={1.75} />
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium">Export backup</div>
+                    <div className="text-[10px] text-ink-500">Download .json file</div>
+                  </div>
+                </button>
+                <button
+                  onClick={handleSendVia}
+                  className="w-full text-left text-sm text-ink-200 bg-ink-100/5 active:bg-ink-100/10 border border-ink-200/30 rounded-xl px-3 py-2.5 flex items-center gap-2 transition-colors"
+                >
+                  <Share2 className="w-4 h-4 text-rose-300" strokeWidth={1.75} />
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium">Send via…</div>
+                    <div className="text-[10px] text-ink-500">AirDrop, message, email</div>
+                  </div>
+                </button>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full text-left text-sm text-ink-200 bg-ink-100/5 active:bg-ink-100/10 border border-ink-200/30 rounded-xl px-3 py-2.5 flex items-center gap-2 transition-colors"
+                >
+                  <Upload className="w-4 h-4 text-sage-300" strokeWidth={1.75} />
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium">Import from backup</div>
+                    <div className="text-[10px] text-ink-500">Restore from .json file</div>
+                  </div>
+                </button>
               </div>
             </div>
           </div>

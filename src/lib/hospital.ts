@@ -39,6 +39,10 @@ export function getExams(sessionId: string): CervicalExam[] {
   return readRaw(sessionId);
 }
 
+export function writeExams(sessionId: string, exams: CervicalExam[]) {
+  writeRaw(sessionId, exams);
+}
+
 export function addExam(sessionId: string, input: Omit<CervicalExam, 'id' | 'sessionId'>): CervicalExam {
   const exams = getExams(sessionId);
   const exam: CervicalExam = {
