@@ -847,15 +847,19 @@ export default function App() {
         tabIndex={-1}
       />
 
-      {/* Settings sheet — drops down from the settings button */}
+      {/* Settings sheet — bottom overlay */}
       {showSettings && (
         <>
           <div
-            className="fixed inset-0 z-30"
+            className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
             onClick={() => setShowSettings(false)}
             aria-hidden="true"
           />
-          <div className="absolute right-5 top-full mt-1 z-40 w-72 rounded-2xl border border-ink-200/30 bg-plum-950/95 backdrop-blur-xl shadow-[0_8px_32px_-8px_rgba(0,0,0,0.6)] p-4 animate-fade-in">
+          <div className="fixed inset-x-0 bottom-0 z-50 rounded-t-3xl border-t border-ink-200/30 bg-plum-950/98 backdrop-blur-xl shadow-[0_-8px_32px_-8px_rgba(0,0,0,0.6)] max-h-[85dvh] flex flex-col animate-slide-up">
+            <div className="flex justify-center pt-3 pb-2">
+              <div className="w-8 h-1 rounded-full bg-ink-200/40" />
+            </div>
+            <div className="flex-1 overflow-y-auto px-5 pb-6">
             <div className="flex items-center gap-2 mb-3">
               <Cog className="w-4 h-4 text-ink-300" strokeWidth={1.75} />
               <div className="text-sm font-semibold text-ink-50 font-display">Settings</div>
@@ -1018,7 +1022,8 @@ export default function App() {
                 Updates the app to the latest version. Your data is saved automatically.
               </div>
             </div>
-          </div>
+        </div>
+      </div>
         </>
       )}
 
