@@ -99,7 +99,7 @@ import { getExams } from './lib/hospital';
 
 const STORAGE_KEY = 'contraction-tracker:v1';
 const SESSION_KEY = 'contraction-tracker:current';
-const APP_VERSION = '1.29';
+const APP_VERSION = '1.32';
 const MUTED_KEY = 'contraction-tracker:muted';
 const BACKUP_REMINDER_KEY = 'contraction-tracker:backup-dismissed';
 
@@ -1363,15 +1363,37 @@ export default function App() {
           <div className="mb-4 rounded-2xl border border-ink-200/30 bg-gradient-to-br from-ink-100/[0.04] to-transparent px-4 py-4 animate-fade-in">
             <div className="flex items-center justify-between">
               <div className="text-[10px] uppercase tracking-[0.2em] text-ink-400 font-semibold">Since last</div>
-              <button
-                onClick={handleReadSummary}
-                className="text-ink-300 active:text-rose-300 active:bg-ink-100/10 px-2 py-1 rounded-lg flex items-center gap-1 text-[11px] transition-colors"
-                title="Read aloud"
-                aria-label="Read aloud"
-              >
-                <Volume2 className="w-3.5 h-3.5" />
-                <span>Read</span>
-              </button>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={handleReadSummary}
+                  className="text-ink-300 active:text-rose-300 active:bg-ink-100/10 px-2 py-1 rounded-lg flex items-center gap-1 text-[11px] transition-colors"
+                  title="Read aloud"
+                  aria-label="Read aloud"
+                >
+                  <Volume2 className="w-3.5 h-3.5" />
+                  <span>Read</span>
+                </button>
+                <button
+                  onClick={() => {
+                    const last = finished[finished.length - 1];
+                    if (!last) return;
+                    const dur = durationSeconds(last, now);
+                    if (dur >= 60) {
+                      const ok = window.confirm(
+                        `Delete the last contraction (${formatDuration(dur)})? You can undo from the toast.`,
+                      );
+                      if (!ok) return;
+                    }
+                    handleDelete(last.id);
+                  }}
+                  className="text-ink-300 active:text-rose-300 active:bg-ink-100/10 px-2 py-1 rounded-lg flex items-center gap-1 text-[11px] transition-colors"
+                  title="Delete last contraction"
+                  aria-label="Delete last contraction"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Clear</span>
+                </button>
+              </div>
             </div>
             <div className="font-display text-4xl font-light text-ink-50 tabular-nums mt-1 leading-none">
               {formatDuration(secondsSinceFinish)}
