@@ -101,7 +101,7 @@ import { getExams } from './lib/hospital';
 
 const STORAGE_KEY = 'contraction-tracker:v1';
 const SESSION_KEY = 'contraction-tracker:current';
-const APP_VERSION = '1.39';
+const APP_VERSION = '1.40';
 const MUTED_KEY = 'contraction-tracker:muted';
 const BACKUP_REMINDER_KEY = 'contraction-tracker:backup-dismissed';
 
@@ -416,9 +416,18 @@ export default function App() {
   };
 
   const pipCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  void pipCanvasRef; // reserved for future use
 
   const handleEnterPip = async () => {
     if (!document.pictureInPictureEnabled) return;
+    let rafId: number | null = null;
+    let video: HTMLVideoElement | null = null;
+    const cleanup = () => {
+      if (rafId !== null) cancelAnimationFrame(rafId);
+      rafId = null;
+      try { video?.srcObject && (video.srcObject as MediaStream).getTracks().forEach(t => t.stop()); } catch { /* ignore */ }
+      video = null;
+    };
     try {
       // If we already have a PiP window open, exit
       if (document.pictureInPictureElement) {
@@ -431,7 +440,7 @@ export default function App() {
       canvas.height = 120;
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
-      // Draw the timer
+      // Live-render the timer into the canvas while PiP is open.
       const draw = () => {
         if (!ctx) return;
         ctx.fillStyle = '#120c10';
@@ -441,19 +450,21 @@ export default function App() {
         ctx.textAlign = 'center';
         const elapsed = current && !current.end ? durationSeconds(current, Date.now()) : 0;
         ctx.fillText(formatDuration(elapsed), canvas.width / 2, 80);
+        rafId = requestAnimationFrame(draw);
       };
       draw();
       // Create a video from canvas stream
       const stream = canvas.captureStream(30);
-      const video = document.createElement('video');
+      video = document.createElement('video');
       video.srcObject = stream;
       video.muted = true;
       video.playsInline = true;
       await video.play();
       await video.requestPictureInPicture();
-      pipCanvasRef.current?.remove();
+      // Stop the rAF loop and free the stream once PiP closes.
+      video.addEventListener('leavepictureinpicture', cleanup, { once: true });
     } catch {
-      // PIP not supported or denied — silently ignore
+      cleanup();
     }
   };
 

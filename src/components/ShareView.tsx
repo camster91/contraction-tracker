@@ -154,6 +154,7 @@ export default function ShareView({ code }: { code: string }) {
     ? Math.max(0, Math.round((trackNow - new Date(trackTimer.start).getTime()) / 1000))
     : 0;
   const handleTrackStart = async () => {
+    if (trackTimer && !trackTimer.end) return; // already running
     const c = { id: 't' + Date.now().toString(36), start: new Date().toISOString(), end: null, intensity: null };
     setTrackTimer(c);
     try {
@@ -166,13 +167,14 @@ export default function ShareView({ code }: { code: string }) {
   const handleTrackStop = async () => {
     if (!trackTimer || trackTimer.end) return;
     const finished = { ...trackTimer, end: new Date().toISOString() };
-    setTrackTimer(null);
+    setTrackTimer(finished);
     try {
       const all = contractions.map((x: any) => x.id === finished.id ? finished : x);
       setContractions(all);
       const { pushContractionsToRelay } = await import('../lib/relay');
       await pushContractionsToRelay(code, all, null);
     } catch {}
+    setTrackTimer(null);
   };
 
   // ---- Inline styles (no Tailwind, guaranteed to work) ----

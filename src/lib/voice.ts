@@ -27,13 +27,28 @@ function getRecognition(): any {
     recognition.onresult = (event: any) => {
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const transcript = event.results[i][0].transcript.toLowerCase().trim();
+        // Only fire on a transcript that's a short, clear command — under
+        // 4 words. This prevents false positives from "I want to stop" or
+        // background chatter.
         const words = transcript.split(/\s+/);
-        for (const word of words) {
-          if (START_WORDS.includes(word)) {
+        if (words.length > 4) continue;
+        // First word wins — if the user says "start now", we start.
+        const first = words[0]?.replace(/[^a-z]/g, '');
+        if (first && START_WORDS.includes(first)) {
+          onStartCallback?.();
+          return;
+        }
+        if (first && STOP_WORDS.includes(first)) {
+          onStopCallback?.();
+          return;
+        }
+        // Fallback for single-word transcripts: any matching word counts.
+        if (words.length === 1) {
+          if (START_WORDS.includes(first)) {
             onStartCallback?.();
             return;
           }
-          if (STOP_WORDS.includes(word)) {
+          if (STOP_WORDS.includes(first)) {
             onStopCallback?.();
             return;
           }
