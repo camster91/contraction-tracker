@@ -3,11 +3,12 @@
 // locally only and never sent to a server (we have no server).
 
 import { useState } from 'react';
-import { Plus, Trash2, ArrowLeft, Mail, Phone, User } from 'lucide-react';
+import { Plus, Trash2, ArrowLeft, Mail, Phone, User, MessageSquare } from 'lucide-react';
 import { addPerson, deletePerson, getPeople, type Person } from '../lib/sessions';
 
 type Props = {
   onClose: () => void;
+  finished?: { start: string; end: string | null; id: string }[];
 };
 
 const RELATIONSHIPS = [
@@ -24,7 +25,7 @@ const RELATIONSHIPS = [
   'other',
 ];
 
-export default function PeopleSheet({ onClose }: Props) {
+export default function PeopleSheet({ onClose, finished = [] }: Props) {
   const [people, setPeople] = useState<Person[]>(() => getPeople());
   const [adding, setAdding] = useState(false);
   const [name, setName] = useState('');
@@ -164,13 +165,48 @@ export default function PeopleSheet({ onClose }: Props) {
                 {p.email && ` · ${p.email}`}
               </div>
             </div>
-            <button
-              onClick={() => handleDelete(p.id)}
-              className="p-1.5 text-ink-400 active:text-rose-300 transition-colors"
-              aria-label="Remove"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-            </button>
+            <div className="flex items-center gap-2">
+              {/* Call */}
+              {p.phone && (
+                <a
+                  href={`tel:${p.phone}`}
+                  className="p-1.5 text-ink-400 active:text-sage-300 transition-colors"
+                  aria-label={`Call ${p.name}`}
+                  title="Call"
+                >
+                  <Phone className="w-3.5 h-3.5" />
+                </a>
+              )}
+              {/* Send update */}
+              {finished.length > 0 && (
+                <button
+                  onClick={async () => {
+                    const last = finished[finished.length - 1];
+                    const lastDur = last.end ? Math.round((new Date(last.end).getTime() - new Date(last.start).getTime()) / 1000) : 0;
+                    const m = Math.floor(lastDur / 60);
+                    const s = lastDur % 60;
+                    const durStr = `${m}:${s.toString().padStart(2, '0')}`;
+                    const msg = `${finished.length} contractions so far. Last was ${durStr}.`;
+                    if (navigator.share) {
+                      try { await navigator.share({ text: msg }); return; } catch { /* cancelled */ }
+                    }
+                    try { await navigator.clipboard.writeText(msg); alert('Update copied'); } catch { alert(msg); }
+                  }}
+                  className="p-1.5 text-ink-400 active:text-rose-300 transition-colors"
+                  aria-label={`Send update to ${p.name}`}
+                  title="Send update"
+                >
+                  <MessageSquare className="w-3.5 h-3.5" />
+                </button>
+              )}
+              <button
+                onClick={() => handleDelete(p.id)}
+                className="p-1.5 text-ink-400 active:text-rose-300 transition-colors"
+                aria-label="Remove"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </li>
         ))}
       </ul>

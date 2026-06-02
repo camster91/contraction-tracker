@@ -1,0 +1,55 @@
+// Cervical exam log
+
+export type CervicalExam = {
+  id: string;
+  sessionId: string;
+  time: string;        // ISO timestamp
+  dilationCm: number;  // 0–10 in 0.5 increments
+  effacementPct: number; // 0–100
+  station: number;      // -3 to +3
+  notes?: string;
+};
+
+const KEY = (sessionId: string) => `contraction-tracker:cervical-exams:${sessionId}`;
+
+function readRaw(sessionId: string): CervicalExam[] {
+  try {
+    const raw = localStorage.getItem(KEY(sessionId));
+    if (raw) return JSON.parse(raw) as CervicalExam[];
+  } catch { /* fall through */ }
+  try {
+    const shadow = localStorage.getItem(`${KEY(sessionId)}::shadow`);
+    if (shadow) {
+      try { localStorage.setItem(KEY(sessionId), shadow); } catch { /* ignore */ }
+      return JSON.parse(shadow) as CervicalExam[];
+    }
+  } catch { /* fall through */ }
+  return [];
+}
+
+function writeRaw(sessionId: string, exams: CervicalExam[]) {
+  try {
+    const json = JSON.stringify(exams);
+    localStorage.setItem(KEY(sessionId), json);
+    try { localStorage.setItem(`${KEY(sessionId)}::shadow`, json); } catch { /* ignore */ }
+  } catch { /* quota */ }
+}
+
+export function getExams(sessionId: string): CervicalExam[] {
+  return readRaw(sessionId);
+}
+
+export function addExam(sessionId: string, input: Omit<CervicalExam, 'id' | 'sessionId'>): CervicalExam {
+  const exams = getExams(sessionId);
+  const exam: CervicalExam = {
+    ...input,
+    id: `exam-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
+    sessionId,
+  };
+  writeRaw(sessionId, [...exams, exam]);
+  return exam;
+}
+
+export function deleteExam(sessionId: string, examId: string) {
+  writeRaw(sessionId, getExams(sessionId).filter((e) => e.id !== examId));
+}

@@ -21,6 +21,7 @@ import {
   ChevronDown,
   Users2,
   Cog,
+  Stethoscope,
 } from 'lucide-react';
 import {
   type Contraction,
@@ -61,11 +62,15 @@ import {
 } from './lib/settings';
 import { useUndo } from './lib/undo';
 import Timeline from './components/Timeline';
+import FrequencyChart from './components/FrequencyChart';
 import SessionsSheet from './components/SessionsSheet';
 import PeopleSheet from './components/PeopleSheet';
 import ShareSheet from './components/ShareSheet';
 import ChecklistSheet from './components/ChecklistSheet';
+import HospitalSheet from './components/HospitalSheet';
 import ViewSessionModal from './components/ViewSessionModal';
+import ActiveLaborBanner from './components/ActiveLaborBanner';
+import PainLocationPicker from './components/PainLocationPicker';
 import {
   contractionsInSession,
   getActiveSessionId,
@@ -127,6 +132,17 @@ export default function App() {
   // Hospital bag checklist sheet
   const [showChecklist, setShowChecklist] = useState(false);
 
+  // Hospital sheet (cervical exams)
+  const [showHospital, setShowHospital] = useState(false);
+
+  // Pain location draft (edit panel)
+  const [painLocationsDraft, setPainLocationsDraft] = useState<string[]>([]);
+
+  // Theme variant — 'calm' (default warm rose) or 'cool' (blue/plum)
+  const [themeVariant, setThemeVariant] = useState<'calm' | 'cool'>(() => {
+    return (localStorage.getItem('contraction-tracker:theme') as 'calm' | 'cool') || 'calm';
+  });
+
   // Backup reminder — show if no share link created in last 4+ hours and not dismissed
   const [dismissedBannerAt, setDismissedBannerAt] = useState<number | null>(() => {
     const raw = localStorage.getItem(BACKUP_REMINDER_KEY);
@@ -145,8 +161,6 @@ export default function App() {
   const undo = useUndo();
   const alertAnnouncedRef = useRef<number>(0);
   const lastAnnouncedMinuteRef = useRef<number>(0);
-
-  const tickRef = useRef<number | null>(null);
 
   // On first mount: if localStorage is empty but IndexedDB has a backup, restore it.
   // This is the recovery path for "I cleared my browser data but the app is still installed."
@@ -203,12 +217,19 @@ export default function App() {
   }, [current, contractions]);
 
   useEffect(() => {
+    // Live timer Web Worker — accurate ticking even when tab is throttled.
+    // Created once per session; posted 'start'/'stop' messages.
+    const worker = new Worker('/timer-worker.js');
+    worker.onmessage = (e) => {
+      if (e.data.type === 'tick') setNow(e.data.now);
+    };
     if (current && !current.end) {
-      tickRef.current = window.setInterval(() => setNow(Date.now()), 1000);
-      return () => {
-        if (tickRef.current) window.clearInterval(tickRef.current);
-      };
+      worker.postMessage({ type: 'start' });
     }
+    return () => {
+      worker.postMessage({ type: 'stop' });
+      worker.terminate();
+    };
   }, [current]);
 
   useEffect(() => {
@@ -271,6 +292,7 @@ export default function App() {
     setIntensityDraft('');
     setNoteDraft('');
     setTagsDraft(getTags(finished));
+    setPainLocationsDraft(finished.painLocations ?? []);
     // Save the state *before* this contraction was added so undo can remove it
     undo.push({
       kind: 'stop',
@@ -298,13 +320,20 @@ export default function App() {
     const cleanTags = Array.from(new Set(tagsDraft.filter(Boolean)));
     setContractions((prev) =>
       prev.map((c) => (c.id === editingId
-        ? { ...c, intensity, note: note || undefined, tags: cleanTags.length ? cleanTags : undefined }
+        ? {
+            ...c,
+            intensity,
+            note: note || undefined,
+            tags: cleanTags.length ? cleanTags : undefined,
+            painLocations: painLocationsDraft.length ? painLocationsDraft : undefined,
+          }
         : c)),
     );
     setEditingId(null);
     setIntensityDraft('');
     setNoteDraft('');
     setTagsDraft([]);
+    setPainLocationsDraft([]);
   };
   // Was the entry just-finished (auto-edit panel after Stop) or already-saved?
   // 2-minute window: the user has a moment to add intensity/note, then it's "saved".
@@ -333,6 +362,7 @@ export default function App() {
     setIntensityDraft('');
     setNoteDraft('');
     setTagsDraft([]);
+    setPainLocationsDraft([]);
   };
 
   const handleDelete = (id: string) => {
@@ -616,6 +646,31 @@ export default function App() {
                 </div>
               )}
             </div>
+
+            {/* Theme variant */}
+            <div className="border-t border-ink-200/20 mt-3 pt-3">
+              <div className="text-[10px] uppercase tracking-[0.15em] text-ink-400 font-semibold mb-2">Theme</div>
+              <div className="flex gap-1.5">
+                {(['calm', 'cool'] as const).map((v) => (
+                  <button
+                    key={v}
+                    onClick={() => {
+                      setThemeVariant(v);
+                      localStorage.setItem('contraction-tracker:theme', v);
+                    }}
+                    className={`text-[11px] px-3 py-1.5 rounded-lg font-medium transition-colors ${
+                      themeVariant === v
+                        ? v === 'calm'
+                          ? 'bg-rose-300/20 text-rose-200 border border-rose-300/40'
+                          : 'bg-blue-300/20 text-blue-200 border border-blue-300/40'
+                        : 'bg-ink-100/5 text-ink-400 border border-ink-200/30 active:bg-ink-100/10'
+                    }`}
+                  >
+                    {v === 'calm' ? '🌸 Calm' : '❄️ Cool'}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </>
       )}
@@ -657,7 +712,7 @@ export default function App() {
             }}
             aria-hidden="true"
           />
-          <PeopleSheet onClose={() => setShowPeople(false)} />
+          <PeopleSheet onClose={() => setShowPeople(false)} finished={finished} />
         </>
       )}
 
@@ -727,6 +782,15 @@ export default function App() {
             title="Hospital bag"
           >
             <ClipboardList className="w-4 h-4" strokeWidth={1.75} />
+          </button>
+          {/* Hospital (cervical exams) */}
+          <button
+            onClick={() => setShowHospital(true)}
+            className="p-1.5 rounded-lg text-ink-300 active:text-rose-300 active:bg-rose-300/10 transition-colors"
+            aria-label="Hospital — cervical exams"
+            title="Hospital"
+          >
+            <Stethoscope className="w-4 h-4" strokeWidth={1.75} />
           </button>
           {/* Sound on/off */}
           <button
@@ -821,6 +885,9 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* Active labor indicator */}
+      <ActiveLaborBanner contractions={contractions} now={now} />
 
       {/* Backup reminder banner — soft nudge if no share link has been created */}
       {showBackupBanner && (
@@ -977,6 +1044,13 @@ export default function App() {
           </div>
         )}
 
+        {/* Frequency chart */}
+        {finished.length >= 2 && (
+          <div className="mb-6 animate-fade-in">
+            <FrequencyChart contractions={finished} now={now} />
+          </div>
+        )}
+
         {/* History list */}
         {finished.length > 0 && (
           <div className="mb-4">
@@ -1117,6 +1191,11 @@ export default function App() {
                               </button>
                             ))}
                         </div>
+                        {/* Pain location picker */}
+                        <PainLocationPicker
+                          selected={painLocationsDraft}
+                          onChange={setPainLocationsDraft}
+                        />
                         <input
                           type="text"
                           placeholder="Note (optional)"
@@ -1201,6 +1280,8 @@ export default function App() {
                               setEditingId(c.id);
                               setIntensityDraft(c.intensity?.toString() ?? '');
                               setNoteDraft(c.note ?? '');
+                              setTagsDraft(c.tags ?? []);
+                              setPainLocationsDraft(c.painLocations ?? []);
                             }}
                             className="p-2 text-ink-400 active:text-rose-300 transition-colors"
                             aria-label="Edit"
@@ -1336,6 +1417,11 @@ export default function App() {
         {/* Checklist sheet (hospital bag) — opens from the header Briefcase icon */}
         {showChecklist && (
           <ChecklistSheet sessionId={activeSessionId} onClose={() => setShowChecklist(false)} />
+        )}
+
+        {/* Hospital sheet (cervical exams) — opens from the Stethoscope icon */}
+        {showHospital && (
+          <HospitalSheet sessionId={activeSessionId} onClose={() => setShowHospital(false)} />
         )}
 
         {/* View-session modal — read-only view of an ended session */}

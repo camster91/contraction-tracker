@@ -14,7 +14,19 @@ export const COMMON_TAGS = [
   'breathless',
 ] as const;
 
+export const PAIN_LOCATIONS = [
+  'head',
+  'upper back',
+  'lower back',
+  'abdomen',
+  'hips',
+  'thighs',
+  'upper back (front)',
+  'lower back (back)',
+] as const;
+
 export type CommonTag = typeof COMMON_TAGS[number];
+export type PainLocation = typeof PAIN_LOCATIONS[number];
 
 export type Contraction = {
   id: string;
@@ -30,6 +42,12 @@ export type Contraction = {
   tags?: string[];
   /** optional sessionId (added in v1.7) — which labor session this belongs to. Defaults to primary. */
   sessionId?: string;
+  /** optional painLocations (added in v1.10) — body regions where pain was felt. Defaults to []. */
+  painLocations?: string[];
+  /** optional voiceMemo (added in v1.10) — base64-encoded audio, 30s max. */
+  voiceMemo?: string;
+  /** optional photo (added in v1.10) — base64 thumbnail, 200x200. */
+  photo?: string;
 };
 
 /** Read the tags for a contraction, defaulting to empty array. */
