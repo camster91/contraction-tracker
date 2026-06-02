@@ -68,6 +68,24 @@ jobs:
             >> ~/.ssh/known_hosts
           echo "Added $(wc -l < ~/.ssh/known_hosts) known hosts"
 
+      - name: "Pre-deploy: clear fail2ban self-ban"
+        # fail2ban on the Coolify host sometimes bans the GitHub Actions
+        # runner after repeated SSH attempts (the runner's IP rotates
+        # slightly). This step detects a self-ban and unbans the runner
+        # before the actual deploy SSH commands run.
+        continue-on-error: true
+        env:
+          HOST: ${{ secrets.COOLIFY_HOST }}
+          USER: ${{ secrets.COOLIFY_USER }}
+        run: |
+          MY_IP=$(curl -sS --max-time 10 https://api.ipify.org || echo "")
+          if [ -z "$MY_IP" ]; then
+            echo "Could not determine runner IP; skipping fail2ban check"
+            exit 0
+          fi
+          echo "Runner IP: $MY_IP"
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new $USER@$HOST "fail2ban-client set sshd unbanip $MY_IP" || echo "fail2ban unban failed (probably not banned), continuing"
+
       - name: Pull latest on host
         # Force the host's local clone to match GitHub. Without --ff-only we
         # can hit "Already up to date" lies when the local tracking ref is
