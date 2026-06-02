@@ -90,6 +90,7 @@ import {
   type Session,
 } from './lib/sessions';
 import { getChecklist, packedCount, saveChecklist } from './lib/checklist';
+import { getExams } from './lib/hospital';
 
 const STORAGE_KEY = 'contraction-tracker:v1';
 const SESSION_KEY = 'contraction-tracker:current';
@@ -986,43 +987,14 @@ export default function App() {
           </span>
         </button>
         <div className="flex items-center gap-0.5">
-          {/* Trusted people — opens PeopleSheet directly */}
+          {/* Share with partner — always visible */}
           <button
-            onClick={() => setShowPeople(true)}
+            onClick={() => setShowShare(activeSessionId)}
             className="p-1.5 rounded-lg text-ink-300 active:text-rose-300 active:bg-rose-300/10 transition-colors"
-            aria-label="Trusted people"
-            title="Trusted people"
+            aria-label="Share with partner"
+            title="Share with partner"
           >
-            <Users2 className="w-4 h-4" strokeWidth={1.75} />
-          </button>
-          {/* Share with partner */}
-          {finished.length > 0 && (
-            <button
-              onClick={() => setShowShare(activeSessionId)}
-              className="p-1.5 rounded-lg text-ink-300 active:text-rose-300 active:bg-rose-300/10 transition-colors"
-              aria-label="Share with partner"
-              title="Share with partner"
-            >
-              <Share2 className="w-4 h-4" strokeWidth={1.75} />
-            </button>
-          )}
-          {/* Hospital bag checklist */}
-          <button
-            onClick={() => setShowChecklist(true)}
-            className="p-1.5 rounded-lg text-ink-300 active:text-sage-300 active:bg-sage-300/10 transition-colors"
-            aria-label="Hospital bag checklist"
-            title="Hospital bag"
-          >
-            <ClipboardList className="w-4 h-4" strokeWidth={1.75} />
-          </button>
-          {/* Hospital (cervical exams) */}
-          <button
-            onClick={() => setShowHospital(true)}
-            className="p-1.5 rounded-lg text-ink-300 active:text-rose-300 active:bg-rose-300/10 transition-colors"
-            aria-label="Hospital — cervical exams"
-            title="Hospital"
-          >
-            <Stethoscope className="w-4 h-4" strokeWidth={1.75} />
+            <Share2 className="w-4 h-4" strokeWidth={1.75} />
           </button>
           {/* Sound on/off */}
           <button
@@ -1242,11 +1214,46 @@ export default function App() {
           </div>
         )}
 
-        {/* Friends banner — quick access to People */}
-        <PeopleBanner onOpenPeople={() => setShowPeople(true)} />
+        {/* Feature carousel — swipeable cards for quick access to every feature.
+            Tapping a card opens the corresponding overlay sheet. Replaces the old
+            individual inline pills + header icon clutter. */}
+        <div className="mb-4 -mx-5 px-5 overflow-x-auto scrollbar-none">
+          <div className="flex gap-2 pb-1">
+            {/* Share */}
+            <FeatureCard
+              icon={<Share2 className="w-4 h-4" />}
+              label="Share"
+              sub={finished.length > 0 ? `${finished.length} contraction${finished.length===1?'':'s'}` : 'Invite partner'}
+              onClick={() => setShowShare(activeSessionId)}
+              accent="rose"
+            />
+            {/* Hospital bag */}
+            <HospitalBagCard
+              sessionId={activeSessionId}
+              onClick={() => setShowChecklist(true)}
+            />
+            {/* Cervical exams */}
+            <CervicalExamCard
+              sessionId={activeSessionId}
+              onClick={() => setShowHospital(true)}
+            />
+            {/* Trusted people */}
+            <PeopleCard
+              onClick={() => setShowPeople(true)}
+            />
+            {/* Backup */}
+            <FeatureCard
+              icon={<Download className="w-4 h-4" />}
+              label="Backup"
+              sub="Export & restore"
+              onClick={handleExportBackup}
+              accent="sage"
+            />
+          </div>
+        </div>
 
-        {/* Hospital bag progress pill */}
-        <HospitalBagPill sessionId={activeSessionId} onOpenChecklist={() => setShowChecklist(true)} />
+        {/* Friends banner — reduced; now handled by carousel */}
+        {/* Hospital bag pill — reduced; now handled by carousel */}
 
         {/* Live stats */}
         {finished.length > 0 && (
@@ -1673,6 +1680,72 @@ export default function App() {
   );
 }
 
+// ---- Feature carousel card components ----
+
+function FeatureCard({ icon, label, sub, onClick, accent }: {
+  icon: React.ReactNode; label: string; sub: string;
+  onClick: () => void; accent: 'rose' | 'sage' | 'ink';
+}) {
+  const accentBg = accent === 'rose' ? 'active:bg-rose-300/10 border-rose-300/20' : accent === 'sage' ? 'active:bg-sage-300/10 border-sage-300/20' : 'active:bg-ink-100/10 border-ink-200/30';
+  const accentText = accent === 'rose' ? 'text-rose-300' : accent === 'sage' ? 'text-sage-300' : 'text-ink-300';
+  return (
+    <button
+      onClick={onClick}
+      className={`flex-shrink-0 rounded-2xl border bg-ink-100/5 px-4 py-3 flex flex-col items-center gap-1.5 min-w-[100px] active:scale-95 transition-all ${accentBg}`}
+    >
+      <span className={accentText}>{icon}</span>
+      <span className="text-[11px] font-medium text-ink-200">{label}</span>
+      <span className="text-[9px] text-ink-500">{sub}</span>
+    </button>
+  );
+}
+
+function HospitalBagCard({ sessionId, onClick }: { sessionId: string; onClick: () => void }) {
+  const [packed, setPacked] = useState(() => packedCount(getChecklist(sessionId)));
+  const [total, setTotal] = useState(() => getChecklist(sessionId).length);
+  // Re-check on mount and whenever sessionId changes
+  useEffect(() => {
+    const items = getChecklist(sessionId);
+    setTotal(items.length);
+    setPacked(packedCount(items));
+  }, [sessionId]);
+  return (
+    <FeatureCard
+      icon={<ClipboardList className="w-4 h-4" />}
+      label="Hospital bag"
+      sub={`${packed}/${total} packed`}
+      onClick={onClick}
+      accent={packed === total && total > 0 ? 'sage' : 'ink'}
+    />
+  );
+}
+
+function CervicalExamCard({ sessionId, onClick }: { sessionId: string; onClick: () => void }) {
+  const count = useState(() => getExams(sessionId).length)[0];
+  return (
+    <FeatureCard
+      icon={<Stethoscope className="w-4 h-4" />}
+      label="Exams"
+      sub={count > 0 ? `${count} logged` : 'Log exam'}
+      onClick={onClick}
+      accent="ink"
+    />
+  );
+}
+
+function PeopleCard({ onClick }: { onClick: () => void }) {
+  const count = useState(() => getPeople().length)[0];
+  return (
+    <FeatureCard
+      icon={<Users2 className="w-4 h-4" />}
+      label="People"
+      sub={count > 0 ? `${count} contact${count===1?'':'s'}` : 'Add contacts'}
+      onClick={onClick}
+      accent="ink"
+    />
+  );
+}
+
 function StatCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
     <div className="rounded-2xl border border-ink-200/30 bg-gradient-to-br from-ink-100/[0.04] to-transparent px-3.5 py-3">
@@ -1685,67 +1758,3 @@ function StatCard({ label, value, sub }: { label: string; value: string; sub?: s
   );
 }
 
-// FriendsBanner — shows the top 3 people as tappable pills, or a CTA if empty.
-// Inline below the "Since last" stat so the People feature is visible, not buried.
-function PeopleBanner({ onOpenPeople }: { onOpenPeople: () => void }) {
-  const people = getPeople().slice(0, 3);
-  return (
-    <div className="mb-3 flex items-center gap-2 flex-wrap">
-      {people.length === 0 ? (
-        <button
-          onClick={onOpenPeople}
-          className="flex items-center gap-1.5 text-[11px] text-rose-300/80 active:text-rose-200 px-2.5 py-1.5 rounded-full border border-rose-300/20 active:bg-rose-300/10 transition-colors"
-        >
-          <Users2 className="w-3.5 h-3.5" strokeWidth={1.75} />
-          Add partner, midwife, family
-        </button>
-      ) : (
-        <>
-          <span className="text-[10px] text-ink-500 font-medium">Care circle:</span>
-          {people.map((p) => (
-            <button
-              key={p.id}
-              onClick={onOpenPeople}
-              className="text-[11px] text-ink-200 active:text-rose-200 px-2.5 py-1 rounded-full border border-ink-200/30 active:bg-ink-100/10 transition-colors"
-            >
-              {p.name}
-            </button>
-          ))}
-          {getPeople().length > 3 && (
-            <button
-              onClick={onOpenPeople}
-              className="text-[10px] text-ink-500 active:text-ink-200 transition-colors"
-            >
-              +{getPeople().length - 3} more
-            </button>
-          )}
-        </>
-      )}
-    </div>
-  );
-}
-
-// HospitalBagPill — inline progress indicator for the checklist.
-// Promotes the hospital bag feature from "hidden icon" to first-class visible status.
-function HospitalBagPill({ sessionId, onOpenChecklist }: { sessionId: string; onOpenChecklist: () => void }) {
-  const items = getChecklist(sessionId);
-  const packed = packedCount(items);
-  const total = items.length;
-  const isComplete = packed === total && total > 0;
-  return (
-    <button
-      onClick={onOpenChecklist}
-      className="mb-4 flex items-center gap-2 text-[11px] rounded-full border px-3 py-1.5 transition-colors active:bg-ink-100/10 w-fit"
-      style={{
-        borderColor: isComplete ? 'rgba(168,218,168,0.4)' : 'rgba(148,163,184,0.3)',
-        background: isComplete ? 'rgba(168,218,168,0.08)' : 'transparent',
-      }}
-    >
-      <ClipboardList className="w-3.5 h-3.5" strokeWidth={1.75} style={{ color: isComplete ? '#a3c9a8' : undefined }} />
-      <span style={{ color: isComplete ? '#a3c9a8' : undefined }}>
-        {isComplete ? 'Hospital bag: complete' : `Hospital bag: ${packed}/${total} packed`}
-      </span>
-      {isComplete && <Check className="w-3 h-3" strokeWidth={2.5} style={{ color: '#a3c9a8' }} />}
-    </button>
-  );
-}
