@@ -104,7 +104,7 @@ import BabyIsHereModal from './components/BabyIsHereModal';
 
 const STORAGE_KEY = 'contraction-tracker:v1';
 const SESSION_KEY = 'contraction-tracker:current';
-const APP_VERSION = '1.48';
+const APP_VERSION = '1.49';
 const MUTED_KEY = 'contraction-tracker:muted';
 const BACKUP_REMINDER_KEY = 'contraction-tracker:backup-dismissed';
 
@@ -764,11 +764,11 @@ export default function App() {
       const existingExams = new Map<string, Map<string, { id: string }>>();
       const existingChecklists = new Map<string, Map<string, { id: string }>>();
 
-      const { getExams: geom, writeExams } = await import('./lib/hospital');
       for (const s of sessions) {
-        const ex = geom(s.id) as Array<{ id: string }>;
+        const ex = getExams(s.id) as Array<{ id: string }>;
         existingExams.set(s.id, new Map(ex.map((x) => [x.id, x])));
       }
+      const { writeExams } = await import('./lib/hospital');
       for (const s of sessions) {
         const cl = getChecklist(s.id);
         existingChecklists.set(s.id, new Map(cl.map((i) => [i.id, i])));
@@ -810,7 +810,6 @@ export default function App() {
     const sessions = getSessions();
     const people = getPeople();
     const shares = getShares();
-    const { getExams } = await import('./lib/hospital');
     const exams: Record<string, unknown[]> = {};
     for (const s of sessions) {
       exams[s.id] = getExams(s.id);
