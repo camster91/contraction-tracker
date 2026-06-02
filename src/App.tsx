@@ -211,6 +211,8 @@ export default function App() {
 
   const undo = useUndo();
   const alertAnnouncedRef = useRef<number>(0);
+  // Separate timestamp for re-alert tracking (10-minute repeat interval)
+  const lastAlertAtRef = useRef<number>(0);
   const lastAnnouncedMinuteRef = useRef<number>(0);
 
   // Check for data integrity issues surfaced by validateStoredData on load.
@@ -895,17 +897,30 @@ export default function App() {
   // All tags used anywhere, for the filter chip row
   const knownTags = useMemo(() => allTags(contractions), [contractions]);
 
-  // Voice the 5-1-1 alert once when it transitions from off → on.
-  // Guarded by a timestamp so it doesn't re-trigger every render.
+  // Snooze state for 5-1-1 reminder: when set, reminders are suppressed until this timestamp
+  const [snoozedUntil, setSnoozedUntil] = useState<number>(0);
+
+  // Voice the 5-1-1 alert once when it transitions from off → on,
+  // and re-fire every 10 minutes while the pattern persists.
   useEffect(() => {
     if (!showAlert) return;
     const nowMs = Date.now();
-    if (nowMs - alertAnnouncedRef.current < 60_000) return;
-    alertAnnouncedRef.current = nowMs;
+    // Snoozed: suppress until snooze expires
+    if (snoozedUntil > nowMs) return;
+    // Re-fire interval: 10 minutes
+    if (nowMs - lastAlertAtRef.current < 10 * 60 * 1000) return;
+    lastAlertAtRef.current = nowMs;
     chimeAlert();
-    // force=true bypasses quiet hours — the 5-1-1 alert is a medical signal
-    speak('This looks like the 5 1 1 pattern. Consider calling your provider.', { force: true });
-  }, [showAlert]);
+    const elapsedMin = lastAlertAtRef.current > 0
+      ? Math.round((nowMs - alertAnnouncedRef.current) / 60_000)
+      : 0;
+    if (elapsedMin > 1) {
+      speak(`5 1 1 still active, ${elapsedMin} minutes since the last alert.`, { force: true });
+    } else {
+      // force=true bypasses quiet hours — the 5-1-1 alert is a medical signal
+      speak('This looks like the 5 1 1 pattern. Consider calling your provider.', { force: true });
+    }
+  }, [showAlert, snoozedUntil]);
 
   // Periodic "X minutes in" voice readouts while a contraction is running.
   // Only on whole minutes; rate-limited to once per minute.
@@ -1397,11 +1412,18 @@ export default function App() {
           <div className="w-8 h-8 rounded-full bg-rose-300/15 flex items-center justify-center flex-shrink-0">
             <AlertTriangle className="w-4 h-4 text-rose-300" strokeWidth={2} />
           </div>
-          <div>
+          <div className="flex-1 min-w-0">
             <div className="text-sm font-semibold text-rose-200 font-display">5-1-1 pattern</div>
             <div className="text-xs text-ink-300 mt-0.5 leading-relaxed">
               ~1 min long, ~5 min apart, for ~1 hour. Time to call your provider.
             </div>
+            {/* Stop reminding — snooze for 24 hours */}
+            <button
+              onClick={() => setSnoozedUntil(Date.now() + 24 * 60 * 60 * 1000)}
+              className="mt-2 text-xs text-ink-400 hover:text-ink-200 active:text-ink-100 transition-colors"
+            >
+              Stop reminding
+            </button>
           </div>
         </div>
       )}
