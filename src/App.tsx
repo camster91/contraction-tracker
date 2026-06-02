@@ -250,29 +250,32 @@ export default function App() {
   }, [current, contractions]);
 
   useEffect(() => {
-    // Timer tick source: Web Worker for accuracy during contractions,
-    // setInterval for idle "Since last" stat accuracy. Never both.
-    const inProgress = current && !current.end;
-    if (inProgress) {
-      const worker = new Worker('/timer-worker.js');
-      worker.onmessage = (e) => {
-        if (e.data.type === 'tick') setNow(e.data.now);
-      };
-      worker.postMessage({ type: 'start' });
-      return () => {
-        worker.postMessage({ type: 'stop' });
-        worker.terminate();
-      };
-    } else {
-      // Use requestAnimationFrame for drift-free real-time display
-      let frame = 0;
-      const tick = () => {
-        setNow(Date.now());
-        frame = requestAnimationFrame(tick);
-      };
+    // Persistent rAF tick — never restarts, always accurate.
+    // This runs from mount to unmount. No React state interaction
+    // causes it to restart. The timer display is always live.
+    let frame = 0;
+    const tick = () => {
+      setNow(Date.now());
       frame = requestAnimationFrame(tick);
-      return () => cancelAnimationFrame(frame);
-    }
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, []); // empty deps = mount once, never restart
+
+  // Worker for contraction tick — managed separately so the
+  // main rAF loop above never pauses.
+  useEffect(() => {
+    const inProgress = current && !current.end;
+    if (!inProgress) return;
+    const worker = new Worker('/timer-worker.js');
+    worker.onmessage = (e) => {
+      if (e.data.type === 'tick') setNow(e.data.now);
+    };
+    worker.postMessage({ type: 'start' });
+    return () => {
+      worker.postMessage({ type: 'stop' });
+      worker.terminate();
+    };
   }, [current]);
 
   useEffect(() => {
