@@ -76,7 +76,7 @@ import {
   type MuteSchedule,
 } from './lib/settings';
 import { useUndo } from './lib/undo';
-import { isVoiceSupported, startListening, stopListening } from './lib/voice';
+import { isVoiceSupported, startListening, stopListening, getPendingVoiceStop } from './lib/voice';
 import Timeline from './components/Timeline';
 import FrequencyChart from './components/FrequencyChart';
 import SessionsSheet from './components/SessionsSheet';
@@ -1433,11 +1433,15 @@ export default function App() {
           {isVoiceSupported() && (
             <button
               onClick={handleVoiceToggle}
-              className={`p-2 rounded-lg transition-colors ${voiceActive ? 'text-rose-300 bg-rose-300/10 animate-pulse-subtle' : 'text-ink-300 active:text-rose-300'}`}
+              className={`p-2 rounded-lg transition-colors relative ${voiceActive ? 'text-rose-300 bg-rose-300/10 animate-pulse-subtle' : 'text-ink-300 active:text-rose-300'}`}
               aria-label={voiceActive ? 'Voice listening — tap to stop' : 'Voice control — tap to enable'}
               title={voiceActive ? 'Voice on' : 'Voice off'}
             >
               {voiceActive ? <Mic className="w-4 h-4" strokeWidth={1.75} /> : <MicOff className="w-4 h-4" strokeWidth={1.75} />}
+              {/* Pending stop indicator — small amber dot when 2-tap confirm is pending */}
+              {voiceActive && getPendingVoiceStop() && (
+                <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
+              )}
             </button>
           )}
         </div>
