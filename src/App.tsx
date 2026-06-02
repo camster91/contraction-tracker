@@ -97,6 +97,7 @@ import { getExams } from './lib/hospital';
 
 const STORAGE_KEY = 'contraction-tracker:v1';
 const SESSION_KEY = 'contraction-tracker:current';
+const APP_VERSION = '1.27';
 const MUTED_KEY = 'contraction-tracker:muted';
 const BACKUP_REMINDER_KEY = 'contraction-tracker:backup-dismissed';
 
@@ -601,19 +602,18 @@ export default function App() {
 
   // ---- Safe app update (preserves data across SW reload) ----
   const handleAppUpdate = async () => {
-    // 1. Force a backup to be extra safe
-    await handleExportBackup();
-    // 2. Unregister all service workers
+    if (!confirm('Update to the latest version? Your data is preserved and will be restored.')) return;
+    // Unregister all service workers
     if ('serviceWorker' in navigator) {
       const regs = await navigator.serviceWorker.getRegistrations();
       await Promise.all(regs.map((r) => r.unregister()));
     }
-    // 3. Clear caches so the new SW picks up the latest bundle
+    // Clear caches so the new SW picks up the latest bundle
     if ('caches' in window) {
       const keys = await caches.keys();
       await Promise.all(keys.map((k) => caches.delete(k)));
     }
-    // 4. Reload — data is in localStorage + IDB, will be restored on mount
+    // Reload — data is in localStorage + IDB, will be restored on mount
     window.location.reload();
   };
 
@@ -1026,7 +1026,7 @@ export default function App() {
               <div className="flex items-center justify-between">
                 <div>
                   <div className="text-[10px] uppercase tracking-[0.15em] text-ink-400 font-semibold">App version</div>
-                  <div className="text-[11px] text-ink-300 mt-0.5">Luna v1.17</div>
+                  <div className="text-[11px] text-ink-300 mt-0.5">Luna v{APP_VERSION}</div>
                 </div>
                 <button
                   onClick={() => handleAppUpdate()}
