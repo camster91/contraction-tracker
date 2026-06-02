@@ -1531,7 +1531,7 @@ export default function App() {
                 return (
                   <li
                     key={c.id}
-                    className="rounded-2xl border border-ink-200/30 bg-gradient-to-br from-ink-100/[0.04] to-transparent px-5 py-4"
+                    className="rounded-2xl border border-ink-200/30 bg-gradient-to-br from-ink-100/[0.04] to-transparent px-5 py-4 overflow-hidden"
                   >
                     {isEditing ? (
                       <div className="space-y-2.5 animate-fade-in">
@@ -1667,7 +1667,7 @@ export default function App() {
                                     prev.map((x) => x.id === c.id ? { ...x, start: d.toISOString() } : x),
                                   );
                                 }}
-                                className="font-display text-base font-medium text-ink-50 bg-transparent border-none outline-none focus:underline focus:text-rose-300 w-[5.5rem] cursor-pointer"
+                                className="font-display text-sm font-medium text-ink-50 bg-transparent border-none outline-none focus:underline focus:text-rose-300 w-[4rem] cursor-pointer"
                                 aria-label="Edit start time"
                               />
                             </span>
@@ -1691,7 +1691,7 @@ export default function App() {
                                     prev.map((x) => x.id === c.id ? { ...x, end: d.toISOString() } : x),
                                   );
                                 }}
-                                className="font-display text-sm font-medium text-ink-300 bg-transparent border-none outline-none focus:underline focus:text-rose-300 w-[5rem] cursor-pointer"
+                                className="font-display text-sm font-medium text-ink-300 bg-transparent border-none outline-none focus:underline focus:text-rose-300 w-[4rem] cursor-pointer"
                                 aria-label="Edit end time"
                               />
                             </span>
