@@ -54,9 +54,19 @@ jobs:
           ssh-private-key: ${{ secrets.COOLIFY_SSH_KEY }}
 
       - name: Add host to known_hosts
+        # GitHub Actions runners block outbound port 22 by default, so
+        # `ssh-keyscan` times out. Inline the public host keys instead.
+        # Pulled from ~/.ssh/known_hosts on the build machine 2026-06-02.
+        # Lines written via printf so the YAML parser doesn't try to read
+        # the long base64 blobs as mapping keys.
         run: |
           mkdir -p ~/.ssh
-          ssh-keyscan -H ${{ secrets.COOLIFY_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
+          printf '%s\n' \
+            '187.77.26.99 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIQQ4n2qo7ETfS7NG71tfx+OmLAIKpqJ/gBIiozkLGfO' \
+            '187.77.26.99 ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDYLLSOVRTyZegajBXcFRHhJYNGgp2f3GysKIvonWb/jkaF4hrqbdDF8nuTxjbRoEsLq/eY8Q5h41TKZqFel0rCGy1CT8IBHyGbRS4t+m+es3gGBCSEgz2DK/Fs5XNNYPUsQUc6HmEwRbsPVI1UP2rWeoIpFMjZgzVBh2F5XeO8qfNoSDkAOnI+dTC77scpZl/3Xa5EoiXy5hHfSHzqaVJ9xEojQI22B9TApFAyGQ+H1kEZ3HsRV4XDsRPaRGGxe1TmDSTJpc2Hr4ntaGbOe6jx35utpg9PIBcUH4ZBvNlqanNazYOQ8pMDrt3RF1cFFDDtyO/A8v6OW0JhmSEet4jWUlO7xb8YqFGdQ80XSwg0D2NNDg1OsA01NT6RHHJ6BaLHbRrqNi/8Ti3GbbbWB5uHOXrlryN+of1jrM48A+R0jR6LfunZ/QiQCxBGXuYes7J5iLbkpUZMwAQtujRw9MGbO7mY1WjJRTIvP7T8AzH6i6yS3mjwaeO6bHUwU1R998U=' \
+            '187.77.26.99 ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBP141ip0zmvMRjmYSEzVF4C7Ubt6hHeJHOUVcIhEB5jlXU4xKQfmcPBjiRGWkR4A69/WDoG573Oz6X4SV6ndn6o=' \
+            >> ~/.ssh/known_hosts
+          echo "Added $(wc -l < ~/.ssh/known_hosts) known hosts"
 
       - name: Pull latest on host
         # Force the host's local clone to match GitHub. Without --ff-only we
