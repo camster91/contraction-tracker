@@ -11,6 +11,7 @@ import {
   isShareValid,
   revokeShare,
 } from '../lib/sessions';
+import { createShareOnRelay, pushContractionsToRelay } from '../lib/relay';
 import type { Contraction } from '../lib/contractions';
 import { formatElapsed } from '../lib/contractions';
 
@@ -60,11 +61,17 @@ export default function ShareSheet({ sessionId, contractions, onClose }: Props) 
     [shares, sessionId],
   );
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     const pin = requirePin ? String(Math.floor(1000 + Math.random() * 9000)) : undefined;
     createShare({ sessionId, ttlHours: 24, pin });
     setShares(getShares());
     setRequirePin(false);
+    // Also create on the relay server for multi-device sharing
+    const relayResult = await createShareOnRelay({ sessionId, pin, ttlHours: 24 });
+    if (relayResult) {
+      // Push current contractions to the relay immediately
+      await pushContractionsToRelay(relayResult.code, contractions, null);
+    }
   };
 
   const handleRevoke = (id: string) => {

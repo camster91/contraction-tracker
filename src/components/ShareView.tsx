@@ -24,6 +24,7 @@ import {
   sessionIdOf,
   type Share,
 } from '../lib/sessions';
+import { getShareFromRelay, pullContractionsFromRelay, markShareOpenedOnRelay } from '../lib/relay';
 
 type Props = {
   code: string;
@@ -39,13 +40,41 @@ export default function ShareView({ code }: Props) {
   const [checked, setChecked] = useState(false);
 
   useEffect(() => {
-    const s = getShare(code);
-    setShare(s);
-    setChecked(true);
-    if (s && isShareValid(s) && !s.pin) {
-      setUnlocked(true);
-      markShareOpened(s.id);
-    }
+    let mounted = true;
+    (async () => {
+      // Try relay first — multi-device sync
+      const relayShare = await getShareFromRelay(code);
+      if (mounted && relayShare) {
+        // Pull contractions from relay
+        const relayData = await pullContractionsFromRelay(code);
+        if (relayData && relayData.contractions.length > 0) {
+          setContractions(relayData.contractions as import('../lib/contractions').Contraction[]);
+        }
+        if (!relayShare.hasPin) {
+          setUnlocked(true);
+          await markShareOpenedOnRelay(code);
+        }
+        setShare({
+          id: code,
+          sessionId: relayShare.sessionId,
+          expiresAt: relayShare.expiresAt,
+          revoked: false,
+          createdAt: relayShare.createdAt,
+          lastOpenedAt: relayShare.lastOpenedAt || undefined,
+        } as Share);
+        setChecked(true);
+        return;
+      }
+      // Fall back to localStorage (same-device)
+      const s = getShare(code);
+      setShare(s);
+      setChecked(true);
+      if (s && isShareValid(s) && !s.pin) {
+        setUnlocked(true);
+        markShareOpened(s.id);
+      }
+    })();
+    return () => { mounted = false; };
   }, [code]);
 
   // Live tick — refresh every 5s so duration/gap counts update
