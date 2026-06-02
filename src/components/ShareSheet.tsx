@@ -14,6 +14,8 @@ import {
 import { createShareOnRelay, pushContractionsToRelay } from '../lib/relay';
 import type { Contraction } from '../lib/contractions';
 import { formatElapsed } from '../lib/contractions';
+import StatePicker from './StatePicker';
+import BabyIsHereMount from './BabyIsHereMount';
 
 type Props = {
   sessionId: string;
@@ -196,46 +198,16 @@ export default function ShareSheet({ sessionId, contractions, onClose, onStateCh
       </div>
 
       {/* State picker */}
-      <div className="mb-3">
-        <div className="text-[10px] uppercase tracking-[0.15em] text-ink-400 font-semibold mb-1.5">Labor stage</div>
-        <div className="flex gap-1.5 flex-wrap">
-          {(['prenatal', 'labor', 'postpartum', 'archived'] as const).map((st) => (
-            <button
-              key={st}
-              onClick={() => handleStateChange(st)}
-              className={`px-3 py-1.5 rounded-full text-[10px] font-medium border transition-colors ${
-                shareState === st
-                  ? st === 'prenatal' ? 'bg-ink-200/20 border-ink-300/40 text-ink-200' :
-                    st === 'labor' ? 'bg-rose-300/20 border-rose-300/40 text-rose-300' :
-                    st === 'postpartum' ? 'bg-sage-300/20 border-sage-300/40 text-sage-300' :
-                    'bg-ink-100/10 border-ink-200/30 text-ink-500'
-                  : 'border-ink-200/30 bg-ink-100/5 text-ink-400 active:bg-ink-100/10'
-              }`}
-            >
-              {st}
-            </button>
-          ))}
-        </div>
-      </div>
+      <StatePicker value={shareState} onChange={handleStateChange} />
 
       {/* Baby is here button */}
-      <button
-        onClick={() => {
-          const active = activeShares[0];
-          if (active && onBabyIsHere) {
-            onBabyIsHere(active.id);
-          } else if (!active) {
-            alert('Create a share link first so your circle can see the update.');
-          }
+      <BabyIsHereMount
+        share={activeShares[0]?.id ?? ''}
+        onSuccess={() => {
+          handleStateChange('postpartum');
+          onBabyIsHere?.(activeShares[0]?.id ?? '');
         }}
-        className="w-full mb-3 text-left text-sm text-ink-100 bg-sage-300/10 active:bg-sage-300/20 border border-sage-300/30 rounded-xl px-3 py-2.5 flex items-center gap-2 transition-colors"
-      >
-        <span className="text-lg">🎉</span>
-        <div className="flex-1 min-w-0">
-          <div className="font-medium text-sage-200">Baby is here!</div>
-          <div className="text-[10px] text-ink-500">Share the happy news with your circle</div>
-        </div>
-      </button>
+      />
 
       {/* Send update (works without a share link) */}
       <button
