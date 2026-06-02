@@ -33,6 +33,8 @@ export default function ShareView({ code }: { code: string }) {
   const [now, setNow] = useState(Date.now());
   const [checked, setChecked] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [trackTimer, setTrackTimer] = useState<any>(null);
+  const [trackNow, setTrackNow] = useState(Date.now());
 
   // Initial load
   useEffect(() => {
@@ -89,7 +91,7 @@ export default function ShareView({ code }: { code: string }) {
   // Live tick
   useEffect(() => {
     if (!unlocked) return;
-    const id = setInterval(() => setNow(Date.now()), 5000);
+    const id = setInterval(() => { setNow(Date.now()); setTrackNow(Date.now()); }, 1000);
     return () => clearInterval(id);
   }, [unlocked]);
 
@@ -117,6 +119,32 @@ export default function ShareView({ code }: { code: string }) {
     : 0;
   const sinceFinish = secondsSinceLastFinish(contractions, now);
   const showAlert = isFiveOneOne(contractions, now);
+  const trackMode = share?.mode === 'track';
+  const statsMode = share?.mode === 'stats';
+  const trackElapsed = trackTimer && !trackTimer.end
+    ? Math.max(0, Math.round((trackNow - new Date(trackTimer.start).getTime()) / 1000))
+    : 0;
+  const handleTrackStart = async () => {
+    const c = { id: 't' + Date.now().toString(36), start: new Date().toISOString(), end: null, intensity: null };
+    setTrackTimer(c);
+    try {
+      const all = [...contractions, c];
+      setContractions(all);
+      const { pushContractionsToRelay } = await import('../lib/relay');
+      await pushContractionsToRelay(code, all, c);
+    } catch {}
+  };
+  const handleTrackStop = async () => {
+    if (!trackTimer || trackTimer.end) return;
+    const finished = { ...trackTimer, end: new Date().toISOString() };
+    setTrackTimer(null);
+    try {
+      const all = contractions.map((x: any) => x.id === finished.id ? finished : x);
+      setContractions(all);
+      const { pushContractionsToRelay } = await import('../lib/relay');
+      await pushContractionsToRelay(code, all, null);
+    } catch {}
+  };
 
   // ---- Inline styles (no Tailwind, guaranteed to work) ----
   const pageBg = '#120c10';
@@ -218,7 +246,47 @@ export default function ShareView({ code }: { code: string }) {
           </div>
         )}
 
+        {/* Partner tracking button — only in track mode */}
+        {trackMode && (
+          <div style={{ marginBottom: 16 }}>
+            {!trackTimer ? (
+              <button
+                onClick={handleTrackStart}
+                style={{
+                  width: '100%', minHeight: 120, borderRadius: 20,
+                  background: 'linear-gradient(135deg, #e8957a, #d97459, #c25a3f)',
+                  border: 'none', color: '#120c10', cursor: 'pointer',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                  fontFamily: 'Inter, system-ui, sans-serif', fontWeight: 600,
+                }}
+              >
+                <div style={{ fontSize: 48, lineHeight: 1 }}>▶</div>
+                <div style={{ fontSize: 20, marginTop: 4, fontFamily: 'Fraunces, Georgia, serif' }}>Start</div>
+                <div style={{ fontSize: 11, opacity: 0.7, marginTop: 4, textTransform: 'uppercase', letterSpacing: 2 }}>Tap when it begins</div>
+              </button>
+            ) : (
+              <div style={{ borderRadius: 20, border: '1px solid rgba(232,149,122,0.4)', background: 'rgba(232,149,122,0.08)', padding: 24, textAlign: 'center' }}>
+                <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 3, color: '#e8957a', fontWeight: 600, marginBottom: 8 }}>
+                  ● In progress
+                </div>
+                <div style={{ fontSize: 64, fontFamily: 'Fraunces, Georgia, serif', fontWeight: 300, lineHeight: 1 }}>
+                  {String(Math.floor(trackElapsed / 60)).padStart(2, '0')}:{String(trackElapsed % 60).padStart(2, '0')}
+                </div>
+                <button
+                  onClick={handleTrackStop}
+                  style={{
+                    marginTop: 16, background: '#faf6f4', color: '#120c10', border: 'none',
+                    borderRadius: 24, padding: '10px 28px', fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                    fontFamily: 'Inter, system-ui, sans-serif',
+                  }}
+                >■ Stop</button>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Hero stat */}
+
         <div style={{ borderRadius: 20, border: `1px solid ${borderColor}`, background: cardBg, padding: 20, marginBottom: 16 }}>
           <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 2, color: textMuted, fontWeight: 600 }}>Since last</div>
           <div style={{ fontSize: 48, fontFamily: 'Fraunces, Georgia, serif', fontWeight: 300, marginTop: 4, lineHeight: 1 }}>
@@ -250,8 +318,8 @@ export default function ShareView({ code }: { code: string }) {
           </div>
         )}
 
-        {/* History */}
-        {finished.length > 0 && (
+        {/* History — hidden in stats mode */}
+        {!statsMode && finished.length > 0 && (
           <div>
             <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 2, color: textMuted, fontWeight: 600, marginBottom: 10, marginLeft: 4 }}>History</div>
             {[...finished].reverse().slice(0, 12).map((c: any) => {

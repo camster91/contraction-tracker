@@ -9,12 +9,13 @@ export async function createShareOnRelay(input: {
   sessionId: string;
   pin?: string;
   ttlHours?: number;
+  mode?: string;
 }): Promise<{ code: string; expiresAt: string; pin: string | null } | null> {
   try {
     const res = await fetch(`${RELAY_URL}/api/shares`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(input),
+      body: JSON.stringify({ sessionId: input.sessionId, pin: input.pin, ttlHours: input.ttlHours, mode: input.mode }),
     });
     if (!res.ok) return null;
     return await res.json();

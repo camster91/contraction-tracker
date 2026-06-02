@@ -28,6 +28,7 @@ export type Person = {
 export type Share = {
   id: string;            // short code used in the URL (e.g. "luna-3kf8")
   sessionId: string;
+  mode?: string;         // 'full' | 'stats' | 'track' — default 'full'
   pin?: string;          // optional 4-digit PIN
   expiresAt: string;     // ISO
   revoked: boolean;
@@ -170,6 +171,7 @@ export function createShare(input: {
   sessionId: string;
   ttlHours?: number;
   pin?: string;
+  mode?: string;
 }): Share {
   const id = generateShareCode();
   // Ensure unique
@@ -182,6 +184,7 @@ export function createShare(input: {
   const share: Share = {
     id,
     sessionId: input.sessionId,
+    mode: input.mode || 'full',
     pin: input.pin,
     expiresAt: new Date(Date.now() + ttl * 60 * 60 * 1000).toISOString(),
     revoked: false,

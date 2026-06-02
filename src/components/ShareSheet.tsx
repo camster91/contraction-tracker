@@ -51,6 +51,7 @@ export default function ShareSheet({ sessionId, contractions, onClose }: Props) 
   const [shares, setShares] = useState<Share[]>(() => getShares());
   const [copied, setCopied] = useState<string | null>(null);
   const [requirePin, setRequirePin] = useState(false);
+  const [shareMode, setShareMode] = useState<'full' | 'stats' | 'track'>('full');
 
   // Resolve the session's display name from the sessions list
   const sessions = JSON.parse(localStorage.getItem('contraction-tracker:sessions') || '[]');
@@ -63,11 +64,11 @@ export default function ShareSheet({ sessionId, contractions, onClose }: Props) 
 
   const handleCreate = async () => {
     const pin = requirePin ? String(Math.floor(1000 + Math.random() * 9000)) : undefined;
-    createShare({ sessionId, ttlHours: 24, pin });
+    createShare({ sessionId, ttlHours: 24, pin, mode: shareMode });
     setShares(getShares());
     setRequirePin(false);
     // Also create on the relay server for multi-device sharing
-    const relayResult = await createShareOnRelay({ sessionId, pin, ttlHours: 24 });
+    const relayResult = await createShareOnRelay({ sessionId, pin, ttlHours: 24, mode: shareMode });
     if (relayResult) {
       // Push current contractions to the relay immediately
       await pushContractionsToRelay(relayResult.code, contractions, null);
@@ -144,6 +145,31 @@ export default function ShareSheet({ sessionId, contractions, onClose }: Props) 
       <div className="text-[11px] text-ink-400 mb-3 leading-relaxed">
         Generate a link someone can open to follow along. Same-device for now;
         multi-device realtime sync would need a server.
+      </div>
+
+      {/* Share mode selector */}
+      <div className="mb-3">
+        <div className="text-[10px] uppercase tracking-[0.15em] text-ink-400 font-semibold mb-1.5">Share type</div>
+        <div className="space-y-1">
+          {[
+            { value: 'full', label: 'Full details', desc: 'All times and stats visible' },
+            { value: 'stats', label: 'Stats only', desc: 'Averages + pattern, no individual times' },
+            { value: 'track', label: 'Partner tracking', desc: 'Can start/stop from their device' },
+          ].map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => setShareMode(opt.value as any)}
+              className={`w-full text-left px-3 py-2 rounded-xl border text-xs transition-colors ${
+                shareMode === opt.value
+                  ? 'border-rose-300/40 bg-rose-300/10 text-rose-200'
+                  : 'border-ink-200/30 bg-ink-100/5 text-ink-300 active:bg-ink-100/10'
+              }`}
+            >
+              <div className="font-medium">{opt.label}</div>
+              <div className="text-[10px] text-ink-500">{opt.desc}</div>
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Send update (works without a share link) */}
