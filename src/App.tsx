@@ -101,7 +101,7 @@ import { getExams } from './lib/hospital';
 
 const STORAGE_KEY = 'contraction-tracker:v1';
 const SESSION_KEY = 'contraction-tracker:current';
-const APP_VERSION = '1.44';
+const APP_VERSION = '1.45';
 const MUTED_KEY = 'contraction-tracker:muted';
 const BACKUP_REMINDER_KEY = 'contraction-tracker:backup-dismissed';
 
@@ -420,8 +420,8 @@ export default function App() {
     });
   };
 
-  const pipCanvasRef = useRef<HTMLCanvasElement | null>(null);
-  void pipCanvasRef; // reserved for future use
+  // PiP video element is created in handleEnterPip (kept inline; no need
+  // for a ref because the cleanup happens in a useEffect-free closure).
 
   const handleEnterPip = async () => {
     if (!document.pictureInPictureEnabled) return;
@@ -446,15 +446,47 @@ export default function App() {
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
       // Live-render the timer into the canvas while PiP is open.
+      // Display adapts to the current state so the window is never blank:
+      //   - Active contraction: huge MM:SS countdown, rose tint
+      //   - Between contractions: "since last" gap (the most important number)
+      //   - 5-1-1 alert: amber background, ALERT text
       const draw = () => {
         if (!ctx) return;
-        ctx.fillStyle = '#120c10';
+        const inProgress = current && !current.end;
+        const fiveOneOne = isFiveOneOne(contractions, Date.now());
+        // Background — amber when 5-1-1, otherwise dark plum
+        ctx.fillStyle = fiveOneOne ? '#3a2410' : '#120c10';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = '#faf6f4';
+        // Top status row
+        ctx.fillStyle = fiveOneOne ? '#fbbf24' : '#e8957a';
+        ctx.font = '500 14px Inter, system-ui, sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText(
+          fiveOneOne ? '5-1-1 ALERT' : (inProgress ? 'CONTRACTION' : 'SINCE LAST'),
+          20, 28,
+        );
+        // Big number — different per state
+        ctx.fillStyle = fiveOneOne ? '#fef3c7' : '#faf6f4';
         ctx.font = '64px Fraunces, Georgia, serif';
         ctx.textAlign = 'center';
-        const elapsed = current && !current.end ? durationSeconds(current, Date.now()) : 0;
-        ctx.fillText(formatDuration(elapsed), canvas.width / 2, 80);
+        let bigText = '0:00';
+        if (inProgress) {
+          bigText = formatDuration(durationSeconds(current!, Date.now()));
+        } else {
+          const gap = secondsSinceLastFinish(contractions, Date.now());
+          if (gap !== null) bigText = formatDuration(gap);
+        }
+        ctx.fillText(bigText, canvas.width / 2, 84);
+        // Subtitle for the since-last case
+        if (!inProgress && !fiveOneOne) {
+          const finished = contractions.filter((c) => c.end);
+          if (finished.length > 0) {
+            ctx.fillStyle = '#8a6f64';
+            ctx.font = '500 11px Inter, system-ui, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(`${finished.length} contraction${finished.length === 1 ? '' : 's'} so far`, canvas.width / 2, 105);
+          }
+        }
         rafId = requestAnimationFrame(draw);
       };
       draw();
@@ -1426,14 +1458,24 @@ export default function App() {
                 <div className="text-[10px] uppercase tracking-[0.25em] text-rose-300 font-semibold">
                   In progress
                 </div>
-                {document.pictureInPictureEnabled && (
+                {document.pictureInPictureEnabled && !document.pictureInPictureElement && (
                   <button
                     onClick={handleEnterPip}
                     className="ml-1 p-1 rounded text-rose-300/60 active:text-rose-300 active:bg-rose-300/10 transition-colors"
-                    aria-label="Floating timer"
-                    title="Picture-in-Picture"
+                    aria-label="Open floating timer"
+                    title="Open floating timer (stays visible while you use other apps)"
                   >
                     <PictureInPicture2 className="w-4 h-4" strokeWidth={1.75} />
+                  </button>
+                )}
+                {document.pictureInPictureElement && (
+                  <button
+                    onClick={handleEnterPip}
+                    className="ml-1 p-1 rounded text-rose-300/60 active:text-rose-300 active:bg-rose-300/10 transition-colors"
+                    aria-label="Close floating timer"
+                    title="Close floating timer"
+                  >
+                    <X className="w-4 h-4" strokeWidth={1.75} />
                   </button>
                 )}
               </div>
@@ -1967,20 +2009,42 @@ export default function App() {
 
         {/* Empty state */}
         {finished.length === 0 && !current && (
-          <div
-            className="text-center pt-4 pb-2 animate-fade-in cursor-pointer"
-            onClick={handleStart}
-            role="button"
-            aria-label="Tap to start a contraction"
-            tabIndex={0}
-            onKeyDown={(e) => e.key === 'Enter' && handleStart()}
-          >
-            <div className="font-display text-2xl font-light text-ink-200 tracking-tight">
-              When you're ready.
+          <div className="text-center pt-4 pb-2 animate-fade-in">
+            <div
+              className="cursor-pointer"
+              onClick={handleStart}
+              role="button"
+              aria-label="Tap to start a contraction"
+              tabIndex={0}
+              onKeyDown={(e) => e.key === 'Enter' && handleStart()}
+            >
+              <div className="font-display text-2xl font-light text-ink-200 tracking-tight">
+                When you're ready.
+              </div>
+              <p className="text-sm text-ink-400 mt-2 leading-relaxed max-w-xs mx-auto">
+                Tap the big button when a contraction begins.
+              </p>
             </div>
-            <p className="text-sm text-ink-400 mt-2 leading-relaxed max-w-xs mx-auto">
-              Tap the big button when a contraction begins.
-            </p>
+            {/* Pre-open the floating timer so it stays visible while using
+                other apps during labor. One tap, then forget about it. */}
+            {document.pictureInPictureEnabled && !document.pictureInPictureElement && (
+              <button
+                onClick={handleEnterPip}
+                className="mt-4 inline-flex items-center gap-1.5 text-[11px] text-ink-400 active:text-rose-300 border border-ink-200/20 rounded-full px-3 py-1.5 min-h-[32px] transition-colors"
+              >
+                <PictureInPicture2 className="w-3.5 h-3.5" strokeWidth={1.75} />
+                Open floating timer
+              </button>
+            )}
+            {document.pictureInPictureElement && (
+              <button
+                onClick={handleEnterPip}
+                className="mt-4 inline-flex items-center gap-1.5 text-[11px] text-rose-300 border border-rose-300/30 rounded-full px-3 py-1.5 min-h-[32px] transition-colors"
+              >
+                <X className="w-3.5 h-3.5" strokeWidth={1.75} />
+                Close floating timer
+              </button>
+            )}
           </div>
         )}
 
