@@ -99,7 +99,7 @@ import { getExams } from './lib/hospital';
 
 const STORAGE_KEY = 'contraction-tracker:v1';
 const SESSION_KEY = 'contraction-tracker:current';
-const APP_VERSION = '1.34';
+const APP_VERSION = '1.35';
 const MUTED_KEY = 'contraction-tracker:muted';
 const BACKUP_REMINDER_KEY = 'contraction-tracker:backup-dismissed';
 
@@ -208,8 +208,30 @@ export default function App() {
     } catch { /* ignore */ }
   }, []);
 
+  // Auto-discard stale in-progress timer. If a "current" contraction has been
+  // running for more than 12 hours, it's almost certainly a forgotten timer
+  // from days ago (app left open, phone put in a drawer, etc.). Surface a
+  // 4h amber warning as before, but at 12h silently discard it and offer an
+  // undo from the toast stack.
+  useEffect(() => {
+    if (!current || current.end) return;
+    const ageMs = Date.now() - new Date(current.start).getTime();
+    const TWELVE_HOURS = 12 * 60 * 60 * 1000;
+    if (ageMs <= TWELVE_HOURS) return;
+    const snapshot = current;
+    setCurrent(null);
+    undo.push({
+      kind: 'discard',
+      label: `Discarded stale timer (${formatDuration((ageMs - TWELVE_HOURS) / 1000 + TWELVE_HOURS / 1000)})`,
+      contractions,
+      current: snapshot,
+    });
+    // Only run this once per stale timer.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [current && current.start]);
+
   // On first mount: if localStorage is empty but IndexedDB has a backup, restore it.
-  // This is the recovery path for "I cleared my browser data but the app is still installed."
+
   useEffect(() => {
     let mounted = true;
     (async () => {
