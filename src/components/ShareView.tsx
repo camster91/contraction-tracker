@@ -22,6 +22,7 @@ import {
   getShareFromRelay,
   pullContractionsFromRelay,
   markShareOpenedOnRelay,
+  pushContractionsToRelay,
   RELAY_URL,
 } from '../lib/relay';
 import ActivityFeed from './ActivityFeed';
@@ -31,6 +32,7 @@ export default function ShareView({ code }: { code: string }) {
   const [pinError, setPinError] = useState(false);
   const [unlocked, setUnlocked] = useState(false);
   const [share, setShare] = useState<any>(null);
+  const [stateChangedAt, setStateChangedAt] = useState<string | null>(null);
   const [contractions, setContractions] = useState<any[]>([]);
   const [now, setNow] = useState(Date.now());
   const [checked, setChecked] = useState(false);
@@ -83,6 +85,7 @@ export default function ShareView({ code }: { code: string }) {
             pin: relayShare.hasPin ? '••••' : undefined,
             lastOpenedAt: relayShare.lastOpenedAt,
           });
+          setStateChangedAt(relayShare.stateChangedAt || null);
           setChecked(true);
           return;
         }
@@ -233,7 +236,6 @@ export default function ShareView({ code }: { code: string }) {
     try {
       const all = [...contractions, c];
       setContractions(all);
-      const { pushContractionsToRelay } = await import('../lib/relay');
       await pushContractionsToRelay(code, all, c);
     } catch {}
   };
@@ -249,6 +251,114 @@ export default function ShareView({ code }: { code: string }) {
     } catch {}
     setTrackTimer(null);
   };
+
+  // ---- Memory book PDF (archived shares) ----
+  // Generates a single-page PDF in the browser using pdf-lib. Lazy-loads
+  // the lib from a CDN on first use so the 80KB doesn't bloat the main
+  // bundle for users who never archive a share.
+  const [pdfBusy, setPdfBusy] = useState(false);
+  const handleDownloadMemoryBook = async () => {
+    if (pdfBusy) return;
+    setPdfBusy(true);
+    try {
+      // Lazy-import the lib (CDN, ~80KB). Dynamic import is fine here
+      // because the user has explicitly opted into a download.
+      const pdfLibUrl = 'https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js';
+      await new Promise<void>((resolve, reject) => {
+        if ((window as any).PDFLib) return resolve();
+        const s = document.createElement('script');
+        s.src = pdfLibUrl;
+        s.onload = () => resolve();
+        s.onerror = () => reject(new Error('Failed to load pdf-lib'));
+        document.head.appendChild(s);
+      });
+      const { PDFDocument, StandardFonts, rgb } = (window as any).PDFLib;
+      const doc = await PDFDocument.create();
+      // Letter-size: 612 x 792 pt
+      const page = doc.addPage([612, 792]);
+      const font = await doc.embedFont(StandardFonts.Helvetica);
+      const fontBold = await doc.embedFont(StandardFonts.HelveticaBold);
+      const ink = rgb(0.07, 0.05, 0.06);
+      const muted = rgb(0.5, 0.4, 0.4);
+      let y = 760;
+      // Title
+      page.drawText('Luna', { x: 50, y, size: 28, font: fontBold, color: ink });
+      y -= 24;
+      page.drawText('Labor memory book', { x: 50, y, size: 14, font, color: muted });
+      y -= 18;
+      page.drawText(`Share ${code}  ·  ${new Date().toLocaleString()}`, { x: 50, y, size: 9, font, color: muted });
+      y -= 30;
+      // Stats summary
+      const total = finished.length;
+      const dur = (c: any) => Math.round((new Date(c.end).getTime() - new Date(c.start).getTime()) / 1000);
+      const durs = finished.map(dur);
+      const longest = durs.length ? Math.max(...durs) : 0;
+      const shortest = durs.length ? Math.min(...durs) : 0;
+      const firstStart = finished[0] ? new Date(finished[0].start).getTime() : 0;
+      const lastEnd = finished[finished.length - 1] ? new Date(finished[finished.length - 1].end).getTime() : 0;
+      const spanMin = firstStart && lastEnd ? Math.round((lastEnd - firstStart) / 60000) : 0;
+      const gaps: number[] = [];
+      for (let i = 1; i < finished.length; i++) {
+        gaps.push(Math.round((new Date(finished[i].start).getTime() - new Date(finished[i - 1].start).getTime()) / 1000));
+      }
+      const avgGap = gaps.length ? Math.round(gaps.reduce((a, b) => a + b, 0) / gaps.length) : 0;
+      page.drawText('Summary', { x: 50, y, size: 12, font: fontBold, color: ink });
+      y -= 16;
+      const stats = [
+        `Total contractions: ${total}`,
+        `Longest: ${Math.floor(longest / 60)}m ${(longest % 60).toString().padStart(2, '0')}s`,
+        `Shortest: ${Math.floor(shortest / 60)}m ${(shortest % 60).toString().padStart(2, '0')}s`,
+        `Total active time: ${spanMin} minutes`,
+        `Average gap: ${avgGap ? Math.floor(avgGap / 60) + 'm ' + (avgGap % 60) + 's' : '—'}`,
+      ];
+      for (const s of stats) {
+        page.drawText(s, { x: 60, y, size: 10, font, color: ink });
+        y -= 14;
+      }
+      y -= 16;
+      // Contractions list
+      page.drawText('Contractions', { x: 50, y, size: 12, font: fontBold, color: ink });
+      y -= 16;
+      for (let i = 0; i < Math.min(finished.length, 30); i++) {
+        const c = finished[i];
+        const d = dur(c);
+        const time = new Date(c.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+        const durStr = `${Math.floor(d / 60)}:${(d % 60).toString().padStart(2, '0')}`;
+        const intensity = c.intensity ? `  intensity ${c.intensity}/10` : '';
+        const tags = (c.tags || []).join(', ');
+        const suffix = tags ? `  [${tags}]` : '';
+        const line = `${String(i + 1).padStart(2, ' ')}. ${time}  ${durStr}${intensity}${suffix}`;
+        page.drawText(line, { x: 60, y, size: 9, font, color: ink });
+        y -= 12;
+        if (y < 60) break;
+      }
+      y -= 10;
+      page.drawText('Generated by Luna · contractions.ashbi.ca', { x: 50, y: 30, size: 8, font, color: muted });
+      const bytes = await doc.save();
+      const blob = new Blob([bytes], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `luna-memory-${code}-${new Date().toISOString().slice(0, 10)}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      alert('PDF generation failed: ' + (e as Error).message);
+    } finally {
+      setPdfBusy(false);
+    }
+  };
+
+  // ---- 24h postpartum read-only check ----
+  // Once a share has been in 'postpartum' state for 24h+, the feed goes
+  // read-only. This keeps the wall stable and signals the "memory book"
+  // mode to viewers without manual action from the host.
+  const postpartumAgeMs = stateChangedAt && shareState === 'postpartum'
+    ? Date.now() - new Date(stateChangedAt).getTime()
+    : 0;
+  const isReadOnly = shareState === 'archived' || (shareState === 'postpartum' && postpartumAgeMs > 24 * 60 * 60 * 1000);
 
   // ---- Inline styles (no Tailwind, guaranteed to work) ----
   const pageBg = '#120c10';
@@ -372,7 +482,7 @@ export default function ShareView({ code }: { code: string }) {
             <div style={{ fontSize: 16 }}>📖</div>
             <div>
               <div style={{ fontSize: 12, color: '#8a6f64', fontWeight: 600 }}>This labor has ended</div>
-              <div style={{ fontSize: 10, color: '#6a5f54', marginTop: 2 }}>Read-only keepsake · <a href="#" style={{ color: '#b89184' }}>Download PDF</a></div>
+              <div style={{ fontSize: 10, color: '#6a5f54', marginTop: 2 }}>Read-only keepsake · <a href="#" onClick={(e) => { e.preventDefault(); handleDownloadMemoryBook(); }} style={{ color: '#b89184' }}>Download PDF</a></div>
             </div>
           </div>
         )}
@@ -489,7 +599,7 @@ export default function ShareView({ code }: { code: string }) {
         {(shareState === 'prenatal' || shareState === 'postpartum' || shareState === 'archived' || finished.length > 0) && (
           <div style={{ marginTop: 24 }}>
             <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 2, color: textMuted, fontWeight: 600, marginBottom: 14, paddingLeft: 4 }}>Activity</div>
-            <ActivityFeed code={code} shareState={shareState} />
+            <ActivityFeed code={code} shareState={shareState} readOnly={isReadOnly} />
           </div>
         )}
 

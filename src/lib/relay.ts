@@ -68,6 +68,7 @@ export async function getShareFromRelay(code: string): Promise<{
   expiresAt: string;
   lastOpenedAt: string | null;
   createdAt: string;
+  stateChangedAt: string | null;
 } | null> {
   try {
     const res = await fetch(`${RELAY_URL}/api/shares/${code}`);

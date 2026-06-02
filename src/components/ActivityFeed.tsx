@@ -3,13 +3,14 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { RELAY_URL } from '../lib/relay';
-import type { Message } from '../lib/feed';
+import { getMessages, postMessage, type Message } from '../lib/feed';
 
 type Props = {
   code: string;
   shareState: string;
   viewerName?: string;
   isHost?: boolean;
+  readOnly?: boolean;
 };
 
 function formatRelative(isoString: string): string {
@@ -98,7 +99,7 @@ function MessageRow({ msg }: { msg: Message }) {
   );
 }
 
-export default function ActivityFeed({ code, shareState, viewerName }: Props) {
+export default function ActivityFeed({ code, shareState, viewerName, readOnly = false }: Props) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [textInput, setTextInput] = useState('');
   const [nameInput, setNameInput] = useState(viewerName || '');
@@ -118,10 +119,7 @@ export default function ActivityFeed({ code, shareState, viewerName }: Props) {
     }
     setShowNamePrompt(false);
     // Fetch initial messages
-    import('../lib/feed').then(async (feed) => {
-      const msgs = await feed.getMessages(code);
-      setMessages(msgs);
-    });
+    getMessages(code).then(setMessages).catch(() => {});
   }, [code, effectiveName]);
 
   // SSE subscription
@@ -136,7 +134,6 @@ export default function ActivityFeed({ code, shareState, viewerName }: Props) {
       if (pollTimer) return;
       const tick = async () => {
         try {
-          const { getMessages } = await import('../lib/feed');
           const msgs = await getMessages(code);
           setMessages(msgs);
         } catch { /* ignore */ }
@@ -181,8 +178,7 @@ export default function ActivityFeed({ code, shareState, viewerName }: Props) {
     if (!effectiveName) return;
     setSending(true);
     try {
-      const { postMessage } = await import('../lib/feed');
-      const msg = await postMessage(code, kind, content, effectiveName, clientId.current);
+      const msg = await postMessage(code, kind, content, nameInput.trim(), clientId.current);
       if (msg) {
         setMessages((prev) => {
           if (prev.find((m) => m.id === msg.id)) return prev;
@@ -216,7 +212,9 @@ export default function ActivityFeed({ code, shareState, viewerName }: Props) {
     e.target.value = '';
   };
 
-  const isReadOnly = shareState === 'archived' || (shareState === 'postpartum' && false); // 24h check can be added later
+  // The 24h postpartum read-only check is now passed in from the parent
+  // (ShareView) via the readOnly prop, since it has access to stateChangedAt.
+  const isReadOnly = readOnly || shareState === 'archived';
 
   if (showNamePrompt) {
     return (
