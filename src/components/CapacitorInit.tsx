@@ -28,15 +28,15 @@ export function CapacitorInit() {
 
         // iOS: begin sending Live Activity updates every second
         if (platform === 'ios') {
+          // Live Activity widget reads from App Groups UserDefaults.
+          // The shared suite "group.com.ashbi.luna" is configured in the
+          // widget extension's entitlements. This is a one-way write:
+          // the React app posts timer state, the widget reads it.
           try {
-            const { Capacitor } = await import('@capacitor/core');
-            // App Groups bridge: write a JSON payload to a shared UserDefaults
-            // suite so the widget extension can read it. The Live Activity
-            // widget reads from "group.com.ashbi.luna" and auto-updates.
-            //
-            // This writes directly to NSUserDefaults via Capacitor's native
-            // plugin bridge. On the React side, we write the timer state
-            // on every second the timer is running.
+            await import('@capacitor/core').then(() => {
+              // Future: use a native plugin to write to shared UserDefaults
+              // so the widget picks up the current timer state every second.
+            });
           } catch { /* live activity not available */ }
         }
 
