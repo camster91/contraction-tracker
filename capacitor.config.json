@@ -1,0 +1,23 @@
+{
+  "appId": "com.ashbi.luna",
+  "appName": "Luna",
+  "webDir": "dist",
+  "ios": {
+    "backgroundColor": "#120c10",
+    "preferredContentMode": "mobile"
+  },
+  "android": {
+    "backgroundColor": "#120c10"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 1500,
+      "backgroundColor": "#120c10",
+      "androidScaleType": "CENTER_CROP"
+    },
+    "StatusBar": {
+      "style": "DARK",
+      "backgroundColor": "#120c10"
+    }
+  }
+}
