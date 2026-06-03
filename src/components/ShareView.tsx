@@ -151,7 +151,6 @@ export default function ShareView({ code }: { code: string }) {
     const url = `${RELAY_URL}/api/shares/${code}/stream`;
     let es: EventSource | null = null;
     let pollTimer: ReturnType<typeof setTimeout> | null = null;
-    let sseWorking = false;
     // Reconnect backoff — caps at 30s so a sustained outage doesn't
     // thundering-herd the relay (the original bug: EventSource auto-reconnects
     // on a near-instant loop, 20 viewers = 20 simultaneous reconnects).
@@ -187,7 +186,6 @@ export default function ShareView({ code }: { code: string }) {
       try {
         es = new EventSource(url);
         es.onopen = () => {
-          sseWorking = true;
           reconnectAttempts = 0;
           stopPolling();
         };
@@ -208,12 +206,10 @@ export default function ShareView({ code }: { code: string }) {
           } catch { /* ignore malformed event */ }
         };
         es.onerror = () => {
-          // If we were working and just lost the connection, EventSource will
-          // auto-reconnect — but on a tight loop. Schedule a backoff ourselves
-          // and, after 3 failed retries, fall back to polling so 20 viewers
-          // don't all reconnect in lockstep.
+          // EventSource auto-reconnects on a tight loop. Schedule a backoff
+          // ourselves and, after 3 failed retries, fall back to polling so
+          // 20 viewers don't all reconnect in lockstep.
           if (fellBackToPolling) return;
-          sseWorking = false;
           reconnectAttempts += 1;
           if (reconnectAttempts >= 3) {
             startPolling();
