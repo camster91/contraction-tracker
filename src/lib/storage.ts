@@ -59,14 +59,20 @@ export function load<T>(key: string, fallback: T): T {
   return fallback;
 }
 
+let quotaExceeded = false;
+export function isQuotaExceeded(): boolean { return quotaExceeded; }
+export function clearQuotaExceeded(): void { quotaExceeded = false; }
+
 export function save(key: string, data: unknown) {
   const json = JSON.stringify(data);
   try {
     localStorage.setItem(key, json);
+    quotaExceeded = false; // successful write clears the flag
     // Mirror to shadow after every successful write — survives partial corruption
     try { localStorage.setItem(`${key}::shadow`, json); } catch { /* ignore */ }
   } catch {
-    /* quota or serialization issue — silently ignore */
+    // quota or serialization issue — surface to the user
+    quotaExceeded = true;
   }
 }
 

@@ -69,9 +69,15 @@ export function intervalSeconds(prev: Contraction, curr: Contraction): number {
 }
 
 export function formatDuration(totalSeconds: number): string {
-  const capped = Math.min(totalSeconds, 99 * 60 + 59); // cap at 99:59
+  const capped = Math.min(totalSeconds, 9 * 3600 + 59 * 60 + 59); // cap at 9:59:59
   const m = Math.floor(capped / 60);
   const s = capped % 60;
+  if (capped >= 3600) {
+    const h = Math.floor(capped / 3600);
+    const rm = Math.floor((capped % 3600) / 60);
+    const rs = capped % 60;
+    return `${h}:${rm.toString().padStart(2, '0')}:${rs.toString().padStart(2, '0')}`;
+  }
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 

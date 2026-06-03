@@ -43,7 +43,7 @@ import {
   secondsSinceLastFinish,
   setHour12Preferred,
 } from './lib/contractions';
-import { load, save, uid } from './lib/storage';
+import { load, save, uid, isQuotaExceeded, clearQuotaExceeded } from './lib/storage';
 import { autoBackup, loadAutoBackup, saveCurrentToIdb, clearCurrentFromIdb, loadCurrentBackup } from './lib/idb';
 import {
   buildBackup,
@@ -107,7 +107,7 @@ import HistoryHeader from './components/HistoryHeader';
 
 const STORAGE_KEY = 'contraction-tracker:v1';
 const SESSION_KEY = 'contraction-tracker:current';
-const APP_VERSION = '2.0.0';
+const APP_VERSION = '2.0.1';
 const MUTED_KEY = 'contraction-tracker:muted';
 const BACKUP_REMINDER_KEY = 'contraction-tracker:backup-dismissed';
 
@@ -186,6 +186,7 @@ export default function App() {
 
   // Data integrity toast — shown when corrupted data was detected and recovered
   const [dataDamagedToast, setDataDamagedToast] = useState(false);
+  const [quotaToast, setQuotaToast] = useState(false);
 
   // Pending restore: when IDB has a saved current timer that localStorage doesn't have,
   // this holds it so we can show the "Resume?" prompt at the top of the screen.
@@ -234,6 +235,21 @@ export default function App() {
       }
     } catch { /* ignore */ }
   }, []);
+
+  // Quota exceeded check — runs every time contractions or current change.
+  // If a save failed due to localStorage being full, surface a persistent
+  // warning until the user takes action (export a backup, free space).
+  useEffect(() => {
+    if (isQuotaExceeded()) {
+      setQuotaToast(true);
+    }
+  }, [contractions, current]);
+
+  // Clear quota flag when user dismisses the toast or successfully exports.
+  const handleDismissQuota = () => {
+    clearQuotaExceeded();
+    setQuotaToast(false);
+  };
 
   // Auto-dismiss state change toast after 4 seconds
   useEffect(() => {
@@ -1009,6 +1025,32 @@ export default function App() {
             </div>
             <button
               onClick={() => setDataDamagedToast(false)}
+              className="p-1 text-ink-400 active:text-ink-200 flex-shrink-0"
+              aria-label="Dismiss"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Quota exceeded toast — shown when localStorage is full and data is at risk */}
+      {quotaToast && (
+        <div
+          className="fixed inset-x-0 top-6 z-50 flex justify-center pointer-events-none"
+          role="alert"
+          aria-live="assertive"
+        >
+          <div className="pointer-events-auto mx-4 flex items-start gap-3 bg-rose-300/15 border border-rose-300/40 backdrop-blur-xl rounded-2xl px-4 py-3 shadow-[0_8px_32px_-8px_rgba(0,0,0,0.6)] max-w-sm animate-fade-in">
+            <AlertTriangle className="w-4 h-4 text-rose-300 flex-shrink-0 mt-0.5" strokeWidth={2} />
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-semibold text-rose-200">Storage full</div>
+              <div className="text-xs text-ink-300 mt-0.5">
+                Contractions may not be saved. Export a backup to free space.
+              </div>
+            </div>
+            <button
+              onClick={handleDismissQuota}
               className="p-1 text-ink-400 active:text-ink-200 flex-shrink-0"
               aria-label="Dismiss"
             >
