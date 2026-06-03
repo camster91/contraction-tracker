@@ -152,8 +152,20 @@ export default function ShareView({ code }: { code: string }) {
     let es: EventSource | null = null;
     let pollTimer: ReturnType<typeof setTimeout> | null = null;
     let sseWorking = false;
+    // Reconnect backoff — caps at 30s so a sustained outage doesn't
+    // thundering-herd the relay (the original bug: EventSource auto-reconnects
+    // on a near-instant loop, 20 viewers = 20 simultaneous reconnects).
+    let reconnectAttempts = 0;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    let fellBackToPolling = false;
     const startPolling = () => {
-      if (pollTimer) return;
+      if (pollTimer || fellBackToPolling) return;
+      fellBackToPolling = true;
+      // Stop the EventSource entirely so it doesn't keep retrying in the
+      // background while we're polling. Single polling loop = single source
+      // of truth for the relay's load.
+      try { es?.close(); } catch { /* ignore */ }
+      es = null;
       const tick = async () => {
         let latest: any = null;
         try {
@@ -171,42 +183,58 @@ export default function ShareView({ code }: { code: string }) {
     const stopPolling = () => {
       if (pollTimer) { clearTimeout(pollTimer); pollTimer = null; }
     };
-    try {
-      es = new EventSource(url);
-      es.onopen = () => {
-        sseWorking = true;
-        stopPolling();
-      };
-      es.onmessage = async (e: MessageEvent) => {
-        try {
-          const payload = JSON.parse(e.data);
-          if (payload.type === 'snapshot' || payload.type === 'update') {
-            if (payload.contractions) setContractions(payload.contractions);
-            // Re-fetch the latest from /contractions so we get the canonical state
-            // (the SSE message only carries a count + updatedAt for the update type)
-            try {
-              const fresh: any = await pullContractionsFromRelay(code);
-              if (fresh?.contractions) setContractions(fresh.contractions);
-            } catch { /* ignore */ }
-          } else if (payload.type === 'revoked') {
-            setShare((s: any) => s ? { ...s, revoked: true } : s);
+    const connectSSE = () => {
+      try {
+        es = new EventSource(url);
+        es.onopen = () => {
+          sseWorking = true;
+          reconnectAttempts = 0;
+          stopPolling();
+        };
+        es.onmessage = async (e: MessageEvent) => {
+          try {
+            const payload = JSON.parse(e.data);
+            if (payload.type === 'snapshot' || payload.type === 'update') {
+              if (payload.contractions) setContractions(payload.contractions);
+              // Re-fetch the latest from /contractions so we get the canonical state
+              // (the SSE message only carries a count + updatedAt for the update type)
+              try {
+                const fresh: any = await pullContractionsFromRelay(code);
+                if (fresh?.contractions) setContractions(fresh.contractions);
+              } catch { /* ignore */ }
+            } else if (payload.type === 'revoked') {
+              setShare((s: any) => s ? { ...s, revoked: true } : s);
+            }
+          } catch { /* ignore malformed event */ }
+        };
+        es.onerror = () => {
+          // If we were working and just lost the connection, EventSource will
+          // auto-reconnect — but on a tight loop. Schedule a backoff ourselves
+          // and, after 3 failed retries, fall back to polling so 20 viewers
+          // don't all reconnect in lockstep.
+          if (fellBackToPolling) return;
+          sseWorking = false;
+          reconnectAttempts += 1;
+          if (reconnectAttempts >= 3) {
+            startPolling();
+            return;
           }
-        } catch { /* ignore malformed event */ }
-      };
-      es.onerror = () => {
-        // EventSource auto-reconnects; if we never connected, fall back to polling
-        if (!sseWorking) {
-          es?.close();
+          // Close the auto-reconnecting EventSource, then reopen after backoff.
+          try { es?.close(); } catch { /* ignore */ }
           es = null;
-          startPolling();
-        }
-      };
-    } catch {
-      // Browser doesn't support EventSource (very rare) — fall back
-      startPolling();
-    }
+          if (reconnectTimer) clearTimeout(reconnectTimer);
+          const delay = Math.min(30_000, 1000 * 2 ** reconnectAttempts);
+          reconnectTimer = setTimeout(connectSSE, delay);
+        };
+      } catch {
+        // Browser doesn't support EventSource (very rare) — fall back
+        startPolling();
+      }
+    };
+    connectSSE();
     return () => {
-      es?.close();
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      try { es?.close(); } catch { /* ignore */ }
       stopPolling();
     };
   }, [unlocked, share, code]);

@@ -42,14 +42,29 @@ function getRecognition(): any {
     recognition.interimResults = false;
     recognition.lang = 'en-US';
     recognition.maxAlternatives = 1;
+    // Track the last transcript we processed so we don't fire the same
+    // command twice when continuous=true re-fires onresult with the same
+    // (or a near-identical) transcript as the user keeps talking.
+    let lastTranscript = '';
+    let lastTranscriptAt = 0;
     recognition.onresult = (event: any) => {
       for (let i = event.resultIndex; i < event.results.length; i++) {
-        const transcript = event.results[i][0].transcript.toLowerCase().trim();
+        const result = event.results[i];
+        if (!result.isFinal) continue; // ignore interim results
+        const transcript = result[0].transcript.toLowerCase().trim();
         // Only fire on a transcript that's a short, clear command — under
         // 4 words. This prevents false positives from "I want to stop" or
         // background chatter.
         const words = transcript.split(/\s+/);
         if (words.length > 4) continue;
+        // Skip if we already processed this transcript within the last 2s.
+        // EventSource-style re-firing would otherwise turn one "stop" into
+        // a confirmed stop (first occurrence + repeated match).
+        if (transcript === lastTranscript && Date.now() - lastTranscriptAt < 2000) {
+          continue;
+        }
+        lastTranscript = transcript;
+        lastTranscriptAt = Date.now();
         // First word wins — if the user says "start now", we start.
         const first = words[0]?.replace(/[^a-z]/g, '');
         // Clear any expired pending stop
@@ -59,6 +74,7 @@ function getRecognition(): any {
         if (first && START_WORDS.includes(first)) {
           // Start is single-tap — cancel any pending stop first
           pendingStop = null;
+          lastTranscript = '';
           onStartCallback?.();
           return;
         }
@@ -66,6 +82,7 @@ function getRecognition(): any {
           if (pendingStop === first) {
             // Same phrase spoken twice within window — confirmed stop
             pendingStop = null;
+            lastTranscript = '';
             onStopCallback?.();
             return;
           }

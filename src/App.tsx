@@ -99,7 +99,7 @@ import {
 import { getChecklist, packedCount, saveChecklist } from './lib/checklist';
 import { getExams } from './lib/hospital';
 import { postMessage, type MessageKind } from './lib/feed';
-import { pushContractionsToRelay } from './lib/relay';
+import { getShareFromRelay, pushContractionsToRelay, setShareStateOnRelay } from './lib/relay';
 import Onboarding from './components/Onboarding';
 import StatusUpdatePrompt from './components/StatusUpdatePrompt';
 import TagFilter from './components/TagFilter';
@@ -107,7 +107,7 @@ import HistoryHeader from './components/HistoryHeader';
 
 const STORAGE_KEY = 'contraction-tracker:v1';
 const SESSION_KEY = 'contraction-tracker:current';
-const APP_VERSION = '2.0.1';
+const APP_VERSION = '2.0.4';
 const MUTED_KEY = 'contraction-tracker:muted';
 const BACKUP_REMINDER_KEY = 'contraction-tracker:backup-dismissed';
 
@@ -257,6 +257,75 @@ export default function App() {
     const timer = setTimeout(() => setStateToast(null), 4000);
     return () => clearTimeout(timer);
   }, [stateToast]);
+
+  // Auto-progress share state for any active shares of this session.
+  // prenatal → labor: 3+ contractions within 10 minutes (5-1-1 precursor)
+  // labor → postpartum: 24 hours with no contractions
+  // We do this client-side because the host is the only thing that knows
+  // the contraction history. The relay just stores whatever we tell it.
+  useEffect(() => {
+    if (!contractions.length) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const activeShares = getShares().filter(
+          (s) => !s.revoked && s.sessionId === activeSessionId,
+        );
+        if (activeShares.length === 0) return;
+        const now = Date.now();
+        // prenatal → labor: 3+ contractions in last 10 min
+        const tenMinAgo = now - 10 * 60 * 1000;
+        const recentCount = contractions.filter(
+          (c) => new Date(c.start).getTime() >= tenMinAgo,
+        ).length;
+        const shouldProgress = recentCount >= 3;
+        if (!shouldProgress) return;
+        for (const s of activeShares) {
+          // Fetch current state from relay (not local — local doesn't track state).
+          const remote = await getShareFromRelay(s.id);
+          if (cancelled || !remote) continue;
+          if (remote.state === 'prenatal' || !remote.state) {
+            const ok = await setShareStateOnRelay(s.id, 'labor');
+            if (ok && !cancelled) {
+              setStateToast('Auto-progressed to active labor (3+ contractions in 10 min)');
+            }
+          }
+        }
+      } catch { /* best-effort */ }
+    })();
+    return () => { cancelled = true; };
+  }, [contractions, activeSessionId]);
+
+  // labor → postpartum: 24h since last contraction. Runs hourly on a timer
+  // (not on every render) since it's a slow-moving check.
+  useEffect(() => {
+    const checkPostpartum = async () => {
+      try {
+        const activeShares = getShares().filter(
+          (s) => !s.revoked && s.sessionId === activeSessionId,
+        );
+        if (activeShares.length === 0) return;
+        const finished = contractions.filter((c) => c.end);
+        if (finished.length === 0) return;
+        const last = finished.reduce((a, b) =>
+          new Date(a.start).getTime() > new Date(b.start).getTime() ? a : b,
+        );
+        const hoursSince = (Date.now() - new Date(last.start).getTime()) / 3_600_000;
+        if (hoursSince < 24) return;
+        for (const s of activeShares) {
+          const remote = await getShareFromRelay(s.id);
+          if (!remote) continue;
+          if (remote.state === 'labor') {
+            const ok = await setShareStateOnRelay(s.id, 'postpartum');
+            if (ok) setStateToast('Auto-progressed to postpartum (24h since last contraction)');
+          }
+        }
+      } catch { /* best-effort */ }
+    };
+    checkPostpartum();
+    const id = setInterval(checkPostpartum, 60 * 60 * 1000); // hourly
+    return () => clearInterval(id);
+  }, [contractions, activeSessionId]);
 
   // Auto-discard stale in-progress timer. If a "current" contraction has been
   // running for more than 12 hours, it's almost certainly a forgotten timer
@@ -1110,7 +1179,11 @@ export default function App() {
         >
           <div className="pointer-events-auto mx-4 flex items-start gap-3 bg-sage-300/15 border border-sage-300/40 backdrop-blur-xl rounded-2xl px-4 py-3 shadow-[0_8px_32px_-8px_rgba(0,0,0,0.6)] max-w-sm animate-fade-in">
             <div className="flex-1 min-w-0">
-              <div className="text-sm font-semibold text-sage-200">Stage set to {stateToast}</div>
+              <div className="text-sm font-semibold text-sage-200">
+                {['prenatal', 'labor', 'postpartum', 'archived'].includes(stateToast)
+                  ? `Stage set to ${stateToast}`
+                  : stateToast}
+              </div>
               <div className="text-xs text-ink-300 mt-0.5">
                 Your circle will be notified.
               </div>
