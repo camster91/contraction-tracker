@@ -53,6 +53,17 @@ export default defineConfig({
           'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
       },
     },
+    {
+      // Real WebKit engine — closer to iOS Safari than chromium-fake-UA.
+      // Run with: npx playwright test --project='iPhone 14 (webkit)'
+      // Skipped by default to keep CI fast. The shipped iOS app is a
+      // Capacitor wrapper around this same PWA, so WebKit is the closer
+      // engine match for shipping bugs.
+      name: 'iPhone 14 (webkit)',
+      use: {
+        ...devices['iPhone 14'],
+      },
+    },
   ],
 
   // Output dirs are gitignored — Playwright writes to playwright-report/ and
