@@ -149,7 +149,7 @@ jobs:
           JOB_STATUS: ${{ job.status }}
         run: |
           {
-            echo "## Luna deploy"
+            echo "## Olive deploy"
             echo ""
             echo "- **Version:** $VERSION"
             echo "- **Cache:**  $CACHE"
