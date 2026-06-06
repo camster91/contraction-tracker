@@ -67,8 +67,10 @@ function makeRealisticBackup() {
 }
 
 test('backup: schema validates as an Olive backup', async ({ page }) => {
-  await page.goto(BASE_URL, { waitUntil: 'domcontentloaded' });
-  await helpers.waitForApp(page);
+  // Schema-only test — we don't need the app to mount. Using
+  // about:blank avoids the ~15s React mount wait, which matters
+  // in CI where retries amplify the cost.
+  await page.goto('about:blank');
 
   const result = await page.evaluate((payload) => {
     // The validateBackup function from src/lib/backup.ts:
@@ -86,8 +88,7 @@ test('backup: schema validates as an Olive backup', async ({ page }) => {
 });
 
 test('backup: rejects non-Olive apps', async ({ page }) => {
-  await page.goto(BASE_URL, { waitUntil: 'domcontentloaded' });
-  await helpers.waitForApp(page);
+  await page.goto('about:blank');
 
   const result = await page.evaluate((payload) => {
     const isValid = (b: any): boolean => {
@@ -103,8 +104,7 @@ test('backup: rejects non-Olive apps', async ({ page }) => {
 });
 
 test('backup: rejects wrong version', async ({ page }) => {
-  await page.goto(BASE_URL, { waitUntil: 'domcontentloaded' });
-  await helpers.waitForApp(page);
+  await page.goto('about:blank');
 
   const result = await page.evaluate((payload) => {
     const isValid = (b: any): boolean => {
@@ -120,8 +120,7 @@ test('backup: rejects wrong version', async ({ page }) => {
 });
 
 test('backup: rejects missing contractions array', async ({ page }) => {
-  await page.goto(BASE_URL, { waitUntil: 'domcontentloaded' });
-  await helpers.waitForApp(page);
+  await page.goto('about:blank');
 
   const result = await page.evaluate((payload) => {
     const isValid = (b: any): boolean => {
@@ -137,8 +136,8 @@ test('backup: rejects missing contractions array', async ({ page }) => {
 });
 
 test('backup: rejects null / non-object input', async ({ page }) => {
-  await page.goto(BASE_URL, { waitUntil: 'domcontentloaded' });
-  await helpers.waitForApp(page);
+  // Schema-only test — no need for the app to mount.
+  await page.goto('about:blank');
 
   // JSON transport through page.evaluate strips null/undefined values
   // from object properties. Encode all test results as a single string.
@@ -171,8 +170,8 @@ test('backup: rejects null / non-object input', async ({ page }) => {
 });
 
 test('backup: full round-trip preserves 200 contractions exactly', async ({ page }) => {
-  await page.goto(BASE_URL, { waitUntil: 'domcontentloaded' });
-  await helpers.waitForApp(page);
+  // Schema-only round-trip — no need to mount the app.
+  await page.goto('about:blank');
 
   const result = await page.evaluate((original) => {
     // Stringify then parse — the actual mechanism for backup files
@@ -223,8 +222,8 @@ test('backup: full round-trip preserves 200 contractions exactly', async ({ page
 });
 
 test('backup: rejection of malformed JSON', async ({ page }) => {
-  await page.goto(BASE_URL, { waitUntil: 'domcontentloaded' });
-  await helpers.waitForApp(page);
+  // Schema-only test — no need to mount the app.
+  await page.goto('about:blank');
 
   const result = await page.evaluate(() => {
     const isValid = (b: any): boolean => {
