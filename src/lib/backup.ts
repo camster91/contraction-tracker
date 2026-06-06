@@ -3,7 +3,7 @@
 
 export type BackupData = {
   version: number;
-  app: 'luna-contraction-tracker';
+  app: 'olive-contraction-tracker';
   savedAt: string;
   contractions: unknown[];
   current: unknown;
@@ -34,19 +34,19 @@ export function buildBackup(payload: {
 }): BackupData {
   return {
     version: 1,
-    app: 'luna-contraction-tracker',
+    app: 'olive-contraction-tracker',
     savedAt: new Date().toISOString(),
     ...payload,
   };
 }
 
-/** Validate that an object looks like a Luna backup. */
+/** Validate that an object looks like an Olive backup. */
 export function validateBackup(raw: unknown): raw is BackupData {
   if (!raw || typeof raw !== 'object') return false;
   const b = raw as Record<string, unknown>;
   return (
     b.version === 1 &&
-    b.app === 'luna-contraction-tracker' &&
+    b.app === 'olive-contraction-tracker' &&
     Array.isArray(b.contractions)
   );
 }
@@ -59,7 +59,7 @@ export function downloadBackup(data: BackupData): void {
   const a = document.createElement('a');
   const date = new Date().toISOString().split('T')[0];
   a.href = url;
-  a.download = `luna-backup-${date}.json`;
+  a.download = `olive-backup-${date}.json`;
   a.click();
   URL.revokeObjectURL(url);
 }

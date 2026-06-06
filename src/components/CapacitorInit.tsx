@@ -29,7 +29,7 @@ export function CapacitorInit() {
         // iOS: begin sending Live Activity updates every second
         if (platform === 'ios') {
           // Live Activity widget reads from App Groups UserDefaults.
-          // The shared suite "group.com.ashbi.luna" is configured in the
+          // The shared suite "group.com.ashbi.olive" is configured in the
           // widget extension's entitlements. This is a one-way write:
           // the React app posts timer state, the widget reads it.
           try {

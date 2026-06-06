@@ -53,7 +53,7 @@ export function load<T>(key: string, fallback: T): T {
   // Both corrupted — surface a recovery indicator
   if (typeof window !== 'undefined') {
     try {
-      sessionStorage.setItem('luna:data-damaged', JSON.stringify({ key, reason: validated.reason }));
+      sessionStorage.setItem('olive:data-damaged', JSON.stringify({ key, reason: validated.reason }));
     } catch { /* ignore */ }
   }
   return fallback;

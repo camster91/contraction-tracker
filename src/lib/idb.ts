@@ -4,7 +4,7 @@
 //
 // Falls back silently to localStorage-only on browsers without IndexedDB.
 
-const DB_NAME = 'luna-backup';
+const DB_NAME = 'olive-backup';
 const DB_VERSION = 1;
 const STORE = 'history';
 const KEY = 'latest';

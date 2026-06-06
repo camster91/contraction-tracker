@@ -206,7 +206,7 @@ export default function SettingsSheet({
             <div className="flex items-center justify-between mb-2">
               <div>
                 <div className="text-[10px] uppercase tracking-[0.15em] text-ink-400 font-semibold">App version</div>
-                <div className="text-[11px] text-ink-300 mt-0.5">Luna v{appVersion}</div>
+                <div className="text-[11px] text-ink-300 mt-0.5">Olive v{appVersion}</div>
               </div>
             </div>
             <button

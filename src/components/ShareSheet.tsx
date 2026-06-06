@@ -62,7 +62,7 @@ export default function ShareSheet({ sessionId, contractions, onClose, onStateCh
 
   // Resolve the session's display name from the sessions list
   const sessions = JSON.parse(localStorage.getItem('contraction-tracker:sessions') || '[]');
-  const actualName = sessions.find((s: { id: string }) => s.id === sessionId)?.name ?? 'Luna session';
+  const actualName = sessions.find((s: { id: string }) => s.id === sessionId)?.name ?? 'Olive session';
 
   const activeShares = useMemo(
     () => shares.filter((s) => s.sessionId === sessionId && isShareValid(s)),

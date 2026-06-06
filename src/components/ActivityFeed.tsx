@@ -109,7 +109,7 @@ export default function ActivityFeed({ code, shareState, viewerName, readOnly = 
   const clientId = useRef(Date.now().toString(36) + Math.random().toString(36).slice(2, 6));
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  const savedName = localStorage.getItem(`luna:viewer-name:${code}`);
+  const savedName = localStorage.getItem(`olive:viewer-name:${code}`);
   const effectiveName = nameInput.trim() || savedName || '';
 
   useEffect(() => {
@@ -245,12 +245,12 @@ export default function ActivityFeed({ code, shareState, viewerName, readOnly = 
               outline: 'none',
               fontFamily: 'Inter, system-ui, sans-serif',
             }}
-            onKeyDown={(e) => { if (e.key === 'Enter' && nameInput.trim()) { localStorage.setItem(`luna:viewer-name:${code}`, nameInput.trim()); setShowNamePrompt(false); } }}
+            onKeyDown={(e) => { if (e.key === 'Enter' && nameInput.trim()) { localStorage.setItem(`olive:viewer-name:${code}`, nameInput.trim()); setShowNamePrompt(false); } }}
           />
           <button
             onClick={() => {
               if (nameInput.trim()) {
-                localStorage.setItem(`luna:viewer-name:${code}`, nameInput.trim());
+                localStorage.setItem(`olive:viewer-name:${code}`, nameInput.trim());
                 setShowNamePrompt(false);
               }
             }}
