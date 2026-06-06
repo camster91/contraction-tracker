@@ -1,4 +1,4 @@
-# Luna — Contraction Timer PWA
+# Olive — Contraction Timer PWA
 # CI: typecheck + build on every PR and push to main. Cheap, fast.
 
 name: CI

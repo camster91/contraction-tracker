@@ -1,4 +1,4 @@
-# Luna — Contraction Timer PWA
+# Olive — Contraction Timer PWA
 # Deploy: build on main → SSH to coolify → docker compose build (no-cache)
 # → up -d → health-check live URL. Reports status to GitHub Actions summary.
 #
@@ -46,7 +46,7 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "cache=$CACHE" >> $GITHUB_OUTPUT
           echo "sha=$SHORT_SHA" >> $GITHUB_OUTPUT
-          echo "Deploying Luna v$VERSION ($CACHE) @ $SHORT_SHA"
+          echo "Deploying Olive v$VERSION ($CACHE) @ $SHORT_SHA"
 
       - name: Setup SSH
         uses: webfactory/ssh-agent@v0.9.0
