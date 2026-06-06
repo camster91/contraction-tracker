@@ -55,10 +55,12 @@ export default defineConfig({
     },
     {
       // Real WebKit engine — closer to iOS Safari than chromium-fake-UA.
-      // Run with: npx playwright test --project='iPhone 14 (webkit)'
-      // Skipped by default to keep CI fast. The shipped iOS app is a
-      // Capacitor wrapper around this same PWA, so WebKit is the closer
-      // engine match for shipping bugs.
+      // Opt-in: run with `npx playwright test --project='iPhone 14 (webkit)'`.
+      // The shipped iOS app is a Capacitor wrapper around this same PWA,
+      // so WebKit is the closer engine match for shipping bugs. CI does
+      // not run this project by default — the CI workflow only installs
+      // chromium. To run webkit in CI, also run
+      // `npx playwright install --with-deps webkit` first.
       name: 'iPhone 14 (webkit)',
       use: {
         ...devices['iPhone 14'],

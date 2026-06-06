@@ -36,7 +36,7 @@ jobs:
         run: ./node_modules/.bin/tsc -p tests/tsconfig.json
 
       - name: Run gauntlet
-        run: npx playwright test --reporter=github,html --reporter=github,line
+        run: npx playwright test --project='iPhone 14 (chromium)' --reporter=github,html --reporter=github,line
 
       - name: Upload HTML report
         if: always()
