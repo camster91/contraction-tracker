@@ -15,7 +15,10 @@ import * as helpers from './helpers';
 import * as fs from 'fs';
 
 const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'https://contractions.ashbi.ca/';
-const OUT = '/Users/biancabienaime/.hermes/cache/indie-ship/APPS/olive-contractions/screenshots';
+// Default: write to project's own screenshots/ dir (CI-safe).
+// Override with SCREENSHOT_OUT env var to write to your local indie-ship cache.
+const OUT = process.env.SCREENSHOT_OUT
+  ?? `${process.cwd()}/playwright-report/screenshots`;
 fs.mkdirSync(OUT, { recursive: true });
 
 interface Shot { name: string; desc: string }
