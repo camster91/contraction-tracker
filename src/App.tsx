@@ -107,7 +107,7 @@ import HistoryHeader from './components/HistoryHeader';
 
 const STORAGE_KEY = 'contraction-tracker:v1';
 const SESSION_KEY = 'contraction-tracker:current';
-const APP_VERSION = '2.0.4';
+const APP_VERSION = '1.0.0';
 const MUTED_KEY = 'contraction-tracker:muted';
 const BACKUP_REMINDER_KEY = 'contraction-tracker:backup-dismissed';
 
@@ -227,9 +227,9 @@ export default function App() {
   // If the primary was corrupted but shadow restored, show the recovery toast.
   useEffect(() => {
     try {
-      const raw = sessionStorage.getItem('luna:data-damaged');
+      const raw = sessionStorage.getItem('olive:data-damaged');
       if (raw) {
-        sessionStorage.removeItem('luna:data-damaged');
+        sessionStorage.removeItem('olive:data-damaged');
         setDataDamagedToast(true);
         setTimeout(() => setDataDamagedToast(false), 6000);
       }
@@ -868,7 +868,7 @@ export default function App() {
     try {
       const parsed = await readBackupFile(file);
       if (!validateBackup(parsed)) {
-        alert('This file is not a valid Luna backup.');
+        alert('This file is not a valid Olive backup.');
         return;
       }
       // Build existing maps using proper types
@@ -947,7 +947,7 @@ export default function App() {
     const json = JSON.stringify(data, null, 2);
     const blob = new Blob([json], { type: 'application/json' });
     const date = new Date().toISOString().split('T')[0];
-    const file = new File([blob], `luna-backup-${date}.json`, { type: 'application/json' });
+    const file = new File([blob], `olive-backup-${date}.json`, { type: 'application/json' });
     if (navigator.canShare?.({ files: [file] })) {
       try {
         await navigator.share({ files: [file], title: 'Labor backup', text: 'Here is my contraction log' });
@@ -1236,7 +1236,7 @@ export default function App() {
         />
       )}
 
-      {/* Sessions sheet — drops from the Luna wordmark */}
+      {/* Sessions sheet — drops from the Olive wordmark */}
       {showSessions && !showPeople && !showShare && (
         <>
           <div
@@ -1323,7 +1323,7 @@ export default function App() {
           aria-label="Sessions"
         >
           <Heart className="w-5 h-5 text-rose-300 fill-rose-300/20" strokeWidth={1.5} />
-          <h1 className="font-display text-xl font-medium tracking-tight text-ink-50">Luna</h1>
+          <h1 className="font-display text-xl font-medium tracking-tight text-ink-50">Olive</h1>
           <ChevronDown className="w-3.5 h-3.5 text-ink-400 mt-0.5" strokeWidth={2} />
           <span className="text-[10px] uppercase tracking-[0.18em] text-ink-400 font-medium mt-0.5">
             {activeSessionName}

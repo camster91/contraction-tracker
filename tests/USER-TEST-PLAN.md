@@ -1,4 +1,5 @@
-# Luna Contraction Timer — User Testing Plan
+# User Testing Plan — Olive Contraction Timer
+## For Cam — 5 real humans, 30 min each, find the friction
 
 **Goal:** 5 real humans, 30 minutes each, find the things automation can't.
 
@@ -54,7 +55,7 @@
 
 ## During the session
 
-Show them the PWA, then run these 5 segments in order. Total: 25 min of tester time, 5 min of wrap-up.
+Show them the PWA, then run these 5 segments in order. Total: 25 min of tester time, 5 min of wrap-up. Reference the app as "Olive" — not "Olive" — when talking to testers.
 
 ### 1. Cold start (5 min) — no app open
 

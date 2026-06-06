@@ -1,10 +1,8 @@
-# Luna — Contraction Timer
+# Olive — Contraction Timer
 
-A mobile-first contraction timer built as a Telegram Mini App. Tap when a contraction starts, tap when it ends, and Luna tracks duration, interval, and the 5-1-1 pattern automatically. Your partner's device stays in sync in real time.
+A mobile-first contraction timer built as a PWA + Capacitor iOS/Android app. Tap when a contraction starts, tap when it ends, and Olive tracks duration, interval, and the 5-1-1 pattern automatically. Your partner's device stays in sync in real time.
 
-**Live:** [contractions.ashbi.ca](https://contractions.ashbi.ca)  
-**Backend relay:** [relay.ashbi.ca](https://relay.ashbi.ca)  
-**Price:** $1.99 USD (one-time purchase, no subscription)
+**Live:** [contractions.ashbi.ca](https://contractions.ashbi.ca) (PWA) · [relay.ashbi.ca](https://relay.ashbi.ca) (backend) · **Price:** $1.99 USD one-time purchase.
 
 ---
 
@@ -19,11 +17,11 @@ A mobile-first contraction timer built as a Telegram Mini App. Tap when a contra
 ### Real-Time Multi-Device Sync (SSE)
 - Both partners see the same live session — no refreshing, no lag
 - Shared via a single link; partner joins instantly without an account
-- Uses SSE (Server-Sent Events) for instant push updates across devices
+- Uses Server-Sent Events for instant push updates across devices
 
 ### Voice Control
 - Start and stop timers by speaking — hands-free when you can't reach your phone
-- Audio processed on-device; no voice data leaves your device
+- Audio processed on-device via Web Speech API; no voice data leaves your device
 
 ### State Auto-Progress
 - Automatically tracks which labor stage you're in based on contraction patterns
@@ -33,6 +31,10 @@ A mobile-first contraction timer built as a Telegram Mini App. Tap when a contra
 - Large, high-contrast timer visible across the room
 - Works fully offline once the session is active
 - No account required — open and start
+
+### Memory Book PDF
+- When labor is over, export a beautiful PDF of your contraction timeline
+- A keepsake of the work, the timing, and the team
 
 ---
 
@@ -49,12 +51,13 @@ A mobile-first contraction timer built as a Telegram Mini App. Tap when a contra
 
 | Layer | Technology |
 |---|---|
-| App | Telegram Mini App (JavaScript) |
-| Backend | luna-relay (Node.js, relay.ashbi.ca) |
+| App | React 19 + TypeScript + Vite + Tailwind CSS |
+| Native | Capacitor 8 (iOS + Android wrappers around the PWA) |
+| Backend | olive-relay (Node.js + Express + sql.js WASM, deployed at relay.ashbi.ca) |
 | Sync | Server-Sent Events (SSE) |
-| Bundle | luna-v56 |
-| Version | v2.0.4 |
-| Live URL | contractions.ashbi.ca |
+| Live Activity | iOS Widget Extension (iOS 16.1+) |
+| Bundle | olive-v1 (PWA cache version) |
+| Version | 1.0.0 |
 
 ---
 
@@ -63,7 +66,7 @@ A mobile-first contraction timer built as a Telegram Mini App. Tap when a contra
 | Repo | URL |
 |---|---|
 | App / Frontend | github.com/camster91/contraction-tracker |
-| Backend / Relay | github.com/camster91/luna-relay |
+| Backend / Relay | github.com/camster91/luna-relay (the backend is still branded "luna-relay" — rename to olive-relay is a separate task) |
 
 ---
 
@@ -72,22 +75,57 @@ A mobile-first contraction timer built as a Telegram Mini App. Tap when a contra
 ### Run locally (development)
 
 ```bash
-# Frontend
 git clone https://github.com/camster91/contraction-tracker.git
 cd contraction-tracker
-# open in browser — Telegram Mini Apps run in Telegram client or @BotFather preview
-
-# Backend relay
-git clone https://github.com/camster91/luna-relay.git
-cd luna-relay
 npm install
-npm start
-# runs on relay.ashbi.ca (or localhost for dev)
+npm run dev
+# Open http://localhost:5173 — the PWA runs in any modern browser
 ```
 
-### Deploy
+### Build for production
 
-The frontend is a Telegram Mini App — deploy by configuring the BotFather webhook to point to your hosted build. The relay backend should be deployed separately (e.g., on a VPS or cloud provider) and its URL configured in the frontend environment.
+```bash
+npm run build
+# Outputs to dist/ — the PWA bundle
+```
+
+### Native iOS
+
+```bash
+npm run build
+npx cap sync ios
+cd ios/App
+open App.xcworkspace
+# Then build & run in Xcode as usual
+```
+
+### Native Android
+
+```bash
+npm run build
+npx cap sync android
+cd android
+./gradlew assembleRelease   # APK at app/build/outputs/apk/release/
+./gradlew bundleRelease      # AAB at app/build/outputs/bundle/release/
+```
+
+### Backend (relay)
+
+```bash
+git clone https://github.com/camster91/luna-relay.git
+cd olive-relay
+npm install
+npm start
+# Runs on relay.ashbi.ca (or localhost for dev)
+```
+
+---
+
+## Deploy
+
+The frontend is a PWA + Capacitor app — deploy the `dist/` build to your CDN / static host (currently contractions.ashbi.ca, hosted on Coolify). The relay backend should be deployed separately (currently relay.ashbi.ca, also on Coolify) and its URL configured in the frontend.
+
+CI/CD: GitHub Actions auto-deploys to Coolify on push to `main`. The deploy workflow uses SSH directly (not the Coolify API) because this is a standalone docker-compose deploy, not a Coolify-tracked application.
 
 ---
 
@@ -95,9 +133,16 @@ The frontend is a Telegram Mini App — deploy by configuring the BotFather webh
 
 | Version | Notes |
 |---|---|
-| 2.0.4 | SSE live sync, voice control, multi-device share, state auto-progress |
-| 2.0.0 | Initial relaunch with shared sessions |
+| 1.0.0 | Rebrand from "Olive" to "Olive." SSE live sync, voice control, multi-device share, state auto-progress, memory book PDF |
+| 2.0.4 | Last version under the old name — SSE reconnect backoff, voice de-dup, state auto-progress |
+| 2.0.0 | Initial Capacitor iOS + Android native app setup |
 
 ---
 
-*Built by camster91 — available at contractions.ashbi.ca*
+## License
+
+Proprietary. Not open source. All rights reserved.
+
+---
+
+*Built by [camster91](https://github.com/camster91) — for Bianca, who is having Olive right now.*

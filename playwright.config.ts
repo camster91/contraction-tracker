@@ -1,7 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
 /**
- * Playwright config for the Luna Contraction Timer gauntlet.
+ * Playwright config for the Olive Contraction Timer gauntlet.
  *
  * Targets the live PWA at contractions.ashbi.ca by default. Override with
  * PLAYWRIGHT_BASE_URL=http://localhost:5173 for local dev.

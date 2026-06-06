@@ -1,4 +1,4 @@
-// Relay sync — syncs contraction data with the Luna relay server
+// Relay sync — syncs contraction data with the Olive relay server
 // at https://relay.ashbi.ca when a share link is active.
 //
 // Used by: ShareSheet (push) and ShareView (pull)

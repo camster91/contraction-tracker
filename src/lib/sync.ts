@@ -25,7 +25,7 @@ export function initSync(
   } catch {
     // ignore — closing a never-opened channel can throw on some browsers
   }
-  channel = new BroadcastChannel('luna');
+  channel = new BroadcastChannel('olive');
   channel.onmessage = (e: MessageEvent<SyncMessage>) => {
     receiveInFlight++;
     try {

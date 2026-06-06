@@ -1,13 +1,13 @@
 {
-  "name": "Luna — Contraction Timer",
-  "short_name": "Luna",
+  "name": "Olive — Contraction Timer",
+  "short_name": "Olive",
   "description": "Track contractions during labor with a calm, simple timer.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#120c10",
-  "theme_color": "#120c10",
+  "background_color": "#1a1216",
+  "theme_color": "#1a1216",
   "categories": ["health", "medical", "lifestyle"],
   "icons": [
     { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },

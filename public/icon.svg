@@ -1,29 +1,18 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <defs>
-    <linearGradient id="heartGrad" x1="50%" y1="0%" x2="50%" y2="100%">
-      <stop offset="0%" stop-color="#f3bca9"/>
-      <stop offset="50%" stop-color="#e8957a"/>
-      <stop offset="100%" stop-color="#c25a3f"/>
-    </linearGradient>
-    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#2a1a20"/>
-      <stop offset="100%" stop-color="#120c10"/>
-    </linearGradient>
-    <radialGradient id="glow" cx="50%" cy="40%" r="50%">
-      <stop offset="0%" stop-color="#d97459" stop-opacity="0.35"/>
-      <stop offset="100%" stop-color="#d97459" stop-opacity="0"/>
-    </radialGradient>
-  </defs>
-  <!-- Background squircle -->
-  <rect x="0" y="0" width="512" height="512" rx="115" fill="url(#bgGrad)"/>
-  <!-- Warm glow behind heart -->
-  <rect x="0" y="0" width="512" height="512" rx="115" fill="url(#glow)"/>
-  <!-- Heart: two circles + triangle, mathematically centered -->
-  <g transform="translate(256 268)">
-    <!-- Lobes -->
-    <circle cx="-72" cy="0" r="72" fill="url(#heartGrad)"/>
-    <circle cx="72" cy="0" r="72" fill="url(#heartGrad)"/>
-    <!-- Triangle pointing down -->
-    <polygon points="-140,-8 140,-8 0,160" fill="url(#heartGrad)"/>
-  </g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+<rect width="1024" height="1024" rx="180" fill="#1a1216"/>
+<g transform="translate(260 760)">
+<path d="M 0 0 Q 220 -140 440 -280 Q 520 -340 560 -400" stroke="#a8b89c" stroke-width="14" fill="none" stroke-linecap="round"/>
+<path d="M 120 -100 Q 100 -60 80 -20" stroke="#a8b89c" stroke-width="10" fill="none" stroke-linecap="round" opacity="0.7"/>
+</g>
+<g transform="translate(512 540)">
+<ellipse cx="0" cy="0" rx="98" ry="128" fill="#d4a5a5"/>
+<ellipse cx="-30" cy="-40" rx="32" ry="46" fill="#e3bcbc" opacity="0.7"/>
+<ellipse cx="20" cy="50" rx="50" ry="40" fill="#a87a7a" opacity="0.35"/>
+</g>
+<g transform="translate(720 410) rotate(40)">
+<path d="M 0 0 Q 60 -40 110 -20 Q 60 30 0 0 Z" fill="#a8b89c"/>
+</g>
+<g transform="translate(360 660) rotate(190)">
+<path d="M 0 0 Q 60 -40 110 -20 Q 60 30 0 0 Z" fill="#a8b89c"/>
+</g>
 </svg>

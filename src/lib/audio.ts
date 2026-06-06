@@ -1,4 +1,4 @@
-// Audio feedback for Luna. Two layers:
+// Audio feedback for Olive. Two layers:
 //   1. Tones — short, warm, generated with Web Audio (no asset downloads, no latency).
 //   2. Speech — uses SpeechSynthesis so iOS Safari / Android Chrome pick the OS voice.
 //

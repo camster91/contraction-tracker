@@ -1,23 +1,23 @@
 {
-  "appId": "com.ashbi.luna",
-  "appName": "Luna",
+  "appId": "com.ashbi.olive",
+  "appName": "Olive",
   "webDir": "dist",
   "ios": {
-    "backgroundColor": "#120c10",
+    "backgroundColor": "#1a1216",
     "preferredContentMode": "mobile"
   },
   "android": {
-    "backgroundColor": "#120c10"
+    "backgroundColor": "#1a1216"
   },
   "plugins": {
     "SplashScreen": {
       "launchShowDuration": 1500,
-      "backgroundColor": "#120c10",
+      "backgroundColor": "#1a1216",
       "androidScaleType": "CENTER_CROP"
     },
     "StatusBar": {
       "style": "DARK",
-      "backgroundColor": "#120c10"
+      "backgroundColor": "#1a1216"
     }
   }
 }

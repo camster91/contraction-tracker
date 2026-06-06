@@ -26,7 +26,7 @@ export type Person = {
 };
 
 export type Share = {
-  id: string;            // short code used in the URL (e.g. "luna-3kf8")
+  id: string;            // short code used in the URL (e.g. "olive-3kf8")
   sessionId: string;
   mode?: string;         // 'full' | 'stats' | 'track' — default 'full'
   pin?: string;          // optional 4-digit PIN
