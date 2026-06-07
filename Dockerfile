@@ -11,6 +11,8 @@ EXPOSE 3000
 # `serve -s dist` would rewrite every 404 to index.html (SPA mode), which
 # hides the privacy page at /privacy/. The app has no client-side routes
 # (deep links use ?share= search params), so SPA fallback isn't needed.
-# Static files (icons, /privacy/index.html, /share?…=CODE) are served
-# from the real paths. Unknown paths return a real 404.
+# Unknown paths return a real 404 — the static 404 page at
+# public/404/ is served for /404/ explicitly, and `serve` returns its
+# default 404 text for everything else. The user-facing error UX comes
+# from this static HTML page when explicitly linked.
 CMD ["sh", "-c", "serve dist -l 3000 --no-clipboard"]
