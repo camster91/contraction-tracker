@@ -24,6 +24,7 @@ import {
   Stethoscope,
   Mic,
   MicOff,
+  BookOpen,
   Clock,
 } from 'lucide-react';
 import {
@@ -195,6 +196,7 @@ export default function App() {
 
   // State change toast — shown when the host manually changes the share's labor stage
   const [stateToast, setStateToast] = useState<string | null>(null);
+  const [backupError, setBackupError] = useState<string | null>(null);
 
   // Status update prompt — bottom-sheet replacing the old window.prompt
   const [showStatusPrompt, setShowStatusPrompt] = useState(false);
@@ -870,7 +872,7 @@ export default function App() {
     try {
       const parsed = await readBackupFile(file);
       if (!validateBackup(parsed)) {
-        alert('This file is not a valid Olive backup.');
+        setBackupError('This file is not a valid Olive backup.');
         return;
       }
       // Build existing maps using proper types
@@ -916,9 +918,10 @@ export default function App() {
       for (const [sid, itemMap] of existingChecklists) {
         saveChecklist(sid, [...itemMap.values()] as never[]);
       }
+      setBackupError(null);
       alert(`Imported ${result.contractions} contractions, ${result.sessions} session(s), ${result.people} contacts, ${result.exams} exams.`);
     } catch (err) {
-      alert('Failed to import backup: ' + (err instanceof Error ? err.message : String(err)));
+      setBackupError('Failed to import: ' + (err instanceof Error ? err.message : String(err)));
     } finally {
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
@@ -1202,6 +1205,12 @@ export default function App() {
       )}
 
       {/* Hidden file input for backup import */}
+      {backupError && (
+        <div className="fixed bottom-20 inset-x-5 z-50 mx-auto max-w-sm rounded-xl border border-red-400/30 bg-red-400/10 px-4 py-3 text-xs text-red-200 animate-fade-in shadow-[0_4px_24px_-8px_rgba(248,113,113,0.3)] flex items-center gap-2">
+          <span className="flex-1">{backupError}</span>
+          <button onClick={() => setBackupError(null)} className="text-red-300 font-medium">Dismiss</button>
+        </div>
+      )}
       <input
         ref={fileInputRef}
         type="file"
@@ -1735,6 +1744,19 @@ export default function App() {
               onClick={() => setShowBackupInfo(true)}
               accent="sage"
             />
+            {/* Memory book — only when an archived share exists */}
+            {getShares().some((s) => !s.revoked && s.state === 'archived' && s.sessionId === activeSessionId) && (
+              <FeatureCard
+                icon={<BookOpen className="w-4 h-4" />}
+                label="Memory book"
+                sub="View keepsake"
+                onClick={() => {
+                  const share = getShares().find((s) => !s.revoked && s.state === 'archived' && s.sessionId === activeSessionId);
+                  if (share) window.open(`/?share=${share.id}`, '_blank');
+                }}
+                accent="rose"
+              />
+            )}
           </div>
         </div>
 
@@ -2036,6 +2058,11 @@ export default function App() {
                 <PictureInPicture2 className="w-3.5 h-3.5" strokeWidth={1.75} />
                 Open floating timer
               </button>
+            )}
+            {!document.pictureInPictureEnabled && (
+              <p className="mt-2 text-[10px] text-ink-500 text-center">
+                Keep the app open — your screen won't sleep while timing.
+              </p>
             )}
             {document.pictureInPictureElement && (
               <button

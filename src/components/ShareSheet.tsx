@@ -58,6 +58,8 @@ export default function ShareSheet({ sessionId, contractions, onClose, onStateCh
   const [copied, setCopied] = useState<string | null>(null);
   const [shareMode, setShareMode] = useState<'partner' | 'friends'>('partner');
   const [shareState, setShareState] = useState<'prenatal' | 'labor' | 'postpartum' | 'archived'>('prenatal');
+  const [prevState, setPrevState] = useState<typeof shareState | null>(null);
+  const [undoTimer, setUndoTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
 
   // Resolve the session's display name from the sessions list
   const sessions = JSON.parse(localStorage.getItem('contraction-tracker:sessions') || '[]');
@@ -137,8 +139,25 @@ export default function ShareSheet({ sessionId, contractions, onClose, onStateCh
   };
 
   const handleStateChange = (st: 'prenatal' | 'labor' | 'postpartum' | 'archived') => {
+    if (undoTimer) { clearTimeout(undoTimer); setUndoTimer(null); }
+    setPrevState(shareState);
     setShareState(st);
     onStateChange?.(st);
+    // Show undo toast for 5 seconds
+    const timer = setTimeout(() => {
+      setPrevState(null);
+      setUndoTimer(null);
+    }, 5000);
+    setUndoTimer(timer);
+  };
+
+  const handleUndoState = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (prevState === null) return;
+    if (undoTimer) { clearTimeout(undoTimer); setUndoTimer(null); }
+    setShareState(prevState);
+    onStateChange?.(prevState);
+    setPrevState(null);
   };
 
   return (
@@ -197,6 +216,21 @@ export default function ShareSheet({ sessionId, contractions, onClose, onStateCh
       {/* State picker */}
       <StatePicker value={shareState} onChange={handleStateChange} />
 
+      {/* Undo toast — 5 seconds to revert a state change */}
+      {prevState !== null && (
+        <div className="mb-3 flex items-center gap-2 bg-ink-100/10 rounded-xl px-3 py-2 text-xs animate-fade-in">
+          <span className="text-ink-300 flex-1">
+            Changed to <span className="text-ink-200 font-medium">{shareState}</span>
+          </span>
+          <button
+            onClick={handleUndoState}
+            className="text-rose-300 font-medium active:text-rose-200"
+          >
+            Undo
+          </button>
+        </div>
+      )}
+
       {/* Baby is here button */}
       <BabyIsHereMount
         share={activeShares[0]?.id ?? ''}
@@ -205,20 +239,6 @@ export default function ShareSheet({ sessionId, contractions, onClose, onStateCh
           onBabyIsHere?.(activeShares[0]?.id ?? '');
         }}
       />
-
-      {/* Send update (works without a share link) */}
-      <button
-        onClick={handleSendUpdate}
-        className="w-full mb-3 text-left text-sm text-ink-100 bg-ink-100/5 active:bg-ink-100/10 border border-ink-200/30 rounded-xl px-3 py-2.5 flex items-center gap-2 transition-colors"
-      >
-        <MessageCircle className="w-4 h-4 text-rose-300" />
-        <div className="flex-1 min-w-0">
-          <div className="font-medium">Send update</div>
-          <div className="text-[10px] text-ink-500 truncate">
-            "X contractions so far, last was Y"
-          </div>
-        </div>
-      </button>
 
       <button
         onClick={handleCreate}
@@ -238,11 +258,28 @@ export default function ShareSheet({ sessionId, contractions, onClose, onStateCh
         </div>
       )}
 
+      {/* Send update — secondary action below the primary Create share button */}
+      <button
+        onClick={handleSendUpdate}
+        className="w-full mb-3 text-left text-sm text-ink-100 bg-ink-100/5 active:bg-ink-100/10 border border-ink-200/30 rounded-xl px-3 py-2.5 flex items-center gap-2 transition-colors"
+      >
+        <MessageCircle className="w-4 h-4 text-ink-300" />
+        <div className="flex-1 min-w-0">
+          <div className="font-medium text-xs">Send update without a link</div>
+          <div className="text-[10px] text-ink-500 truncate">
+            "3 contractions so far, last was 1:15"
+          </div>
+        </div>
+      </button>
+
       {/* Active links */}
       {activeShares.length > 0 && (
         <div className="space-y-2">
           <div className="text-[10px] uppercase tracking-[0.18em] text-ink-400 font-semibold">
             Active links
+          </div>
+          <div className="text-[10px] text-ink-500 mb-2">
+            Send this link to your partner via text, WhatsApp, or any app. They tap it to follow along.
           </div>
           {activeShares.map((s) => {
             const isCopied = copied === s.id;
