@@ -28,7 +28,7 @@ export type Person = {
 export type Share = {
   id: string;            // short code used in the URL (e.g. "olive-3kf8")
   sessionId: string;
-  mode?: string;         // 'full' | 'stats' | 'track' — default 'full'
+  mode?: string;         // 'partner' | 'friends' — default 'partner'
   pin?: string;          // optional 4-digit PIN
   state?: 'prenatal' | 'labor' | 'postpartum' | 'archived'; // default 'prenatal'
   expiresAt: string;     // ISO

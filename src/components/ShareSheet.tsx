@@ -56,8 +56,7 @@ export default function ShareSheet({ sessionId, contractions, onClose, onStateCh
   const [creating, setCreating] = useState(false);
   const [shares, setShares] = useState<Share[]>(() => getShares());
   const [copied, setCopied] = useState<string | null>(null);
-  const [requirePin, setRequirePin] = useState(false);
-  const [shareMode, setShareMode] = useState<'full' | 'stats' | 'track'>('full');
+  const [shareMode, setShareMode] = useState<'partner' | 'friends'>('partner');
   const [shareState, setShareState] = useState<'prenatal' | 'labor' | 'postpartum' | 'archived'>('prenatal');
 
   // Resolve the session's display name from the sessions list
@@ -72,10 +71,9 @@ export default function ShareSheet({ sessionId, contractions, onClose, onStateCh
   const handleCreate = async () => {
     setRelayError(null);
     setCreating(true);
-    const pin = requirePin ? String(Math.floor(1000 + Math.random() * 9000)) : undefined;
+    const pin = undefined; // PIN removed — simplicity over complexity
     createShare({ sessionId, ttlHours: 720, pin, mode: shareMode });
     setShares(getShares());
-    setRequirePin(false);
     // Also create on the relay server for multi-device sharing.
     // createShareOnRelay returns null on any failure (network, 5xx, etc) —
     // we surface a clear error instead of letting the user think the share
@@ -172,14 +170,13 @@ export default function ShareSheet({ sessionId, contractions, onClose, onStateCh
         Create your forever link — it won't expire.
       </div>
 
-      {/* Share mode selector */}
+      {/* Share mode — partner (full) or friends (read-only) */}
       <div className="mb-3">
-        <div className="text-[10px] uppercase tracking-[0.15em] text-ink-400 font-semibold mb-1.5">Share type</div>
+        <div className="text-[10px] uppercase tracking-[0.15em] text-ink-400 font-semibold mb-1.5">Who is this for?</div>
         <div className="space-y-1">
           {[
-            { value: 'full', label: 'Full details', desc: 'All times and stats visible' },
-            { value: 'stats', label: 'Stats only', desc: 'Averages + pattern, no individual times' },
-            { value: 'track', label: 'Partner tracking', desc: 'Can start/stop from their device' },
+            { value: 'partner', label: 'Partner — full access', desc: 'Sees all times, durations, and details' },
+            { value: 'friends', label: 'Friends — view only', desc: 'Sees progress and pattern, not every detail' },
           ].map((opt) => (
             <button
               key={opt.value}
@@ -222,18 +219,6 @@ export default function ShareSheet({ sessionId, contractions, onClose, onStateCh
           </div>
         </div>
       </button>
-
-      <div className="border-t border-ink-200/20 my-3" />
-
-      <label className="flex items-center gap-2 text-xs text-ink-300 mb-2 cursor-pointer">
-        <input
-          type="checkbox"
-          checked={requirePin}
-          onChange={(e) => setRequirePin(e.target.checked)}
-          className="accent-rose-300"
-        />
-        Require a 4-digit PIN
-      </label>
 
       <button
         onClick={handleCreate}
