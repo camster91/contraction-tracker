@@ -153,6 +153,12 @@ export default function ChecklistSheet({ sessionId, onClose }: Props) {
 
         {/* Items list */}
         <div className="flex-1 overflow-y-auto px-5 pb-6 space-y-1.5">
+          {items.length === 0 && !adding && (
+            <div className="text-center py-8">
+              <div className="text-sm text-ink-300 font-medium">No items yet</div>
+              <div className="text-[11px] text-ink-500 mt-1">Start packing — tap Add to build your hospital bag list.</div>
+            </div>
+          )}
           {items.map((item) => (
             <div
               key={item.id}

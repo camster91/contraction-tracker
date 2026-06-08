@@ -209,7 +209,9 @@ export default function App() {
   });
   const shares = getShares();
   const hasRecentShare = shares.some((s) => !s.revoked);
-  const showBackupBanner = !hasRecentShare && !(dismissedBannerAt && Date.now() - dismissedBannerAt < 24 * 60 * 60 * 1000);
+  const showBackupBanner = !hasRecentShare
+    && !(dismissedBannerAt && Date.now() - dismissedBannerAt < 24 * 60 * 60 * 1000)
+    && contractions.filter((c) => c.end).length > 0; // don't bug brand-new users with 0 finished contractions
 
   // Onboarding tooltip steps: null = dismissed, 0/1/2 = step
   const [onboardingStep, setOnboardingStep] = useState<number | null>(() => {
@@ -1393,8 +1395,8 @@ export default function App() {
               onClick={() => setShowBackupInfo(false)}
               aria-hidden="true"
             />
-            <div className="absolute right-5 top-full mt-1 z-40 w-64 rounded-2xl border border-sage-300/30 bg-plum-950/95 backdrop-blur-xl shadow-[0_8px_32px_-8px_rgba(0,0,0,0.6)] px-4 py-3 animate-fade-in">
-              <div className="flex items-start gap-2.5">
+            <div className="absolute right-5 top-full mt-1 z-40 w-72 rounded-2xl border border-sage-300/30 bg-plum-950/95 backdrop-blur-xl shadow-[0_8px_32px_-8px_rgba(0,0,0,0.6)] px-4 py-3.5 animate-fade-in">
+              <div className="flex items-start gap-2.5 mb-3">
                 <div className="w-7 h-7 rounded-full bg-sage-300/15 flex items-center justify-center flex-shrink-0 mt-0.5">
                   <Shield className="w-3.5 h-3.5 text-sage-300" strokeWidth={2} />
                 </div>
@@ -1403,7 +1405,7 @@ export default function App() {
                     Saved on this phone
                   </div>
                   <p className="text-[11px] text-ink-300 mt-1 leading-relaxed">
-                    Every contraction is saved automatically to your phone's storage. Even if you
+                    Every contraction is saved automatically. Even if you
                     close the app or lose internet, your history stays.
                   </p>
                   {savedAt && (
@@ -1412,6 +1414,20 @@ export default function App() {
                     </div>
                   )}
                 </div>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => { handleExportBackup(); setShowBackupInfo(false); }}
+                  className="flex-1 text-xs bg-sage-300/20 active:bg-sage-300/30 text-sage-300 rounded-lg px-3 py-2 font-medium transition-colors"
+                >
+                  Export backup
+                </button>
+                <button
+                  onClick={() => { fileInputRef.current?.click(); setShowBackupInfo(false); }}
+                  className="flex-1 text-xs bg-ink-100/10 active:bg-ink-100/20 text-ink-300 rounded-lg px-3 py-2 font-medium transition-colors"
+                >
+                  Import backup
+                </button>
               </div>
             </div>
           </>
@@ -1658,7 +1674,7 @@ export default function App() {
             </div>
             <div className="text-[10px] text-ink-500 mt-1.5">
               {finished.length === 1
-                ? 'since first contraction'
+                ? 'First one recorded. Real labor contractions usually come every 3-5 minutes and get stronger.'
                 : `${pluralContraction(finished.length)} logged · started ${formatElapsed(totalLogElapsedSec)} ago`}
             </div>
           </div>
@@ -1716,7 +1732,7 @@ export default function App() {
               icon={<Download className="w-4 h-4" />}
               label="Backup"
               sub="Export & restore"
-              onClick={handleExportBackup}
+              onClick={() => setShowBackupInfo(true)}
               accent="sage"
             />
           </div>
