@@ -13,7 +13,17 @@
     <title>Olive — Contraction Timer</title>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Preloader: shows immediately while React mounts (~15s on cold start).
+           React replaces this content when it renders. Dark, branded, calm. -->
+      <div style="min-height:100dvh;background:#120c10;display:flex;align-items:center;justify-content:center;font-family:system-ui,-apple-system,sans-serif">
+        <div style="text-align:center">
+          <img src="/icon.svg" alt="Olive" style="width:56px;height:56px;margin-bottom:16px" />
+          <div style="font-family:Georgia,serif;font-size:24px;color:#faf6f4;margin-bottom:4px">Olive</div>
+          <div style="color:#a47a6e;font-size:12px">Contraction Timer</div>
+        </div>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

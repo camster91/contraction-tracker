@@ -12,18 +12,18 @@ type Props = {
 const STEPS = [
   {
     icon: Play,
-    title: '1. Tap Start when it begins',
-    desc: 'The screen stays on while the timer runs.',
+    title: 'Tap the button when a contraction starts',
+    desc: 'Your screen will stay awake so you can see the timer.',
   },
   {
     icon: Square,
-    title: '2. Tap Stop when it ends',
-    desc: 'Add intensity, tags, or a quick note.',
+    title: 'Tap again when it passes',
+    desc: 'Mark how strong it felt, or add a note if you want.',
   },
   {
     icon: Share2,
-    title: '3. Share with your team',
-    desc: 'A link lets your partner or midwife follow along live.',
+    title: 'Send a link to your partner',
+    desc: 'They can follow along in real time from their phone.',
   },
 ] as const;
 
@@ -56,7 +56,7 @@ export default function Onboarding({ onDismiss }: Props) {
           className="text-[11px] text-ink-400 active:text-ink-200 px-2 py-1 min-h-[32px]"
           aria-label="Dismiss onboarding"
         >
-          Skip
+          Not now
         </button>
       </div>
       <div className="flex items-center justify-between mt-3">
