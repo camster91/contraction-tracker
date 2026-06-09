@@ -40,10 +40,14 @@ All features verified by 76+ gauntlet tests (3.5 min CI). Zero TODOs, zero FIXME
 - Feature cards have visible text (accessible name via text content)
 - 16 icon-only button labels documented as follow-up
 
-### Sharing
-- Simplified: 2 modes (Partner full access / Friends view only)
-- PIN removed
+### Sharing (revised 2026-06-09)
+- **One share per session** — creating again returns the same code
+- **7-day default TTL** (168 hours), not 30 days
+- Partner / Friends modes (PIN removed in earlier pass)
 - navigator.share fixed for iOS Safari (URL in text field)
+- Time-remaining countdown shown to both host ("X days left") and
+  partner ("This link works for X more days")
+- Old expired shares auto-filtered from getShares()
 - Relay CORS: wildcard (*) for Capacitor WebView compatibility
 
 ### Privacy
