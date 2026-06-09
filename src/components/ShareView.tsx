@@ -431,11 +431,23 @@ export default function ShareView({ code }: { code: string }) {
     <div style={{ minHeight: '100dvh', background: pageBg, color: textMain, fontFamily: 'Inter, system-ui, sans-serif' }}>
       <div style={{ maxWidth: 448, margin: '0 auto', padding: '24px 20px 40px' }}>
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
           <Heart size={20} color={rose} style={{ opacity: 0.8 }} />
           <span style={{ fontSize: 20, fontFamily: 'Fraunces, Georgia, serif' }}>Olive</span>
           <span style={{ fontSize: 10, color: textMuted, textTransform: 'uppercase', letterSpacing: 2, marginTop: 2 }}>Labor tracker</span>
         </div>
+        {/* Time-remaining on this share link — partners need to know
+            so they're not surprised when it stops updating after a week. */}
+        {share.expiresAt && (() => {
+          const ms = new Date(share.expiresAt).getTime() - Date.now();
+          if (ms <= 0) return null; // already expired
+          const days = Math.ceil(ms / (24 * 60 * 60 * 1000));
+          return (
+            <div style={{ fontSize: 10, color: textMuted, marginBottom: 16, paddingLeft: 30 }}>
+              This link works for {days} more day{days !== 1 ? 's' : ''}.
+            </div>
+          );
+        })()}
 
         {/* State banner */}
         {shareState === 'prenatal' && (

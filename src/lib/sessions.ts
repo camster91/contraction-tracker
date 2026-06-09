@@ -150,7 +150,11 @@ export function deletePerson(id: string) {
 // ---- Shares ----
 
 export function getShares(): Share[] {
-  return readJSON<Share[]>(SHARES_KEY, []);
+  const arr = readJSON<Share[]>(SHARES_KEY, []);
+  // Filter out expired/revoked shares so the UI only shows live ones.
+  // This also acts as garbage collection — old 30-day-TTL shares
+  // (from before the 7-day switch) eventually self-clean.
+  return arr.filter(isShareValid);
 }
 
 export function setShares(shares: Share[]) {
@@ -174,14 +178,31 @@ export function createShare(input: {
   pin?: string;
   mode?: string;
 }): Share {
-  const id = generateShareCode();
-  // Ensure unique
+  // One share per session. If an active share already exists for this
+  // session, return it instead of creating a new one. This means the
+  // partner with the existing code keeps seeing live updates as the
+  // session progresses — no broken links, no multiple codes to track.
   const existing = getShares();
+  const active = existing.find(
+    (s) => s.sessionId === input.sessionId && isShareValid(s),
+  );
+  if (active) {
+    // Update mode if the user is upgrading from "friends" to "partner"
+    // or vice versa. Keep the same code.
+    if (input.mode && input.mode !== active.mode) {
+      active.mode = input.mode;
+      setShares(existing);
+    }
+    return active;
+  }
+  const id = generateShareCode();
+  // Ensure unique across all sessions (defensive — should not collide)
   if (existing.find((s) => s.id === id)) {
-    // Astronomically unlikely but handle it
     return createShare(input);
   }
-  const ttl = input.ttlHours ?? 720; // 30 days default
+  const ttl = input.ttlHours ?? 168; // 7 days default — long enough to
+  // cover early labor through postpartum; short enough that an
+  // abandoned share self-destructs within a week.
   const share: Share = {
     id,
     sessionId: input.sessionId,

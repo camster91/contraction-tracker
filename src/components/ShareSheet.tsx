@@ -3,7 +3,7 @@
 // the message pre-filled, revoke the link.
 
 import { useMemo, useState } from 'react';
-import { Copy, Share2, Shield, Trash2, X, MessageCircle, Check } from 'lucide-react';
+import { Copy, Share2, Shield, Trash2, X, MessageCircle, Check, Clock } from 'lucide-react';
 import {
   type Share,
   createShare,
@@ -74,13 +74,13 @@ export default function ShareSheet({ sessionId, contractions, onClose, onStateCh
     setRelayError(null);
     setCreating(true);
     const pin = undefined; // PIN removed — simplicity over complexity
-    createShare({ sessionId, ttlHours: 720, pin, mode: shareMode });
+    createShare({ sessionId, ttlHours: 168, pin, mode: shareMode });
     setShares(getShares());
     // Also create on the relay server for multi-device sharing.
     // createShareOnRelay returns null on any failure (network, 5xx, etc) —
     // we surface a clear error instead of letting the user think the share
     // works when no one in another browser can actually open it.
-    const relayResult = await createShareOnRelay({ sessionId, pin, ttlHours: 720, mode: shareMode, state: 'prenatal' });
+    const relayResult = await createShareOnRelay({ sessionId, pin, ttlHours: 168, mode: shareMode, state: 'prenatal' });
     if (!relayResult) {
       setRelayError(
         'Could not reach the share server. Your link will work on this device only — viewers in other browsers will not see updates until the relay reconnects.',
@@ -188,8 +188,8 @@ export default function ShareSheet({ sessionId, contractions, onClose, onStateCh
       </div>
 
       <div className="text-[11px] text-ink-400 mb-3 leading-relaxed">
-        Generate a link that your circle can open to follow along in real time.
-        Create your forever link — it won't expire.
+        One link, valid for 7 days. Send it via text, WhatsApp, or any app. The link
+        keeps working the whole time — no new codes to send.
       </div>
 
       {/* Share mode — partner (full) or friends (read-only) */}
@@ -248,7 +248,7 @@ export default function ShareSheet({ sessionId, contractions, onClose, onStateCh
         disabled={creating}
         className="w-full bg-rose-300 active:bg-rose-400 disabled:bg-rose-300/60 disabled:text-plum-950/60 text-plum-950 rounded-xl py-2.5 text-sm font-semibold transition-colors mb-3"
       >
-        {creating ? 'Creating…' : (activeShares.length > 0 ? 'Create another link' : 'Create share link')}
+        {creating ? 'Creating…' : (activeShares.length > 0 ? 'Share is live — sending a new copy…' : 'Create share link')}
       </button>
 
       {/* Inline error if the relay create or push failed.
@@ -328,6 +328,16 @@ export default function ShareSheet({ sessionId, contractions, onClose, onStateCh
                   </button>
                 </div>
                 <div className="flex items-center gap-2 text-[10px] text-ink-500 mt-1.5">
+                  {s.expiresAt && (() => {
+                    const ms = new Date(s.expiresAt).getTime() - Date.now();
+                    const days = Math.max(0, Math.ceil(ms / (24 * 60 * 60 * 1000)));
+                    return (
+                      <span className="flex items-center gap-1 text-ink-400">
+                        <Clock className="w-2.5 h-2.5" />
+                        {days > 1 ? `${days} days left` : days === 1 ? 'expires tomorrow' : 'expires today'}
+                      </span>
+                    );
+                  })()}
                   {s.pin && (
                     <span className="flex items-center gap-1">
                       <Shield className="w-2.5 h-2.5" />
