@@ -14,10 +14,7 @@ export default function BabyIsHereMount({ share, onSuccess }: Props) {
   const [open, setOpen] = useState(false);
 
   const handleClick = () => {
-    if (!share) {
-      alert('Create a share link first so your circle can see the update.');
-      return;
-    }
+    if (!share) return; // button is hidden when no share exists
     setOpen(true);
   };
 

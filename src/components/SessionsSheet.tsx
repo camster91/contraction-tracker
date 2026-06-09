@@ -60,10 +60,7 @@ export default function SessionsSheet({
   };
 
   const handleDelete = (id: string) => {
-    if (id === PRIMARY_SESSION_ID) {
-      alert('Cannot delete the primary session.');
-      return;
-    }
+    if (id === PRIMARY_SESSION_ID) return; // button is disabled for primary
     const count = contractionsInSession(contractions, id).length;
     if (count > 0) {
       if (!confirm(`This session has ${count} contractions. Delete it anyway?`)) return;
@@ -193,9 +190,10 @@ export default function SessionsSheet({
                       )}
                       <button
                         onClick={() => handleDelete(s.id)}
-                        className="p-1.5 text-ink-400 active:text-rose-300 transition-colors"
+                        disabled={s.id === PRIMARY_SESSION_ID}
+                        className={`p-1.5 transition-colors ${s.id === PRIMARY_SESSION_ID ? 'text-ink-600 cursor-not-allowed' : 'text-ink-400 active:text-rose-300'}`}
                         aria-label="Delete"
-                        title="Delete"
+                        title={s.id === PRIMARY_SESSION_ID ? 'Primary session cannot be deleted' : 'Delete'}
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
