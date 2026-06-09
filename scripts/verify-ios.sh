@@ -71,11 +71,14 @@ else
   fail "App icons: only $ICON_COUNT/12 sizes present (need: 20@2x, 20@3x, 29@2x, 29@3x, 40@2x, 40@3x, 60@2x, 60@3x, 76, 76@2x, 83.5@2x, 1024)"
 fi
 
-# 6. Privacy manifest
 if [ -f ios/App/PrivacyInfo.xcprivacy ]; then
   ok "PrivacyInfo.xcprivacy present (App Store requirement since May 2024)"
-  # Note: this file needs to be added to the Xcode project via right-click
-  warn "REMINDER: Add PrivacyInfo.xcprivacy to the App target in Xcode (right-click App group → Add Files)"
+  if grep -q "PrivacyInfo.xcprivacy in Resources" ios/App/App.xcodeproj/project.pbxproj; then
+    ok "PrivacyInfo.xcprivacy is wired into the App target Resources build phase"
+  else
+    warn "REMINDER: PrivacyInfo.xcprivacy exists on disk but is NOT yet wired into the App target"
+    warn "  (open Xcode → right-click App group → Add Files → select PrivacyInfo.xcprivacy)"
+  fi
 else
   fail "PrivacyInfo.xcprivacy MISSING — App Store will reject at upload"
 fi

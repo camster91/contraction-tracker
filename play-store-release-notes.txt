@@ -1,0 +1,28 @@
+# Olive v1.0.0 — Play Store release notes
+
+## What is Olive?
+Olive is a contraction timer for expecting couples. Track contractions in real time with one tap, see the 5-1-1 pattern detection, and share a live link with your partner so they can follow along from their own phone.
+
+## What's new in v1.0.0
+- One-tap Start/Stop contraction timer
+- Screen stays awake while timing
+- 5-1-1 active labor detection — alerts you when to call your provider
+- Share with partner — one link, valid 7 days, real-time updates
+- Voice control — say "start" or "stop" hands-free
+- Hospital bag checklist
+- Contraction history with intensity, tags, and pain location
+- Per-contraction notes
+- Memory book PDF export for postpartum keepsake
+- On-device only — your data never leaves your phone
+- Zero analytics, zero tracking, zero third-party SDKs
+
+## Privacy
+Olive stores your contraction data on your device only. We do not collect, transmit, or sell any personal information. When you share a link with your partner, the only data sent to our server is an anonymous session identifier for the duration of the share. See https://contractions.ashbi.ca/privacy for the full policy.
+
+## Designed for real labor
+- Quiet interface — no flashing colors, no alarmist messaging
+- Three-tier medical awareness: "Getting close" → "5-1-1 pattern" → "Time to call your provider"
+- Works offline — the timer doesn't need a network connection
+- Reliable on real devices — wake lock keeps the screen on for 3+ hours
+
+Built by a dad for his wife. Now for you.
