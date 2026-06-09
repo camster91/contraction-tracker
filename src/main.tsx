@@ -4,6 +4,7 @@ import './index.css'
 import App from './App.tsx'
 import ShareView from './components/ShareView.tsx'
 import { CapacitorInit } from './components/CapacitorInit.tsx'
+import ErrorBoundary from './components/ErrorBoundary.tsx'
 
 // If the URL has `?share=CODE`, render the read-only share view instead of
 // the full app. Single-device mode today; multi-device realtime sync would
@@ -12,7 +13,9 @@ const shareCode = new URLSearchParams(window.location.search).get('share')
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <CapacitorInit />
-    {shareCode ? <ShareView code={shareCode} /> : <App />}
+    <ErrorBoundary>
+      <CapacitorInit />
+      {shareCode ? <ShareView code={shareCode} /> : <App />}
+    </ErrorBoundary>
   </StrictMode>,
 )
