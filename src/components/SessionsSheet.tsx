@@ -2,7 +2,7 @@
 // The active session is stored separately so Cam can quickly hop between
 // past and current labor sessions.
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Plus, Square, Trash2, Users, ArrowLeft, Play, Eye } from 'lucide-react';
 import {
   PRIMARY_SESSION_ID,
@@ -37,6 +37,12 @@ export default function SessionsSheet({
   onViewSession,
 }: Props) {
   const [sessions, setSessions] = useState<Session[]>(() => getSessions());
+  // Live tick — refreshes the "5h 23m" duration display every 60s
+  const [_, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick((n) => n + 1), 60_000);
+    return () => clearInterval(id);
+  }, []);
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState('');
 
@@ -155,6 +161,13 @@ export default function SessionsSheet({
                   <div className="text-[10px] text-ink-500 mt-0.5">
                     {count} {count === 1 ? 'contraction' : 'contractions'} ·{' '}
                     {new Date(s.startedAt).toLocaleDateString()}
+                    {s.startedAt && (() => {
+                      const durMs = (s.endedAt ? new Date(s.endedAt).getTime() : Date.now()) - new Date(s.startedAt).getTime();
+                      const hours = Math.floor(durMs / (60 * 60 * 1000));
+                      const minutes = Math.floor((durMs % (60 * 60 * 1000)) / (60 * 1000));
+                      if (hours > 0) return ` · ${hours}h ${minutes}m`;
+                      return ` · ${minutes}m`;
+                    })()}
                   </div>
                 </button>
                 <div className="flex items-center gap-0.5">
