@@ -87,7 +87,12 @@ export default function ShareSheet({ sessionId, contractions, onClose, onStateCh
       );
     } else {
       try {
-        await pushContractionsToRelay(relayResult.code, contractions, null);
+        // Only push this session's contractions, not all of them —
+        // otherwise multi-session users leak old data into partner view.
+        // Use the session id we created the share for.
+        const all = JSON.parse(localStorage.getItem('contraction-tracker:v1') || '{"contractions":[]}').contractions;
+        const sessionContractions = all.filter((c: { sessionId?: string }) => (c.sessionId || 'primary') === sessionId);
+        await pushContractionsToRelay(relayResult.code, sessionContractions, null);
       } catch (err) {
         setRelayError('Share created, but initial sync to viewers failed. They may see no data until your next contraction is saved.');
       }

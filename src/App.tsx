@@ -95,6 +95,7 @@ import {
   getPeople,
   getShares,
   migrateContractionsToSessions,
+  sessionIdOf,
   type Session,
 } from './lib/sessions';
 import { getChecklist, packedCount, saveChecklist } from './lib/checklist';
@@ -431,7 +432,12 @@ export default function App() {
     try {
       const activeShares = getShares().filter(s => !s.revoked && s.sessionId === activeSessionId);
       for (const s of activeShares) {
-        pushContractionsToRelay(s.id, contractions, current).catch(() => {});
+        // Only push contractions from THIS session — not all of them.
+        // Otherwise switching sessions would leak old data into the
+        // partner's view.
+        const sessionContractions = contractionsInSession(contractions, s.sessionId);
+        const sessionCurrent = current && sessionIdOf(current) === s.sessionId ? current : null;
+        pushContractionsToRelay(s.id, sessionContractions, sessionCurrent).catch(() => {});
       }
     } catch { /* relay sync is best-effort */ }
   }, [current, contractions]);
