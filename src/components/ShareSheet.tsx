@@ -115,7 +115,10 @@ export default function ShareSheet({ sessionId, contractions, onClose, onStateCh
     const url = buildShareUrl(code);
     if (navigator.share) {
       try {
-        await navigator.share({ title: `${actualName} — labor tracker`, text: `Live labor updates`, url });
+        // Some browsers (especially iOS Safari) ignore the `url` field
+        // and only share the `text` field. Putting the URL in both fields
+        // ensures the link always gets through regardless of browser.
+        await navigator.share({ title: `${actualName}`, text: url, url });
       } catch { /* user cancelled */ }
     } else {
       handleCopy(code);
