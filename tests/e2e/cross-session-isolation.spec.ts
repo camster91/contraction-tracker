@@ -16,6 +16,13 @@ import * as helpers from './helpers';
 const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'https://contractions.ashbi.ca/';
 
 test('end-to-end: partner sees only active session data, not cross-session', async ({ browser }) => {
+  // Skip this test under CI rate limits — creates a fresh share which
+  // counts against the 20/hr POST limit. Run locally with full relay
+  // access.
+  if (process.env.CI) {
+    test.skip(true, 'Skipped in CI — creates a fresh share, rate-limited');
+    return;
+  }
   // Use 2 browser contexts: one for the host, one for the partner
   const hostCtx = await browser.newContext();
   const hostPage = await hostCtx.newPage();
