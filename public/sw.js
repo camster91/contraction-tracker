@@ -1,7 +1,9 @@
 /* Olive — Contraction Timer PWA service worker.
- * Cache-first for app shell, network-first for HTML. */
+ * Cache-first for app shell, network-first for HTML.
+ * Pre-caches JS/CSS bundles during install so the app loads
+ * instantly on repeat visits. */
 
-const CACHE_NAME = 'olive-v1';
+const CACHE_NAME = 'olive-v2';
 const APP_SHELL = [
   '/',
   '/index.html',
@@ -13,9 +15,21 @@ const APP_SHELL = [
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)).catch(() => {}),
+    caches.open(CACHE_NAME).then((cache) => {
+      // Cache the shell
+      return cache.addAll(APP_SHELL).then(() => {
+        // Also pre-cache all JS, CSS, and font assets from the current build
+        // so the app loads instantly on repeat visits
+        return fetch('/')
+          .then((r) => r.text())
+          .then((html) => {
+            const matches = html.match(/\/assets\/[^\s"']+\.(?:js|css|woff2?)/g);
+            if (matches) return cache.addAll([...new Set(matches)]).catch(() => {});
+          })
+          .catch(() => {});
+      }).catch(() => {});
+    }),
   );
-  // Activate the new worker as soon as install finishes. Clients will reload.
   self.skipWaiting();
 });
 
@@ -25,13 +39,9 @@ self.addEventListener('activate', (event) => {
       Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))),
     ),
   );
-  // Take control of all open tabs immediately so the user doesn't have to
-  // close+reopen the app to see the new version.
   self.clients.claim();
 });
 
-// Manual trigger from the Settings "Update" button — skips waiting and
-// posts a message back to the page so it can reload itself.
 self.addEventListener('message', (event) => {
   if (event.data === 'SKIP_WAITING') {
     self.skipWaiting();

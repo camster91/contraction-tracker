@@ -1,4 +1,12 @@
 @import "tailwindcss";
+@import "@fontsource/fraunces/latin-300.css";
+@import "@fontsource/fraunces/latin-400.css";
+@import "@fontsource/fraunces/latin-500.css";
+@import "@fontsource/fraunces/latin-600.css";
+@import "@fontsource/inter/latin-400.css";
+@import "@fontsource/inter/latin-500.css";
+@import "@fontsource/inter/latin-600.css";
+@import "@fontsource/inter/latin-700.css";
 
 @theme {
   --font-display: 'Fraunces', Georgia, serif;
@@ -82,8 +90,7 @@ input, textarea {
   animation: breathe-soft 3.5s ease-in-out infinite;
 }
 
-/* Big-text mode — applies via .big-text class on <html>.
-   Increases the typographic scale for users who need larger text. */
+/* Big-text mode */
 html.big-text {
   font-size: 110%;
 }
