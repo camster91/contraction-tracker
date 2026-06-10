@@ -1,0 +1,245 @@
+# Google Play Console — pre-filled fields for Olive v1.0.0
+# Copy/paste from here into Play Console. Each section is exactly
+# what the field expects.
+
+════════════════════════════════════════════════════════════════════════════
+APP DETAILS
+════════════════════════════════════════════════════════════════════════════
+App name: Olive
+Default language: English (United States)
+
+Convert app to free: YES (free to download, $1.99 one-time in-app)
+
+In-app products: None
+Contains ads: No
+
+
+════════════════════════════════════════════════════════════════════════════
+STORE LISTING (English)
+════════════════════════════════════════════════════════════════════════════
+
+SHORT DESCRIPTION (max 80 chars)
+────────────────────────────────────────────────────────────────────────
+The contraction timer you open at 3am when nothing else feels calm.
+
+
+FULL DESCRIPTION (max 4000 chars)
+────────────────────────────────────────────────────────────────────────
+Olive is the contraction timer you open at 3am when nothing else feels calm. One tap starts the timer. The screen stays awake so you can see the numbers. When the contraction ends, tap again. The app remembers everything.
+
+Real labor is hard to time. You're focused on breathing, your partner is timing on their phone, and neither of you is sure when the last one started. Olive is designed for that moment.
+
+WHAT IT DOES
+• One-tap Start/Stop timer — no menus, no settings, just a big button
+• Screen stays on while timing (wake lock API)
+• 5-1-1 active labor detection — alerts you when to call your provider
+• Share with your partner via a 6-character code — they see updates in real time from their own phone
+• Voice control — say "start" or "stop" hands-free
+• Hospital bag checklist with pre-loaded items
+• Contraction history with intensity (1-10), tags, and pain location
+• Per-contraction notes
+• Memory book PDF export for the postpartum keepsake
+• "Getting close" indicator when 3 contractions match but full 5-1-1 hasn't triggered yet
+
+DESIGNED FOR REAL LABOR
+• Quiet interface — no flashing colors, no alarmist messaging
+• Three-tier medical awareness: "Getting close" → "5-1-1 pattern" → "Time to call your provider"
+• Works offline — the timer doesn't need a network connection
+• Reliable on real devices — wake lock keeps the screen on for 3+ hours
+• Self-hosted fonts, instant load, dark mode first
+
+YOUR DATA STAYS ON YOUR PHONE
+Olive stores your contraction data on your device only. We do not collect, transmit, or sell any personal information. When you share a link with your partner, the only data sent to our server is an anonymous session identifier for the duration of the share.
+
+Zero analytics. Zero tracking. Zero third-party SDKs. See https://contractions.ashbi.ca/privacy for the full policy.
+
+Built by a dad for his wife. Now for you.
+
+
+════════════════════════════════════════════════════════════════════════════
+APP ICON (512x512)
+════════════════════════════════════════════════════════════════════════════
+Source: ~/.hermes/cache/indie-ship/APPS/olive-contractions/app-icon-master.png
+(Auto-resized to required sizes when you upload)
+
+
+════════════════════════════════════════════════════════════════════════════
+FEATURE GRAPHIC (1024x500)
+════════════════════════════════════════════════════════════════════════════
+Source: ~/.hermes/cache/indie-ship/APPS/olive-contractions/play-feature-graphic-1024x500.png
+Size: 28.5KB JPEG
+Note: The AI-generated graphic has stylized text. If you want
+crisp typography, run the graphic through Figma/Canva and overlay
+real text. The current version is functional and on-brand.
+
+
+════════════════════════════════════════════════════════════════════════════
+SCREENSHOTS
+════════════════════════════════════════════════════════════════════════════
+Minimum required: 2 phone screenshots
+Recommended: 4-8 screenshots
+
+Source: ~/.hermes/cache/indie-ship/APPS/olive-contractions/screenshots/6.7_iphone/
+
+Upload in this order (first shown in search results):
+1. 01-hero-timer.png        (Main timer)
+2. 02-contraction-active.png (Active contraction)
+3. 03-history.png           (History view)
+4. 04-share.png             (Share sheet)
+5. 05-511-alert.png         (5-1-1 alert)
+
+Note: These are 1290x2796 (iPhone 15 Pro Max 6.7"). Play Store
+also accepts 1080x1920. To generate Android phone-size screenshots
+at 1080x1920, run the test with a different viewport.
+
+For tablet: ~/.hermes/cache/indie-ship/APPS/olive-contractions/screenshots/12.9_ipad/
+
+
+════════════════════════════════════════════════════════════════════════════
+PRICING
+════════════════════════════════════════════════════════════════════════════
+Free to install, then $1.99 one-time purchase (no IAP, no subscription)
+
+To set this up in Play Console:
+1. Go to Monetize > Products > In-app products
+2. Click "Create product"
+3. Product ID: olive_premium
+4. Name: "Olive Premium (one-time)"
+5. Description: "Unlock all features — $1.99 one-time, no subscription."
+6. Price: $1.99 USD
+
+OR (simpler for first release):
+1. Make the app completely free
+2. Add IAP later in a v1.1 release
+3. The first 1000 installs of an indie contraction timer is what
+   really matters; monetization comes later.
+
+
+════════════════════════════════════════════════════════════════════════════
+PRIVACY & APP CONTENT
+════════════════════════════════════════════════════════════════════════════
+
+PRIVACY POLICY URL
+────────────────────────────────────────────────────────────────────────
+https://contractions.ashbi.ca/privacy
+
+
+APP ACCESS
+────────────────────────────────────────────────────────────────────────
+All functionality is available without special access.
+No login. No account. No server-side state.
+
+
+DATA SAFETY (the new 2024 form)
+────────────────────────────────────────────────────────────────────────
+Q: Does your app collect or share any of the required user data types?
+A: No, this app does not collect or share any user data.
+
+Q: Is all of the user data collected by your app encrypted in transit?
+A: Not applicable (no data collected).
+
+Q: Do you provide a way for users to request that their data is deleted?
+A: Not applicable (no data collected).
+
+Q: Is your app designed for children?
+A: No, the app is for expecting parents (18+).
+
+Q: Does your app contain ads?
+A: No.
+
+Q: Does your app have in-app purchases?
+A: No (we may add $1.99 one-time in a future update).
+
+Q: Does your app use any data for tracking?
+A: No, the app does not track users.
+
+Q: Does your app target children under 13?
+A: No.
+
+
+HEALTH APP DECLARATION
+────────────────────────────────────────────────────────────────────────
+Is this a health app? YES — it times medical events (contractions)
+  and provides medical information (5-1-1 labor pattern guidance).
+
+Does it read or write health data? YES — it stores contraction
+  history locally (intensity, duration, timestamps).
+
+Does it connect to medical devices? NO.
+
+Compliance: This is a wellness/utility app, not a regulated medical
+  device. The 5-1-1 pattern is general public health knowledge, not
+  a diagnostic tool. We do not claim to diagnose or treat any
+  medical condition. The privacy policy explicitly states "Olive is
+  not a medical device."
+
+
+CONTENT RATING
+────────────────────────────────────────────────────────────────────────
+Complete the IARC questionnaire:
+
+Violence: None
+Sexual content: None
+Language: None
+Controlled substances: None
+
+Expected rating: Everyone (E) or Everyone 10+ (E10+)
+
+Age groups: 18+, not designed for children under 13
+
+
+TARGET AUDIENCE
+────────────────────────────────────────────────────────────────────────
+Age 18+, not designed for children
+
+
+NEWS APP
+────────────────────────────────────────────────────────────────────────
+No
+
+
+COVID-19 APP
+────────────────────────────────────────────────────────────────────────
+No
+
+
+════════════════════════════════════════════════════════════════════════════
+APP RELEASE
+════════════════════════════════════════════════════════════════════════════
+
+INTERNAL TESTING TRACK (recommended for first release)
+────────────────────────────────────────────────────────────────────────
+1. Production > Create new release
+2. Upload AAB: android/app/build/outputs/bundle/release/app-release.aab (4.1MB)
+3. Release name: 1.0.0 (1)
+4. Release notes (paste from play-store-release-notes.txt):
+
+   First public release of Olive, the contraction timer for
+   expecting couples. Track contractions in real time with one
+   tap. See the 5-1-1 pattern detection. Share a 6-character code
+   with your partner so they can follow along from their own
+   phone. No signup, no ads, no tracking. Your data stays on your
+   device, period.
+
+5. Review and roll out to internal testing
+6. Internal testing reviews in 1-3 days
+7. Once approved, promote to production from the same page
+
+
+PRODUCTION TRACK (after internal testing passes)
+────────────────────────────────────────────────────────────────────────
+1. Production > Promote release
+2. Choose the internal testing build
+3. Roll out: 100% staged (recommended for first release, not full
+   instant)
+4. Wait for production review (1-7 days for first submission)
+5. Once approved, app is live on the Play Store
+
+
+════════════════════════════════════════════════════════════════════════════
+WHAT TO UPLOAD
+════════════════════════════════════════════════════════════════════════════
+- AAB: android/app/build/outputs/bundle/release/app-release.aab (4.1MB)
+  Signed with Olive upload key (CN=Cameron Ashley, O=Ashbi Design, C=CA)
+  SHA-256: 916256d46e9879c5c2ae8813ce4ccaaa234d6f43dee5a1daf0e76bc35a4fadc5
+  Valid until: 2094-06-07

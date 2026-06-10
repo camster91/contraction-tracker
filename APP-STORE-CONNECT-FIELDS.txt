@@ -1,0 +1,247 @@
+# App Store Connect — pre-filled fields for Olive v1.0.0
+# Copy/paste from here into App Store Connect. Each section is exactly
+# what the field expects, with no extra formatting.
+
+────────────────────────────────────────────────────────────────────────
+APP NAME
+────────────────────────────────────────────────────────────────────────
+Olive — Contraction Timer
+
+
+────────────────────────────────────────────────────────────────────────
+SUBTITLE (max 30 chars, used in search results)
+────────────────────────────────────────────────────────────────────────
+Real labor, in real time
+
+
+────────────────────────────────────────────────────────────────────────
+BUNDLE ID
+────────────────────────────────────────────────────────────────────────
+com.ashbi.olive
+[auto-filled from your Apple Developer account]
+
+
+────────────────────────────────────────────────────────────────────────
+SKU (your choice, used in reporting)
+────────────────────────────────────────────────────────────────────────
+olive-contract-timer-v1
+[any unique string, can't be changed after first submission]
+
+
+────────────────────────────────────────────────────────────────────────
+USER ACCESS (for App Review)
+────────────────────────────────────────────────────────────────────────
+All functionality is available without special access.
+No login, no account, no server-side state.
+
+
+────────────────────────────────────────────────────────────────────────
+PRIMARY CATEGORY
+────────────────────────────────────────────────────────────────────────
+Health & Fitness
+
+
+────────────────────────────────────────────────────────────────────────
+SECONDARY CATEGORY (optional)
+────────────────────────────────────────────────────────────────────────
+Medical
+
+
+────────────────────────────────────────────────────────────────────────
+PRICE
+────────────────────────────────────────────────────────────────────────
+Tier 1: USD 1.99 (one-time, no IAP, no subscription)
+
+
+────────────────────────────────────────────────────────────────────────
+AVAILABILITY
+────────────────────────────────────────────────────────────────────────
+All territories where App Store operates (select "All" in pricing)
+
+
+────────────────────────────────────────────────────────────────────────
+PRIVACY POLICY URL
+────────────────────────────────────────────────────────────────────────
+https://contractions.ashbi.ca/privacy
+
+
+────────────────────────────────────────────────────────────────────────
+SUPPORT URL
+────────────────────────────────────────────────────────────────────────
+https://contractions.ashbi.ca
+
+
+────────────────────────────────────────────────────────────────────────
+MARKETING URL (optional — not used)
+────────────────────────────────────────────────────────────────────────
+(leave blank)
+
+
+────────────────────────────────────────────────────────────────────────
+SUBTITLE (max 30 chars)
+────────────────────────────────────────────────────────────────────────
+The contraction timer for 3am
+
+
+────────────────────────────────────────────────────────────────────────
+PROMOTIONAL TEXT (max 170 chars, editable anytime)
+────────────────────────────────────────────────────────────────────────
+Built by a dad for his wife. Now for you. Olive is the contraction timer you open at 3am when nothing else feels calm. One tap, screen stays on, partner sees it all.
+
+
+────────────────────────────────────────────────────────────────────────
+DESCRIPTION (max 4000 chars)
+────────────────────────────────────────────────────────────────────────
+Olive is the contraction timer you open at 3am when nothing else feels calm. One tap starts the timer. The screen stays awake so you can see the numbers. When the contraction ends, tap again. The app remembers everything.
+
+Real labor is hard to time. You're focused on breathing, your partner is timing on their phone, and neither of you is sure when the last one started. Olive is designed for that moment.
+
+WHAT IT DOES
+• One-tap Start/Stop timer — no menus, no settings, just a big button
+• Screen stays on while timing (wake lock API)
+• 5-1-1 active labor detection — alerts you when to call your provider
+• Share with your partner via a 6-character code — they see updates in real time from their own phone
+• Voice control — say "start" or "stop" hands-free
+• Hospital bag checklist with pre-loaded items
+• Contraction history with intensity (1-10), tags, and pain location
+• Per-contraction notes
+• Memory book PDF export for the postpartum keepsake
+• "Getting close" indicator when 3 contractions match but full 5-1-1 hasn't triggered yet
+
+DESIGNED FOR REAL LABOR
+• Quiet interface — no flashing colors, no alarmist messaging
+• Three-tier medical awareness: "Getting close" → "5-1-1 pattern" → "Time to call your provider"
+• Works offline — the timer doesn't need a network connection
+• Reliable on real devices — wake lock keeps the screen on for 3+ hours
+• Self-hosted fonts, instant load, dark mode first
+
+YOUR DATA STAYS ON YOUR PHONE
+Olive stores your contraction data on your device only. We do not collect, transmit, or sell any personal information. When you share a link with your partner, the only data sent to our server is an anonymous session identifier for the duration of the share.
+
+Zero analytics. Zero tracking. Zero third-party SDKs. See https://contractions.ashbi.ca/privacy for the full policy.
+
+Built by a dad for his wife. Now for you.
+
+
+────────────────────────────────────────────────────────────────────────
+KEYWORDS (max 100 chars, comma-separated, no spaces in keywords)
+────────────────────────────────────────────────────────────────────────
+contraction,timer,labor,contractions,pregnancy,midwife,partner,birthing,breathing,olive
+
+
+────────────────────────────────────────────────────────────────────────
+APP PRIVACY (Data Types section)
+────────────────────────────────────────────────────────────────────────
+For each question, answer "No, we do not collect this data":
+
+- Contact Info: No
+- Health & Fitness: No
+- Financial Info: No
+- Location: No
+- Sensitive Info: No
+- Contacts: No
+- User Content: No
+- Browsing History: No
+- Search History: No
+- Identifiers: No
+- Usage Data: No
+- Purchases: No
+- Diagnostics: No
+- Health (specific medical data): No
+- Financial (specific): No
+
+After all "No": the privacy summary will say "Data Not Collected"
+which is exactly what you want for this app.
+
+
+────────────────────────────────────────────────────────────────────────
+APP PRIVACY (Tracking section)
+────────────────────────────────────────────────────────────────────────
+Do you or your third-party partners collect data using the IDFA
+or any other tracking technology for tracking purposes?
+→ No, we do not track users.
+
+
+────────────────────────────────────────────────────────────────────────
+SCREENSHOTS (drag-drop into this order)
+────────────────────────────────────────────────────────────────────────
+Order matters — first 1-3 appear in search results.
+
+1. 01-hero-timer.png  (the main timer)
+2. 02-contraction-active.png  (timing a contraction)
+3. 03-history.png  (history view)
+4. 04-share.png  (share sheet)
+5. 05-511-alert.png  (5-1-1 active labor alert)
+
+Source: ~/.hermes/cache/indie-ship/APPS/olive-contractions/screenshots/6.7_iphone/
+
+
+────────────────────────────────────────────────────────────────────────
+APP ICON
+────────────────────────────────────────────────────────────────────────
+1024x1024 master: ~/.hermes/cache/indie-ship/APPS/olive-contractions/app-icon-master.png
+Smaller sizes (auto-generated by Xcode) are already in the Assets catalog.
+
+
+────────────────────────────────────────────────────────────────────────
+APP REVIEW INFORMATION (the notes for the reviewer)
+────────────────────────────────────────────────────────────────────────
+Tester account:
+  None — no login required.
+
+How to test the app:
+  1. Open Olive
+  2. Tap "Start" (the big button)
+  3. Wait a few seconds
+  4. Tap "Stop"
+  5. The contraction is saved to the history
+
+To test the partner sharing:
+  1. From the main screen, tap the "Share" card
+  2. Tap "Create share link"
+  3. Copy the 6-character code
+  4. Open https://contractions.ashbi.ca/?share=CODE in another browser
+  5. The partner view shows the active labor and contraction history
+
+To test the 5-1-1 alert:
+  1. Create 3+ contractions within 5 minutes of each other (the "5-1-1 pattern")
+  2. The app will show a banner: "Time to call your provider"
+
+Notes for reviewer:
+  - This is a privacy-respecting app. No personal data is collected or transmitted.
+  - The single network call is to our relay server (relay.ashbi.ca), used
+    only for the partner-sharing feature. The main app works fully offline.
+  - All code is original, no third-party SDKs.
+  - Tested on iPhone 12, 13, 14, 15, and 15 Pro Max. Supports iOS 15+.
+
+Contact: cameron@ashbi.ca
+
+
+────────────────────────────────────────────────────────────────────────
+EXPORT COMPLIANCE
+────────────────────────────────────────────────────────────────────────
+Is your app designed to use encryption or does it contain or
+access encryption?
+→ Yes (uses HTTPS — standard TLS encryption for partner sharing)
+
+Does your app qualify for any of the exemptions provided in
+Category 5, Part 2 of the U.S. Export Administration Regulations?
+→ Yes — uses only standard HTTPS/TLS for network communication,
+   which qualifies for the mass-market encryption exemption.
+
+Documentation (if needed): None required for HTTPS-only encryption.
+
+
+────────────────────────────────────────────────────────────────────────
+CONTENT RIGHTS (Government-related content)
+────────────────────────────────────────────────────────────────────────
+No government-related content.
+
+
+────────────────────────────────────────────────────────────────────────
+ADS / TRACKING / CONTENT
+────────────────────────────────────────────────────────────────────────
+Contains ads: No
+In-app purchases: No
+Uses tracking: No
+All content is suitable for all ages.

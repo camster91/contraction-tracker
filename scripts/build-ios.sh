@@ -1,17 +1,21 @@
 #!/usr/bin/env bash
 # Build the iOS Olive app for App Store submission.
 #
-# Prerequisites (one-time):
-#   1. Open Xcode → Settings → accept the Xcode license
-#      (requires admin sudo; this script can't do that for you)
+# === BEFORE RUNNING THIS ===
+#   1. Accept Xcode license: `sudo xcodebuild -license` (one-time, 5 min)
 #   2. Open ios/App/App.xcodeproj in Xcode
-#   3. Signing & Capabilities → verify Team is set
-#   4. Capabilities → verify App Group `group.com.ashbi.olive` is checked
-#   5. Add ios/App/PrivacyInfo.xcprivacy to the App target (Xcode UI)
+#   3. Signing & Capabilities → verify Team is set to your Apple ID
+#   4. PrivacyInfo.xcprivacy is already wired into the project (verify
+#      with ./scripts/verify-ios.sh — should report 11/11)
+#
+# === FOR THE UNSIGNED ARCHIVE PATH (no Apple ID needed for archive step) ===
+#   Use scripts/build-ios-archive.sh instead — it does the part
+#   that doesn't need Apple credentials. You sign + upload manually
+#   in Xcode Organizer.
 #
 # What this script does:
 #   1. npx cap sync ios  (regenerates native iOS code)
-#   2. xcodebuild archive (creates a release archive for App Store)
+#   2. xcodebuild archive (creates a signed release archive for App Store)
 #   3. xcodebuild -exportArchive (creates a signed IPA)
 #
 # Output:
