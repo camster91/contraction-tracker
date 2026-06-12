@@ -1,15 +1,22 @@
 # Olive — Contraction Timer PWA
-# Deploy: build on main → SSH to coolify → docker compose build (no-cache)
-# → up -d → health-check live URL. Reports status to GitHub Actions summary.
+# Deploy: ssh into VPS → rsync source → write compose + .env at
+# /opt/projects/contraction-tracker → docker compose build (no-cache)
+# → up -d → smoke test → health-check live URLs.
+# Reports status to GitHub Actions summary.
 #
-# Uses the SSH fallback path because contraction-tracker is a standalone
-# docker-compose deploy (not in Coolify's `applications` table). The
-# ~/.hermes/skills/devops/coolify/SKILL.md documents this pattern.
+# Pattern matches the local deploy-to-vps.sh script. The VPS path is
+# /opt/projects/contraction-tracker/ (not the legacy Coolify
+# /data/coolify/applications path — Coolify is gone as of 2026-06-12).
 #
-# Known host issue worked around here: the host's Docker build namespace
-# can't resolve registry-1.docker.io even though nslookup works. Fix: the
-# repo is pre-cloned on the host at /root/repos/contraction-tracker, and
-# the compose file points at that local context.
+# Required GitHub secrets (names are legacy from the Coolify era but
+# the values are the same — root SSH into 187.77.26.99):
+#   COOLIFY_SSH_KEY  — private key, root@187.77.26.99
+#   COOLIFY_HOST     — hostname or IP, e.g. "187.77.26.99" or "coolify"
+#   COOLIFY_USER     — ssh user, "root"
+#
+# Required GitHub environment:
+#   production — gates the deploy job, gives a manual approval gate if
+#                configured under Settings → Environments.
 
 name: Deploy
 
@@ -27,6 +34,26 @@ concurrency:
   group: production-deploy
   cancel-in-progress: false
 
+env:
+  # Canonical VPS project dirs. Caddy reverse-proxies
+  # contractions.ashbi.ca and relay.ashbi.ca to 127.0.0.1:3031 and
+  # 127.0.0.1:3032 respectively (configured in /opt/caddy/Caddyfile).
+  PROJECT_DIR: /opt/projects/contraction-tracker
+  RELAY_PROJECT_DIR: /opt/projects/contraction-tracker-relay
+  # App-side ports (inside the container is 3000, the host-side mapping
+  # is what Caddy talks to). 3020/3021 are taken by lull-relay on the
+  # shared VPS, so contraction-tracker uses 3031/3032.
+  TRACKER_PORT: "3031"
+  RELAY_PORT: "3032"
+  PUBLIC_URL: https://contractions.ashbi.ca
+  RELAY_PUBLIC_URL: https://relay.ashbi.ca
+  # Compose files are base64-encoded inline (see TRACKER_COMPOSE_B64
+  # and RELAY_COMPOSE_B64 below). Encoding avoids YAML/heredoc
+  # indentation issues with multi-line strings nested inside ssh heredocs
+  # on the runner. Decoded on the host into the right project dir.
+  TRACKER_COMPOSE_B64: c2VydmljZXM6CiAgYXBwOgogICAgYnVpbGQ6CiAgICAgIGNvbnRleHQ6IC4vc3JjCiAgICAgIGRvY2tlcmZpbGU6IERvY2tlcmZpbGUKICAgIGltYWdlOiBjYW1zdGVyOTEvY29udHJhY3Rpb24tdHJhY2tlcjpidWlsZC1sYXRlc3QKICAgIGNvbnRhaW5lcl9uYW1lOiBjb250cmFjdGlvbi10cmFja2VyCiAgICByZXN0YXJ0OiB1bmxlc3Mtc3RvcHBlZAogICAgZW52X2ZpbGU6CiAgICAgIC0gLmVudgogICAgcG9ydHM6CiAgICAgIC0gIiR7VFJBQ0tFUl9QT1JUOi0zMDMxfTozMDAwIgogICAgbmV0d29ya3M6CiAgICAgIC0gcHJveHkKCm5ldHdvcmtzOgogIHByb3h5OgogICAgbmFtZTogcHJveHkKICAgIGV4dGVybmFsOiB0cnVlCg==
+  RELAY_COMPOSE_B64: c2VydmljZXM6CiAgYXBwOgogICAgYnVpbGQ6CiAgICAgIGNvbnRleHQ6IC4vc3JjCiAgICAgIGRvY2tlcmZpbGU6IERvY2tlcmZpbGUKICAgIGltYWdlOiBjYW1zdGVyOTEvY29udHJhY3Rpb24tdHJhY2tlci1yZWxheTpidWlsZC1sYXRlc3QKICAgIGNvbnRhaW5lcl9uYW1lOiBjb250cmFjdGlvbi10cmFja2VyLXJlbGF5CiAgICByZXN0YXJ0OiB1bmxlc3Mtc3RvcHBlZAogICAgZW52X2ZpbGU6CiAgICAgIC0gLmVudgogICAgdm9sdW1lczoKICAgICAgLSB0cmFja2VyLXJlbGF5LWRhdGE6L2FwcC9kYXRhCiAgICBwb3J0czoKICAgICAgLSAiJHtSRUxBWV9QT1JUOi0zMDMyfTozMDAwIgogICAgbmV0d29ya3M6CiAgICAgIC0gcHJveHkKCnZvbHVtZXM6CiAgdHJhY2tlci1yZWxheS1kYXRhOgoKbmV0d29ya3M6CiAgcHJveHk6CiAgICBuYW1lOiBwcm94eQogICAgZXh0ZXJuYWw6IHRydWUK
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -40,8 +67,8 @@ jobs:
       - name: Resolve current version
         id: version
         run: |
-          VERSION=$(grep -oP "const APP_VERSION = '\K[^']+" src/App.tsx)
-          CACHE=$(grep -oP "const CACHE_NAME = '\K[^']+" public/sw.js)
+          VERSION=$(grep -oP "const APP_VERSION = '\K[^']+" src/App.tsx || echo "unknown")
+          CACHE=$(grep -oP "const CACHE_NAME = '\K[^']+" public/sw.js || echo "unknown")
           SHORT_SHA=$(git rev-parse --short HEAD)
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "cache=$CACHE" >> $GITHUB_OUTPUT
@@ -54,25 +81,24 @@ jobs:
           ssh-private-key: ${{ secrets.COOLIFY_SSH_KEY }}
 
       - name: Add host to known_hosts
-        # GitHub Actions runners block outbound port 22 by default, so
-        # `ssh-keyscan` times out. Inline the public host keys instead.
-        # Pulled from ~/.ssh/known_hosts on the build machine 2026-06-02.
-        # Lines written via printf so the YAML parser doesn't try to read
-        # the long base64 blobs as mapping keys.
+        # Pulled from the actual host on 2026-06-12 via `ssh-keyscan -H
+        # 187.77.26.99`. Inline because GitHub Actions runners block
+        # outbound port 22 by default so ssh-keyscan times out. Lines
+        # written via printf so the YAML parser doesn't try to read the
+        # long base64 blobs as mapping keys.
         run: |
           mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
           printf '%s\n' \
-            '187.77.26.99 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIQQ4n2qo7ETfS7NG71tfx+OmLAIKpqJ/gBIiozkLGfO' \
-            '187.77.26.99 ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDYLLSOVRTyZegajBXcFRHhJYNGgp2f3GysKIvonWb/jkaF4hrqbdDF8nuTxjbRoEsLq/eY8Q5h41TKZqFel0rCGy1CT8IBHyGbRS4t+m+es3gGBCSEgz2DK/Fs5XNNYPUsQUc6HmEwRbsPVI1UP2rWeoIpFMjZgzVBh2F5XeO8qfNoSDkAOnI+dTC77scpZl/3Xa5EoiXy5hHfSHzqaVJ9xEojQI22B9TApFAyGQ+H1kEZ3HsRV4XDsRPaRGGxe1TmDSTJpc2Hr4ntaGbOe6jx35utpg9PIBcUH4ZBvNlqanNazYOQ8pMDrt3RF1cFFDDtyO/A8v6OW0JhmSEet4jWUlO7xb8YqFGdQ80XSwg0D2NNDg1OsA01NT6RHHJ6BaLHbRrqNi/8Ti3GbbbWB5uHOXrlryN+of1jrM48A+R0jR6LfunZ/QiQCxBGXuYes7J5iLbkpUZMwAQtujRw9MGbO7mY1WjJRTIvP7T8AzH6i6yS3mjwaeO6bHUwU1R998U=' \
-            '187.77.26.99 ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBP141ip0zmvMRjmYSEzVF4C7Ubt6hHeJHOUVcIhEB5jlXU4xKQfmcPBjiRGWkR4A69/WDoG573Oz6X4SV6ndn6o=' \
+            '187.77.26.99 ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCgYjXktFXJXIW/HIMKIviTkt02MIyQ5APspS+MvtwuMmolV2VcAySIWowy9qHZvy5iLxI26LRk9Lr29xDLt0CcLOrW7+eHvedlE/AxBtpUhcftenhzLvmyX0ZXmtqfmv6JclwG/vU+zwEj2uawyPzbXNheoEGI8G5bIZ885QDQVyIYR8LzQDQinTaHc92fNY3cIeaOwoAYUlcRFbeXwl/Jm4SSUB0DnvrJXfOUbP3EBOcUXCFlSP1AYtAO9urvqs4rZ/DDFbcEY8Z+URsNFMc238SmmwNnmfTpS8qs0PoFq1Z8H0EMgqn4zohqMkIbp/1fRBPKPE/FC40GThkbFbLecooxfy/gFejipLKPLiYQW3ZDTYqddf8XWA/9z/EYrccr966vTdDBp71VAGBuHypS1NuxH/wL98hJ91EytWn0bzDZZ3k9b8sZ/GU+oGmH9LFyaoVnEzwGp+vVLH8jnvfmHg0s1dePr3MhzfFAzANut1oQ99PWUZWUQhwPUxdyqeE=' \
+            '187.77.26.99 ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBJlCcQfxZM13+CjrEnMZhgwyjVk36K342Yzhv/E3xm7GUNthegor0435SNre1t1W9GGYsHpSyEwQ7ceShAmBgC0=' \
             >> ~/.ssh/known_hosts
           echo "Added $(wc -l < ~/.ssh/known_hosts) known hosts"
 
       - name: "Pre-deploy: clear fail2ban self-ban"
-        # fail2ban on the Coolify host sometimes bans the GitHub Actions
-        # runner after repeated SSH attempts (the runner's IP rotates
-        # slightly). This step detects a self-ban and unbans the runner
-        # before the actual deploy SSH commands run.
+        # fail2ban on the host sometimes bans the GitHub Actions runner
+        # after repeated SSH attempts. Detect + unban before the actual
+        # deploy SSH commands run.
         continue-on-error: true
         env:
           HOST: ${{ secrets.COOLIFY_HOST }}
@@ -86,55 +112,125 @@ jobs:
           echo "Runner IP: $MY_IP"
           ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new $USER@$HOST "fail2ban-client set sshd unbanip $MY_IP" || echo "fail2ban unban failed (probably not banned), continuing"
 
-      - name: Pull latest on host
-        # Force the host's local clone to match GitHub. Without --ff-only we
-        # can hit "Already up to date" lies when the local tracking ref is
-        # itself stale (documented in coolify skill).
+      - name: Sync tracker source to host
+        # rsync the source from the runner to the VPS. Excludes the
+        # same paths the local deploy-to-vps.sh script does
+        # (node_modules, dist, .git, native dirs, tests).
+        env:
+          HOST: ${{ secrets.COOLIFY_HOST }}
+          USER: ${{ secrets.COOLIFY_USER }}
         run: |
-          ssh ${{ secrets.COOLIFY_USER }}@${{ secrets.COOLIFY_HOST }} <<'EOF'
+          rsync -az --delete \
+            --exclude='node_modules' --exclude='dist' --exclude='.git' \
+            --exclude='.env' --exclude='android' --exclude='ios' \
+            --exclude='playwright-report' --exclude='tests' \
+            ./ "$USER@$HOST:$PROJECT_DIR/src/"
+
+      - name: Sync relay source to host
+        # The relay lives in a separate repo (luna-relay). Pre-cloned on
+        # the host at ~/repos/luna-relay. Pull latest + rsync to the
+        # project dir.
+        env:
+          HOST: ${{ secrets.COOLIFY_HOST }}
+          USER: ${{ secrets.COOLIFY_USER }}
+        run: |
+          ssh "$USER@$HOST" 'cd ~/repos/luna-relay && git fetch origin && git reset --hard origin/main' || true
+          ssh "$USER@$HOST" "rsync -az --delete \
+            --exclude='node_modules' --exclude='.git' --exclude='data' \
+            ~/repos/luna-relay/ $RELAY_PROJECT_DIR/src/"
+
+      - name: Write docker-compose + .env on host
+        # Compose files are base64-encoded in the workflow env to
+        # avoid YAML/heredoc indentation issues. Decoded on the host
+        # into the right project dir. .env files are inline because
+        # they're short.
+        env:
+          HOST: ${{ secrets.COOLIFY_HOST }}
+          USER: ${{ secrets.COOLIFY_USER }}
+        run: |
+          ssh "$USER@$HOST" <<EOF
             set -e
-            cd /root/repos/contraction-tracker
-            git fetch origin
-            git reset --hard origin/main
-            echo "HEAD now at: $(git rev-parse --short HEAD)"
-            echo "APP_VERSION: $(grep "const APP_VERSION" src/App.tsx | head -1)"
-            echo "CACHE_NAME: $(grep "const CACHE_NAME" public/sw.js | head -1)"
+            mkdir -p $PROJECT_DIR $RELAY_PROJECT_DIR
+            echo '$TRACKER_COMPOSE_B64' | base64 -d > $PROJECT_DIR/docker-compose.yml
+            echo '$RELAY_COMPOSE_B64'   | base64 -d > $RELAY_PROJECT_DIR/docker-compose.yml
+            cat > $PROJECT_DIR/.env <<ENV_EOF
+            VITE_RELAY_URL=$RELAY_PUBLIC_URL
+            VITE_PUBLIC_URL=$PUBLIC_URL
+            ENV_EOF
+            cat > $RELAY_PROJECT_DIR/.env <<ENV_EOF
+            PORT=3000
+            DB_PATH=/app/data/relay.db
+            ALLOWED_ORIGIN=$PUBLIC_URL
+            ENV_EOF
+            echo "Wrote compose + .env files:"
+            ls -la $PROJECT_DIR/ $RELAY_PROJECT_DIR/
           EOF
 
-      - name: Build + restart container
+      - name: Build + restart containers
+        env:
+          HOST: ${{ secrets.COOLIFY_HOST }}
+          USER: ${{ secrets.COOLIFY_USER }}
         run: |
-          ssh ${{ secrets.COOLIFY_USER }}@${{ secrets.COOLIFY_HOST }} <<'EOF'
+          ssh "$USER@$HOST" <<EOF
             set -e
-            cd /data/coolify/applications/contraction-tracker
-            # --no-cache + unique tag suffix avoids the stale-image double-trap
-            TAG="ct-$(date +%Y%m%d-%H%M%S)-${{ steps.version.outputs.sha }}"
-            echo "Building image tag: $TAG"
-            docker compose build --no-cache --pull
-            # Tag the freshly built image so the next run can't reuse a
-            # previous build's layer cache.
-            docker tag contraction-tracker-web:latest "$TAG" || true
-            docker compose up -d --no-deps --remove-orphans
+            # No --pull: the host's Docker build namespace can't resolve
+            # registry-1.docker.io (worked around in 2026-06 by building
+            # from local context). --no-cache forces a clean build so a
+            # bad layer doesn't get pinned across deploys.
+            echo "Building tracker..."
+            cd $PROJECT_DIR
+            docker compose build --no-cache
+            echo "Building relay..."
+            cd $RELAY_PROJECT_DIR
+            docker compose build --no-cache
+            echo "Starting tracker..."
+            cd $PROJECT_DIR
+            docker compose up -d
+            echo "Starting relay..."
+            cd $RELAY_PROJECT_DIR
+            docker compose up -d
             sleep 4
             echo "--- Container status ---"
             docker ps --filter "name=contraction-tracker" --format "table {{.Names}}\t{{.Status}}\t{{.Image}}"
           EOF
 
-      - name: Health check (live site)
+      - name: Smoke test (localhost)
+        env:
+          HOST: ${{ secrets.COOLIFY_HOST }}
+          USER: ${{ secrets.COOLIFY_USER }}
+        run: |
+          ssh "$USER@$HOST" <<EOF
+            echo "Tracker (127.0.0.1:$TRACKER_PORT):"
+            curl -sI -o /dev/null -w "  HTTP %{http_code} in %{time_total}s\n" --max-time 10 http://127.0.0.1:$TRACKER_PORT
+            echo "Relay (127.0.0.1:$RELAY_PORT):"
+            curl -sI -o /dev/null -w "  HTTP %{http_code} in %{time_total}s\n" --max-time 10 http://127.0.0.1:$RELAY_PORT
+            echo "Relay health ($RELAY_PUBLIC_URL/api/health):"
+            curl -sS --max-time 10 $RELAY_PUBLIC_URL/api/health
+            echo
+          EOF
+
+      - name: Health check (live public URLs)
         run: |
           sleep 5
-          # Hit the live site, verify it's serving the new SW cache + version
-          HTTP=$(curl -s -o /tmp/luna.html -w "%{http_code}" --max-time 30 https://contractions.ashbi.ca/)
-          CACHE_LIVE=$(curl -s https://contractions.ashbi.ca/sw.js | grep -oP "const CACHE_NAME = '\K[^']+" || echo "unknown")
-          echo "Live site HTTP: $HTTP"
-          echo "Live SW cache:  $CACHE_LIVE"
-          echo "Expected cache:  ${{ steps.version.outputs.cache }}"
+          # Tracker — verify it returns 200 and serves the new SW cache
+          HTTP=$(curl -s -o /tmp/olive.html -w "%{http_code}" --max-time 30 "$PUBLIC_URL/")
+          CACHE_LIVE=$(curl -s --max-time 10 "$PUBLIC_URL/sw.js" | grep -oP "const CACHE_NAME = '\K[^']+" || echo "unknown")
+          echo "Tracker live HTTP: $HTTP"
+          echo "Tracker live SW cache:  $CACHE_LIVE"
+          echo "Expected cache:         ${{ steps.version.outputs.cache }}"
           if [ "$HTTP" != "200" ]; then
-            echo "::error::Live site returned $HTTP"
+            echo "::error::Live tracker returned $HTTP"
             exit 1
           fi
           if [ "$CACHE_LIVE" != "${{ steps.version.outputs.cache }}" ]; then
-            echo "::warning::SW cache mismatch. Live=$CACHE_LIVE, expected=${{ steps.version.outputs.cache }}."
-            echo "This usually means the SW hasn't been activated yet (clients.claim takes a moment). Not a build failure."
+            echo "::warning::SW cache mismatch. Live=$CACHE_LIVE, expected=${{ steps.version.outputs.cache }}. This usually means the SW hasn't been activated yet."
+          fi
+          # Relay health
+          RELAY_HEALTH=$(curl -s --max-time 15 "$RELAY_PUBLIC_URL/api/health")
+          echo "Relay health: $RELAY_HEALTH"
+          if ! echo "$RELAY_HEALTH" | grep -q '"ok":true'; then
+            echo "::error::Relay health check failed"
+            exit 1
           fi
 
       - name: Summary
@@ -154,7 +250,8 @@ jobs:
             echo "- **Version:** $VERSION"
             echo "- **Cache:**  $CACHE"
             echo "- **SHA:**    $SHA"
-            echo "- **URL:**    https://contractions.ashbi.ca/"
+            echo "- **Tracker:** $PUBLIC_URL/"
+            echo "- **Relay:**   $RELAY_PUBLIC_URL/api/health"
             echo "- **Result:** $JOB_STATUS"
             echo ""
             if [ -n "$COMMIT_MSG" ]; then
