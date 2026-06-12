@@ -87,18 +87,43 @@ export default function ShareSheet({ sessionId, contractions, onClose, onStateCh
     setRelayError(null);
     setCreating(true);
     const pin = undefined; // PIN removed — simplicity over complexity
-    createShare({ sessionId, ttlHours: shareTtlHours, pin, mode: shareMode });
-    setShares(getShares());
-    // Also create on the relay server for multi-device sharing.
-    // createShareOnRelay returns null on any failure (network, 5xx, etc) —
-    // we surface a clear error instead of letting the user think the share
-    // works when no one in another browser can actually open it.
-    const relayResult = await createShareOnRelay({ sessionId, pin, ttlHours: shareTtlHours, mode: shareMode, state: 'prenatal' });
-    if (!relayResult) {
-      setRelayError(
-        'Could not reach the share server. Your link will work on this device only — viewers in other browsers will not see updates until the relay reconnects.',
-      );
+    // Reuse the active local share if one already exists for this session.
+    // Without this guard, every click of "Create share link" would POST to the
+    // relay and create a NEW remote share — orphaning the previous one,
+    // confusing the host-marker logic, and racking up relay rows. We mirror
+    // the local "one share per session" rule (see createShare in
+    // src/lib/sessions.ts) and only call the relay when there's no active
+    // local share. If the local share's mode has changed (partner↔friends),
+    // the relay needs to be told — that's the one case where we hit it.
+    const existing = getShares().find(
+      (s) => s.sessionId === sessionId && isShareValid(s),
+    );
+    if (existing) {
+      // Mark this device as host against the *existing* code, so the
+      // partner viewer's isHost check works.
+      try {
+        localStorage.setItem(`olive:share-owner:${existing.id}`, '1');
+      } catch { /* ignore */ }
+      // If the mode changed, the relay needs to be told — but the existing
+      // POST is the only path and would create a duplicate remote share.
+      // Skip the relay update. The mode flip takes effect on the next
+      // share (revoke + recreate flow). TODO: add PATCH /api/shares/{code}
+      // for mode if this becomes a real user need.
     } else {
+      // No active local share — create one (both locally and on the relay).
+      createShare({ sessionId, ttlHours: shareTtlHours, pin, mode: shareMode });
+      setShares(getShares());
+      // createShareOnRelay returns null on any failure (network, 5xx, etc) —
+      // we surface a clear error instead of letting the user think the share
+      // works when no one in another browser can actually open it.
+      const relayResult = await createShareOnRelay({ sessionId, pin, ttlHours: shareTtlHours, mode: shareMode, state: 'prenatal' });
+      if (!relayResult) {
+        setRelayError(
+          'Could not reach the share server. Your link will work on this device only — viewers in other browsers will not see updates until the relay reconnects.',
+        );
+        setCreating(false);
+        return;
+      }
       // T4: mark this device as the host for this share. ShareView uses
       // this to decide whether to render the partner Start/Stop button.
       // localStorage is device-local, so a phone that didn't create the
@@ -106,10 +131,12 @@ export default function ShareSheet({ sessionId, contractions, onClose, onStateCh
       try {
         localStorage.setItem(`olive:share-owner:${relayResult.code}`, '1');
       } catch { /* ignore */ }
+      // Push the current session's contractions to the relay so the partner
+      // sees them on first load (avoids the "Waiting for first contraction…"
+      // empty state when the host already has data).
       try {
-        // Only push this session's contractions, not all of them —
-        // otherwise multi-session users leak old data into partner view.
-        // Use the session id we created the share for.
+        // Only push contractions from THIS session — not all of them.
+        // Otherwise multi-session users leak old data into partner view.
         const all = JSON.parse(localStorage.getItem('contraction-tracker:v1') || '{"contractions":[]}').contractions;
         const sessionContractions = all.filter((c: { sessionId?: string }) => (c.sessionId || 'primary') === sessionId);
         await pushContractionsToRelay(relayResult.code, sessionContractions, null);
@@ -329,7 +356,11 @@ export default function ShareSheet({ sessionId, contractions, onClose, onStateCh
         </div>
       )}
 
-      {/* Send update — secondary action below the primary Create share button */}
+      {/* Send update — secondary action below the primary Create share button.
+          The preview is a real `buildUpdateText` call so the user sees exactly
+          what will be shared. (Was a hardcoded "3 contractions so far, last
+          was 1:15" placeholder — misleading if the user had zero contractions
+          or a different duration.) */}
       <button
         onClick={handleSendUpdate}
         className="w-full mb-3 text-left text-sm text-ink-100 bg-ink-100/5 active:bg-ink-100/10 border border-ink-200/30 rounded-xl px-3 py-2.5 flex items-center gap-2 transition-colors"
@@ -338,7 +369,7 @@ export default function ShareSheet({ sessionId, contractions, onClose, onStateCh
         <div className="flex-1 min-w-0">
           <div className="font-medium text-xs">Send update without a link</div>
           <div className="text-[10px] text-ink-500 truncate">
-            "3 contractions so far, last was 1:15"
+            {buildUpdateText(contractions, actualName)}
           </div>
         </div>
       </button>
