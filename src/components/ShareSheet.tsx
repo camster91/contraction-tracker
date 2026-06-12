@@ -110,12 +110,16 @@ export default function ShareSheet({ sessionId, contractions, onClose, onStateCh
       // share (revoke + recreate flow). TODO: add PATCH /api/shares/{code}
       // for mode if this becomes a real user need.
     } else {
-      // No active local share — create one (both locally and on the relay).
-      createShare({ sessionId, ttlHours: shareTtlHours, pin, mode: shareMode });
-      setShares(getShares());
-      // createShareOnRelay returns null on any failure (network, 5xx, etc) —
-      // we surface a clear error instead of letting the user think the share
-      // works when no one in another browser can actually open it.
+      // No active local share. Hit the relay FIRST so we can use its
+      // generated code as the local id — the relay is the source of truth
+      // for share codes (only the relay can guarantee uniqueness across
+      // all hosts). Saving locally with the relay's code means the local
+      // shares array and the relay row point at the same id, which keeps
+      // the host-marker (`olive:share-owner:{code}`) and the partner-URL
+      // (`?share={code}`) in sync. (Pre-fix order was: createShare() →
+      // generateShareCode() → save locally → createShareOnRelay() → POST
+      // → use returned code. The two codes could differ, leaving the
+      // host marker on a code the local shares array didn't have.)
       const relayResult = await createShareOnRelay({ sessionId, pin, ttlHours: shareTtlHours, mode: shareMode, state: 'prenatal' });
       if (!relayResult) {
         setRelayError(
@@ -124,6 +128,10 @@ export default function ShareSheet({ sessionId, contractions, onClose, onStateCh
         setCreating(false);
         return;
       }
+      // Persist locally with the relay's code so the local store mirrors
+      // the remote row exactly.
+      createShare({ sessionId, id: relayResult.code, ttlHours: shareTtlHours, pin, mode: shareMode });
+      setShares(getShares());
       // T4: mark this device as the host for this share. ShareView uses
       // this to decide whether to render the partner Start/Stop button.
       // localStorage is device-local, so a phone that didn't create the
@@ -147,11 +155,11 @@ export default function ShareSheet({ sessionId, contractions, onClose, onStateCh
     setCreating(false);
   };
 
-  // T11: revoke with a reason. Native window.prompt with a fixed choice
-  // would be more polished, but `confirm()` is the existing pattern in
-  // this file and works the same on iOS/Android/Capacitor.
+  // T11: revoke with a reason. The window.prompt below acts as the
+  // confirmation gate (Cancel = no revoke), so a separate confirm() is
+  // redundant — and confirm() blocks the page, can't be styled, and on
+  // iOS PWAs is flaky. Skip straight to the reason prompt.
   const handleRevoke = (id: string) => {
-    if (!confirm('Revoke this link? The recipient will lose access immediately.')) return;
     // Free-text reason. Empty string is allowed (we'll store NULL).
     // Three quick options via the prompt syntax: cancel = don't revoke,
     // anything else = use as reason.

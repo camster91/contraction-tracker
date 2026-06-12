@@ -73,10 +73,29 @@ export function getSessions(): Session[] {
   const list = readJSON<Session[]>(SESSIONS_KEY, []);
   // Ensure a "primary" session always exists at index 0 (back-compat for v1.6 data)
   if (!list.find((s) => s.id === PRIMARY_SESSION_ID)) {
+    // Synthesize a primary session. Old code set startedAt to 30 days ago,
+    // which made every fresh install show "Primary · 5/13/2026 · 720h 0m"
+    // regardless of when the user actually started. Instead:
+    //   - If we have contractions in localStorage, anchor the primary to
+    //     the oldest one. The 30-day offset assumed "the user installed 30
+    //     days ago but only started timing now" — the actual oldest
+    //     contraction start is a better anchor.
+    //   - If we have no data, just use now. "1 minute ago" is honest; a
+    //     hard-coded 30 days is a lie.
+    let startedAt = new Date().toISOString();
+    try {
+      const stored = JSON.parse(localStorage.getItem('contraction-tracker:v1') || '{}');
+      const oldest = (stored.contractions || [])
+        .filter((c: { start?: string; sessionId?: string }) =>
+          (c.sessionId || PRIMARY_SESSION_ID) === PRIMARY_SESSION_ID && typeof c.start === 'string')
+        .map((c: { start: string }) => c.start)
+        .sort()[0];
+      if (oldest) startedAt = oldest;
+    } catch { /* fall through to "now" */ }
     const primary: Session = {
       id: PRIMARY_SESSION_ID,
       name: 'Primary',
-      startedAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+      startedAt,
       endedAt: null,
     };
     return [primary, ...list];
@@ -174,6 +193,12 @@ function generateShareCode(): string {
 
 export function createShare(input: {
   sessionId: string;
+  // Optional id override — used by handleCreate to pass the relay's
+  // returned code so the local shares array and the relay row point at
+  // the same id. Without this, the local store and the relay each
+  // generated their own code and the host-marker / partner-URL lookups
+  // would miss when the two didn't happen to collide.
+  id?: string;
   ttlHours?: number;
   pin?: string;
   mode?: string;
@@ -195,8 +220,10 @@ export function createShare(input: {
     }
     return active;
   }
-  const id = generateShareCode();
-  // Ensure unique across all sessions (defensive — should not collide)
+  const id = input.id || generateShareCode();
+  // Ensure unique across all sessions (defensive — should not collide
+  // with input.id since the relay guarantees uniqueness; only matters
+  // for the locally-generated fallback).
   if (existing.find((s) => s.id === id)) {
     return createShare(input);
   }

@@ -1602,10 +1602,12 @@ export default function App() {
       {/* Active labor indicator */}
       <ActiveLaborBanner contractions={contractions} now={now} />
 
-      {/* Backup reminder banner — soft nudge if no share link has been created.
-          Includes a "Back up now" CTA that opens the Share sheet directly so the
-          user doesn't have to hunt for the action. Hidden during active timing
-          and while editing a contraction so it doesn't obstruct those flows. */}
+      {/* Backup reminder banner — soft nudge if no local backup has been
+          exported recently. The "Back up now" CTA now triggers the actual
+          file-download backup (was: opened the Share sheet, which is the
+          partner-sharing flow — different feature, different purpose).
+          Hidden during active timing and while editing a contraction so it
+          doesn't obstruct those flows. */}
       {showBackupBanner && !current && !editingId && (
         <div className="flex-shrink-0 mx-5 mb-3 rounded-2xl border border-sage-300/30 bg-sage-300/10 px-4 py-3 animate-fade-in">
           <div className="flex items-start gap-3">
@@ -1615,7 +1617,7 @@ export default function App() {
             <div className="flex-1 min-w-0">
               <div className="text-sm font-semibold text-ink-100 font-display">Save a backup</div>
               <div className="text-xs text-ink-300 mt-0.5 leading-relaxed">
-                Create a share link to back up your contraction history.
+                Download a .json file with your full contraction history. Keep it somewhere safe.
               </div>
             </div>
             <button
@@ -1632,7 +1634,15 @@ export default function App() {
           </div>
           <div className="flex gap-2 mt-2.5">
             <button
-              onClick={() => setShowShare(activeSessionId)}
+              onClick={() => {
+                // Run the real export, then mark the banner as handled so it
+                // doesn't reappear on the next visit. handleExportBackup is
+                // synchronous (it triggers a file download), so the user
+                // sees the file dialog immediately.
+                handleExportBackup();
+                localStorage.setItem(BACKUP_REMINDER_KEY, JSON.stringify(Date.now()));
+                setDismissedBannerAt(Date.now());
+              }}
               className="flex-1 text-xs font-semibold bg-sage-300/20 active:bg-sage-300/30 text-sage-100 rounded-lg px-3 py-2 transition-colors min-h-[36px]"
             >
               Back up now
@@ -1750,15 +1760,15 @@ export default function App() {
                 </button>
                 <button
                   onClick={() => {
+                    // No confirmation prompt — the existing undo toast (see
+                    // handleDelete + the useUndo stack at the bottom of the
+                    // screen) gives the user 5 seconds to tap Undo and
+                    // reverse the action. window.confirm was added in case
+                    // the undo toast failed silently, but the native dialog
+                    // is a worse experience than the toast (blocks the page,
+                    // can't be styled, and on iOS PWAs can be flaky).
                     const last = finished[finished.length - 1];
                     if (!last) return;
-                    const dur = durationSeconds(last, now);
-                    if (dur >= 60) {
-                      const ok = window.confirm(
-                        `Delete the last contraction (${formatDuration(dur)})? You can undo from the toast.`,
-                      );
-                      if (!ok) return;
-                    }
                     handleDelete(last.id);
                   }}
                   className="text-ink-300 active:text-rose-300 active:bg-ink-100/10 px-2 py-1 rounded-lg flex items-center gap-1 text-[11px] transition-colors"

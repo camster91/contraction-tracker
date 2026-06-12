@@ -60,7 +60,9 @@ export default function SessionsSheet({
   };
 
   const handleEnd = (id: string) => {
-    if (!confirm('Mark this session as ended? You can still view it later.')) return;
+    // End-session is reversible (the session stays in the list, can be
+    // re-opened) and there's no data loss. No confirm needed. (Previously
+    // used window.confirm, which blocks the page and is flaky on iOS PWAs.)
     endSession(id);
     setSessions(getSessions());
   };
@@ -68,6 +70,10 @@ export default function SessionsSheet({
   const handleDelete = (id: string) => {
     if (id === PRIMARY_SESSION_ID) return; // button is disabled for primary
     const count = contractionsInSession(contractions, id).length;
+    // Delete is destructive and not undo-protected (no toast stack for
+    // sessions). The confirm() is the only warning. TODO: replace with
+    // a custom in-app modal so the experience is consistent across
+    // iOS/Android/web. For now, keep the native confirm here.
     if (count > 0) {
       if (!confirm(`This session has ${count} contractions. Delete it anyway?`)) return;
     } else {
