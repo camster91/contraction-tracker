@@ -2,6 +2,7 @@
 // Subscribes to SSE for real-time message delivery.
 
 import { useEffect, useRef, useState } from 'react';
+import { Mic, Pause, Play } from 'lucide-react';
 import { RELAY_URL } from '../lib/relay';
 import { getMessages, postMessage, type Message } from '../lib/feed';
 
@@ -78,6 +79,13 @@ function MessageRow({ msg }: { msg: Message }) {
             style={{ maxHeight: 200, borderRadius: 12, display: 'block', marginTop: 2 }}
           />
         )}
+        {msg.kind === 'voice' && (
+          // T6: inline voice memo player. Pure HTML <audio> with
+          // controls=0 plus a custom Play/Pause button — looks consistent
+          // with the rest of the app's chrome. The content is the
+          // base64-encoded audio (data URL prefix added here).
+          <VoiceMemoPlayer src={`data:audio/webm;base64,${msg.content}`} />
+        )}
         {msg.kind === 'status' && (
           <div
             style={{
@@ -106,6 +114,12 @@ export default function ActivityFeed({ code, shareState, viewerName, readOnly = 
   const [sending, setSending] = useState(false);
   const [showNamePrompt, setShowNamePrompt] = useState(false);
   const [compressing, setCompressing] = useState(false);
+  // T6: voice memo recording state.
+  const [recording, setRecording] = useState(false);
+  const [recordSeconds, setRecordSeconds] = useState(0);
+  const voiceRecorderRef = useRef<MediaRecorder | null>(null);
+  const voiceChunksRef = useRef<Blob[]>([]);
+  const voiceTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const clientId = useRef(Date.now().toString(36) + Math.random().toString(36).slice(2, 6));
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -403,6 +417,56 @@ export default function ActivityFeed({ code, shareState, viewerName, readOnly = 
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ---- Voice memo player ----
+
+function VoiceMemoPlayer({ src }: { src: string }) {
+  // T6: the audio element is uncontrolled — we just toggle play/pause
+  // and re-render the icon. Duration is read once on play (when metadata
+  // loads) and shown next to the button.
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [playing, setPlaying] = useState(false);
+  const [duration, setDuration] = useState<number | null>(null);
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
+      <button
+        onClick={() => {
+          if (!audioRef.current) {
+            const a = new Audio(src);
+            a.preload = 'metadata';
+            a.onloadedmetadata = () => setDuration(Math.round(a.duration));
+            a.onended = () => setPlaying(false);
+            audioRef.current = a;
+          }
+          if (playing) {
+            audioRef.current.pause();
+            setPlaying(false);
+          } else {
+            audioRef.current.play().catch(() => {});
+            setPlaying(true);
+          }
+        }}
+        aria-label={playing ? 'Pause voice memo' : 'Play voice memo'}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          padding: '6px 12px',
+          background: 'rgba(232,149,122,0.15)',
+          border: '1px solid rgba(232,149,122,0.3)',
+          borderRadius: 20,
+          color: '#e8957a',
+          fontSize: 12,
+          fontWeight: 500,
+          cursor: 'pointer',
+        }}
+      >
+        {playing ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+        <span>Voice memo{duration ? ` · ${duration}s` : ''}</span>
+      </button>
     </div>
   );
 }

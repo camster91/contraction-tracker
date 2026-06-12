@@ -3,7 +3,7 @@
 
 import { RELAY_URL } from './relay';
 
-export type MessageKind = 'reaction' | 'text' | 'image' | 'status';
+export type MessageKind = 'reaction' | 'text' | 'image' | 'voice' | 'status';
 
 export type Message = {
   id: string;

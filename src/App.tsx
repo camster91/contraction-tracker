@@ -101,7 +101,8 @@ import {
 import { getChecklist, packedCount, saveChecklist } from './lib/checklist';
 import { getExams } from './lib/hospital';
 import { postMessage, type MessageKind } from './lib/feed';
-import { getShareFromRelay, pushContractionsToRelay, setShareStateOnRelay } from './lib/relay';
+import { getShareFromRelay, pushContractionsToRelay, setShareStateOnRelay, postContractionEventToRelay, RELAY_URL } from './lib/relay';
+import { getOrCreateClientId } from './lib/identity';
 import Onboarding from './components/Onboarding';
 import StatusUpdatePrompt from './components/StatusUpdatePrompt';
 import TagFilter from './components/TagFilter';
@@ -144,6 +145,11 @@ export default function App() {
     return valid;
   });
   const [current, setCurrent] = useState<Contraction | null>(() => load(SESSION_KEY, null));
+  // T5: partner's in-progress contraction, polled from the relay. Distinct
+  // from `current` (the host's own timer) — both can coexist when the
+  // partner is timing remotely and the host's local timer is null.
+  const [partnerCurrent, setPartnerCurrent] = useState<{ start: number; author: string | null } | null>(null);
+  const myClientId = useMemo(() => getOrCreateClientId(), []);
   const [now, setNow] = useState(Date.now());
   const [editingId, setEditingId] = useState<string | null>(null);
   const [intensityDraft, setIntensityDraft] = useState<string>('');
@@ -331,6 +337,52 @@ export default function App() {
     const id = setInterval(checkPostpartum, 60 * 60 * 1000); // hourly
     return () => clearInterval(id);
   }, [contractions, activeSessionId]);
+
+  // T5: Poll the relay for the in-progress timer of the active share.
+  // Adaptive cadence — 1s when a partner is timing (so the host's display
+  // feels live), 5s otherwise. Stops polling when there's no active share
+  // or the host is timing locally (no point showing a redundant pill).
+  useEffect(() => {
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const tick = async () => {
+      if (cancelled) return;
+      try {
+        const activeShares = getShares().filter(
+          (s) => !s.revoked && s.sessionId === activeSessionId && (s.mode === 'full' || s.mode === 'track'),
+        );
+        if (activeShares.length === 0) {
+          setPartnerCurrent(null);
+        } else {
+          // First active share. (Same simplification as T2.)
+          const s = activeShares[0];
+          const r = await fetch(`${RELAY_URL}/api/shares/${s.id}/contractions`);
+          if (r.ok) {
+            const data = await r.json();
+            const cur = data.current || null;
+            // Only show as partner-timer if the author isn't us AND the
+            // host isn't timing locally (the local timer UI takes priority).
+            if (cur && cur.author !== myClientId && !current) {
+              setPartnerCurrent({ start: cur.start, author: cur.author });
+            } else {
+              setPartnerCurrent(null);
+            }
+          } else {
+            setPartnerCurrent(null);
+          }
+        }
+      } catch { /* ignore — best effort */ }
+      if (cancelled) return;
+      // 1s when a partner is timing (smooth UI), 5s otherwise.
+      const next = partnerCurrent ? 1000 : 5000;
+      timer = setTimeout(tick, next);
+    };
+    tick();
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+    };
+  }, [current, activeSessionId, myClientId, partnerCurrent]);
 
   // Auto-discard stale in-progress timer. If a "current" contraction has been
   // running for more than 12 hours, it's almost certainly a forgotten timer
@@ -534,6 +586,17 @@ export default function App() {
     enableWakeLock();
     // Tactile feedback — vital when phone is in a pillow or screen is dim
     try { navigator.vibrate?.(80); } catch { /* unsupported */ }
+    // T4: emit the start event to the relay. Any active share for the
+    // current session gets a parallel /event call. The host's start flows
+    // through the relay so partner devices see it instantly.
+    try {
+      const activeShares = getShares().filter(
+        (s) => !s.revoked && s.sessionId === activeSessionId,
+      );
+      for (const s of activeShares) {
+        postContractionEventToRelay(s.id, { type: 'start' }).catch(() => {});
+      }
+    } catch { /* best-effort */ }
   };
 
   const handleStop = () => {
@@ -1347,6 +1410,23 @@ export default function App() {
           </span>
         </button>
         <div className="flex items-center gap-0.5">
+          {/* T5: partner timing indicator. Renders only when a partner is
+              actively timing remotely (and the host isn't timing locally). */}
+          {partnerCurrent && (
+            <div
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-300/15 border border-rose-300/30"
+              aria-live="polite"
+            >
+              <span
+                className="w-1.5 h-1.5 rounded-full bg-rose-300"
+                style={{ animation: 'pulse 1.5s ease-in-out infinite' }}
+              />
+              <span className="text-[10px] font-medium text-rose-200 tabular-nums">
+                {formatElapsed(Math.floor((now - partnerCurrent.start) / 1000))}
+              </span>
+              <span className="text-[10px] text-rose-300/80">partner</span>
+            </div>
+          )}
           {/* Share with partner — always visible */}
           <button
             onClick={() => setShowShare(activeSessionId)}
