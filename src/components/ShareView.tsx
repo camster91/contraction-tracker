@@ -25,8 +25,12 @@ import {
   getShareFromRelay,
   pullContractionsFromRelay,
   markShareOpenedOnRelay,
+  getShareStats,
+  postContractionEventToRelay,
+  type ShareStats,
   RELAY_URL,
 } from '../lib/relay';
+import { getOrCreateClientId } from '../lib/identity';
 import ActivityFeed from './ActivityFeed';
 
 export default function ShareView({ code }: { code: string }) {
@@ -35,10 +39,30 @@ export default function ShareView({ code }: { code: string }) {
   const [unlocked, setUnlocked] = useState(false);
   const [share, setShare] = useState<any>(null);
   const [stateChangedAt, setStateChangedAt] = useState<string | null>(null);
+  const [shareMode, setShareMode] = useState<'full' | 'stats' | 'track'>('full');
+  const [stats, setStats] = useState<ShareStats | null>(null);
   const [contractions, setContractions] = useState<any[]>([]);
+  const [currentContraction, setCurrentContraction] = useState<{ start: number; author: string | null } | null>(null);
   const [now, setNow] = useState(Date.now());
   const [checked, setChecked] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // T4: The viewer can author start/stop events on the relay when:
+  //   - shareMode is 'full' or 'track' (not 'stats' — friends are read-only)
+  //   - the viewer is not the original creator of the share
+  //   - the share state allows writes (not in 'archived' or postpartum >24h)
+  // The host is identified by a localStorage marker set when they CREATE
+  // a share, not by clientId — a partner who is in the room when the host
+  // creates the share on their phone should still be able to time.
+  const isHost = useMemo(() => {
+    try {
+      return localStorage.getItem(`olive:share-owner:${code}`) === '1';
+    } catch {
+      return false;
+    }
+  }, [code]);
+  const canAuthorEvents = shareMode !== 'stats' && !isHost;
+  const [eventInFlight, setEventInFlight] = useState(false);
+  const [lastEventError, setLastEventError] = useState<string | null>(null);
 
   // Initial load
   useEffect(() => {
@@ -84,9 +108,16 @@ export default function ShareView({ code }: { code: string }) {
             createdAt: relayShare.createdAt,
             pin: relayShare.hasPin ? '••••' : undefined,
             lastOpenedAt: relayShare.lastOpenedAt,
+            mode: relayShare.mode || 'full',
           });
+          const mode = relayShare.mode || 'full';
+          setShareMode(mode);
           setStateChangedAt(relayShare.stateChangedAt || null);
           setChecked(true);
+          // If stats mode, fetch aggregate now and skip the contractions pull.
+          if (mode === 'stats') {
+            getShareStats(code).then(setStats).catch(() => {});
+          }
           return;
         }
       } catch {
@@ -146,8 +177,25 @@ export default function ShareView({ code }: { code: string }) {
   // Falls back to adaptive polling (1s during contraction, 15s otherwise)
   // if EventSource fails to connect. This is the single fix that lets 20
   // viewers watch a labor without hammering the relay with 1200 req/min.
+  //
+  // v1.1: in 'stats' mode, we subscribe to SSE only to detect state changes
+  // (e.g. labor → postpartum) and re-fetch /stats on every update. We never
+  // pull /contractions because the relay 403s that path for stats shares.
   useEffect(() => {
     if (!unlocked || !share) return;
+    if (shareMode === 'stats') {
+      // Stats mode: poll the /stats endpoint on the same adaptive cadence.
+      let pollTimer2: ReturnType<typeof setTimeout> | null = null;
+      const tick = async () => {
+        try {
+          const s = await getShareStats(code);
+          if (s) setStats(s);
+        } catch { /* ignore */ }
+        pollTimer2 = setTimeout(tick, 5000);
+      };
+      tick();
+      return () => { if (pollTimer2) clearTimeout(pollTimer2); };
+    }
     const url = `${RELAY_URL}/api/shares/${code}/stream`;
     let es: EventSource | null = null;
     let pollTimer: ReturnType<typeof setTimeout> | null = null;
@@ -172,6 +220,9 @@ export default function ShareView({ code }: { code: string }) {
           if (latest?.contractions) {
             setContractions(latest.contractions);
           }
+          if (latest) {
+            setCurrentContraction(latest.current || null);
+          }
         } catch { /* ignore */ }
         // Adaptive: 1s while a contraction is in progress, 15s otherwise
         const next = latest && latest.current ? 1000 : 15000;
@@ -192,13 +243,17 @@ export default function ShareView({ code }: { code: string }) {
         es.onmessage = async (e: MessageEvent) => {
           try {
             const payload = JSON.parse(e.data);
-            if (payload.type === 'snapshot' || payload.type === 'update') {
+            if (payload.type === 'snapshot' || payload.type === 'update' || payload.type === 'event') {
               if (payload.contractions) setContractions(payload.contractions);
+              if ('current' in payload) setCurrentContraction(payload.current || null);
               // Re-fetch the latest from /contractions so we get the canonical state
-              // (the SSE message only carries a count + updatedAt for the update type)
+              // (the SSE message only carries a count + updatedAt for the update type;
+              // the event type carries the full derived snapshot but we re-pull anyway
+              // to keep this code path uniform and resilient to message-shape drift).
               try {
                 const fresh: any = await pullContractionsFromRelay(code);
                 if (fresh?.contractions) setContractions(fresh.contractions);
+                if (fresh) setCurrentContraction(fresh.current || null);
               } catch { /* ignore */ }
             } else if (payload.type === 'revoked') {
               setShare((s: any) => s ? { ...s, revoked: true } : s);
@@ -336,6 +391,37 @@ export default function ShareView({ code }: { code: string }) {
       alert('PDF generation failed: ' + (e as Error).message);
     } finally {
       setPdfBusy(false);
+    }
+  };
+
+  // T4: send a start or stop event to the relay. The button label flips
+  // based on currentContraction. We don't trust the button's own state —
+  // we read the latest from the relay and use it to confirm what the next
+  // event should be. If a partner already started a contraction while we
+  // were on the page, our local view is stale and the relay is the truth.
+  const handleSendEvent = async () => {
+    if (eventInFlight) return;
+    setEventInFlight(true);
+    setLastEventError(null);
+    const clientId = getOrCreateClientId();
+    const next = currentContraction ? 'stop' : 'start';
+    try {
+      const res = await postContractionEventToRelay(code, {
+        type: next,
+        authorClientId: clientId,
+      });
+      if (!res) {
+        setLastEventError('Could not reach the relay. Try again.');
+        return;
+      }
+      // Optimistic local update so the button flips instantly. The SSE
+      // re-pull will reconcile if the relay says otherwise.
+      setCurrentContraction(res.current);
+      setContractions(res.contractions);
+    } catch (e) {
+      setLastEventError('Network error. Try again.');
+    } finally {
+      setEventInFlight(false);
     }
   };
 
@@ -487,6 +573,48 @@ export default function ShareView({ code }: { code: string }) {
           </div>
         )}
 
+        {/* v1.1: Stats mode — render the aggregate card, hide the per-contraction UI */}
+        {shareMode === 'stats' && stats && (
+          <div style={{ borderRadius: 20, border: `1px solid ${borderColor}`, background: cardBg, padding: 20, marginBottom: 16 }}>
+            <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 2, color: textMuted, fontWeight: 600, marginBottom: 12 }}>
+              Progress
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+              <div>
+                <div style={{ fontSize: 10, color: textMuted, textTransform: 'uppercase', letterSpacing: 2, fontWeight: 600 }}>Contractions</div>
+                <div style={{ fontSize: 36, fontFamily: 'Fraunces, Georgia, serif', fontWeight: 300, lineHeight: 1, marginTop: 4 }}>{stats.totalContractions}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: 10, color: textMuted, textTransform: 'uppercase', letterSpacing: 2, fontWeight: 600 }}>Avg interval</div>
+                <div style={{ fontSize: 36, fontFamily: 'Fraunces, Georgia, serif', fontWeight: 300, lineHeight: 1, marginTop: 4 }}>
+                  {stats.averageIntervalSec ? formatDuration(stats.averageIntervalSec) : '—'}
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: 10, color: textMuted, textTransform: 'uppercase', letterSpacing: 2, fontWeight: 600 }}>Avg duration</div>
+                <div style={{ fontSize: 24, fontFamily: 'Fraunces, Georgia, serif', fontWeight: 300, lineHeight: 1, marginTop: 4 }}>
+                  {stats.averageDurationSec ? formatDuration(stats.averageDurationSec) : '—'}
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: 10, color: textMuted, textTransform: 'uppercase', letterSpacing: 2, fontWeight: 600 }}>Active time</div>
+                <div style={{ fontSize: 24, fontFamily: 'Fraunces, Georgia, serif', fontWeight: 300, lineHeight: 1, marginTop: 4 }}>
+                  {stats.totalActiveSec ? formatElapsed(stats.totalActiveSec) : '—'}
+                </div>
+              </div>
+            </div>
+            {stats.fiveOneOne && (
+              <div style={{ borderRadius: 12, border: `1px solid ${rose}55`, background: `${rose}1a`, padding: 10, display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                <AlertTriangle size={14} color={rose} />
+                <div style={{ fontSize: 12, color: rose, fontWeight: 600 }}>5-1-1 pattern detected</div>
+              </div>
+            )}
+            <div style={{ fontSize: 10, color: textMuted, lineHeight: 1.5, borderTop: `1px solid ${borderColor}`, paddingTop: 12 }}>
+              You're seeing the summary view. Individual contraction times aren't shared in this link.
+            </div>
+          </div>
+        )}
+
         {/* 5-1-1 alert */}
         {showAlert && (
           <div style={{ borderRadius: 16, border: `1px solid ${rose}44`, background: `${rose}15`, padding: 12, display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 16 }}>
@@ -497,17 +625,99 @@ export default function ShareView({ code }: { code: string }) {
             </div>
           </div>
         )}
+
+        {/* T4: Partner / viewer Start/Stop button.
+            Renders only when the viewer is not the host and the share
+            allows writes. In stats mode (friends) the button is hidden —
+            the relay 403s anyway. In postpartum/archived the wall is a
+            keepsake, not a live timer. */}
+        {canAuthorEvents && !isReadOnly && (
+          <div style={{ borderRadius: 20, border: `1px solid ${currentContraction ? rose : borderColor}`, background: cardBg, padding: 20, marginBottom: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+              <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 2, color: textMuted, fontWeight: 600 }}>
+                Time this contraction
+              </div>
+              {currentContraction && (
+                <div style={{ fontSize: 11, color: rose, fontWeight: 600 }}>
+                  In progress
+                </div>
+              )}
+            </div>
+            {currentContraction ? (
+              <>
+                <div style={{ fontSize: 48, fontFamily: 'Fraunces, Georgia, serif', fontWeight: 300, lineHeight: 1, marginTop: 4, color: rose }}>
+                  {formatElapsed(Math.floor((now - currentContraction.start) / 1000))}
+                </div>
+                {currentContraction.author && (
+                  <div style={{ fontSize: 10, color: textMuted, marginTop: 4 }}>
+                    Started by {currentContraction.author === getOrCreateClientId() ? 'you' : 'partner'}
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={handleSendEvent}
+                  disabled={eventInFlight}
+                  style={{
+                    marginTop: 14,
+                    width: '100%',
+                    background: rose,
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: 14,
+                    padding: '14px 16px',
+                    fontSize: 16,
+                    fontWeight: 600,
+                    cursor: eventInFlight ? 'wait' : 'pointer',
+                    opacity: eventInFlight ? 0.6 : 1,
+                    fontFamily: 'inherit',
+                  }}
+                >
+                  {eventInFlight ? 'Saving…' : 'Stop contraction'}
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={handleSendEvent}
+                disabled={eventInFlight}
+                style={{
+                  width: '100%',
+                  background: rose,
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 14,
+                  padding: '16px 16px',
+                  fontSize: 16,
+                  fontWeight: 600,
+                  cursor: eventInFlight ? 'wait' : 'pointer',
+                  opacity: eventInFlight ? 0.6 : 1,
+                  fontFamily: 'inherit',
+                }}
+              >
+                {eventInFlight ? 'Saving…' : 'Start contraction'}
+              </button>
+            )}
+            {lastEventError && (
+              <div style={{ fontSize: 11, color: rose, marginTop: 8 }}>
+                {lastEventError}
+              </div>
+            )}
+          </div>
+        )}
         <div style={{ height: 32 }} />
 
-        <div style={{ borderRadius: 20, border: `1px solid ${borderColor}`, background: cardBg, padding: 20, marginBottom: 16 }}>
-          <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 2, color: textMuted, fontWeight: 600 }}>Since last</div>
-          <div style={{ fontSize: 48, fontFamily: 'Fraunces, Georgia, serif', fontWeight: 300, marginTop: 4, lineHeight: 1 }}>
-            {sinceFinish !== null ? formatDuration(sinceFinish) : '—'}
+        {/* v1.1: Hide the per-contraction UI in stats mode — the stats card above replaces it */}
+        {shareMode !== 'stats' && (
+          <div style={{ borderRadius: 20, border: `1px solid ${borderColor}`, background: cardBg, padding: 20, marginBottom: 16 }}>
+            <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 2, color: textMuted, fontWeight: 600 }}>Since last</div>
+            <div style={{ fontSize: 48, fontFamily: 'Fraunces, Georgia, serif', fontWeight: 300, marginTop: 4, lineHeight: 1 }}>
+              {sinceFinish !== null ? formatDuration(sinceFinish) : '—'}
+            </div>
+            <div style={{ fontSize: 11, color: textMuted, marginTop: 8 }}>
+              {finished.length} {finished.length === 1 ? 'contraction' : 'contractions'} · {totalElapsedSec > 0 ? `started ${formatElapsed(totalElapsedSec)} ago` : 'just started'}
+            </div>
           </div>
-          <div style={{ fontSize: 11, color: textMuted, marginTop: 8 }}>
-            {finished.length} {finished.length === 1 ? 'contraction' : 'contractions'} · {totalElapsedSec > 0 ? `started ${formatElapsed(totalElapsedSec)} ago` : 'just started'}
-          </div>
-        </div>
+        )}
 
         {/* Last / gap cards */}
         {lastFinished && (

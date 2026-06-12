@@ -11,7 +11,7 @@ import {
   isShareValid,
   revokeShare,
 } from '../lib/sessions';
-import { createShareOnRelay, pushContractionsToRelay } from '../lib/relay';
+import { createShareOnRelay, pushContractionsToRelay, revokeShareOnRelay } from '../lib/relay';
 import type { Contraction } from '../lib/contractions';
 import { formatElapsed } from '../lib/contractions';
 import StatePicker from './StatePicker';
@@ -56,7 +56,20 @@ export default function ShareSheet({ sessionId, contractions, onClose, onStateCh
   const [creating, setCreating] = useState(false);
   const [shares, setShares] = useState<Share[]>(() => getShares());
   const [copied, setCopied] = useState<string | null>(null);
-  const [shareMode, setShareMode] = useState<'partner' | 'friends'>('partner');
+  // v1.1: 'partner' = 'full' on the relay (all data). 'friends' = 'stats' (aggregate only).
+  // The relay is the source of truth — frontend state uses the relay's vocabulary
+  // so we don't have to translate in 3 places.
+  const [shareMode, setShareMode] = useState<'full' | 'stats'>('full');
+  // T10: Custom share TTL. Presets in hours. Default 168h (7 days) — long
+  // enough for the typical labor→postpartum window, short enough that an
+  // abandoned share self-destructs within a week.
+  const TTL_PRESETS = [
+    { hours: 24, label: '1 day' },
+    { hours: 72, label: '3 days' },
+    { hours: 168, label: '1 week' },
+    { hours: 720, label: '30 days' },
+  ] as const;
+  const [shareTtlHours, setShareTtlHours] = useState<number>(168);
   const [shareState, setShareState] = useState<'prenatal' | 'labor' | 'postpartum' | 'archived'>('prenatal');
   const [prevState, setPrevState] = useState<typeof shareState | null>(null);
   const [undoTimer, setUndoTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
@@ -74,18 +87,25 @@ export default function ShareSheet({ sessionId, contractions, onClose, onStateCh
     setRelayError(null);
     setCreating(true);
     const pin = undefined; // PIN removed — simplicity over complexity
-    createShare({ sessionId, ttlHours: 168, pin, mode: shareMode });
+    createShare({ sessionId, ttlHours: shareTtlHours, pin, mode: shareMode });
     setShares(getShares());
     // Also create on the relay server for multi-device sharing.
     // createShareOnRelay returns null on any failure (network, 5xx, etc) —
     // we surface a clear error instead of letting the user think the share
     // works when no one in another browser can actually open it.
-    const relayResult = await createShareOnRelay({ sessionId, pin, ttlHours: 168, mode: shareMode, state: 'prenatal' });
+    const relayResult = await createShareOnRelay({ sessionId, pin, ttlHours: shareTtlHours, mode: shareMode, state: 'prenatal' });
     if (!relayResult) {
       setRelayError(
         'Could not reach the share server. Your link will work on this device only — viewers in other browsers will not see updates until the relay reconnects.',
       );
     } else {
+      // T4: mark this device as the host for this share. ShareView uses
+      // this to decide whether to render the partner Start/Stop button.
+      // localStorage is device-local, so a phone that didn't create the
+      // share never sees this flag and the partner UI shows up.
+      try {
+        localStorage.setItem(`olive:share-owner:${relayResult.code}`, '1');
+      } catch { /* ignore */ }
       try {
         // Only push this session's contractions, not all of them —
         // otherwise multi-session users leak old data into partner view.
@@ -100,10 +120,31 @@ export default function ShareSheet({ sessionId, contractions, onClose, onStateCh
     setCreating(false);
   };
 
+  // T11: revoke with a reason. Native window.prompt with a fixed choice
+  // would be more polished, but `confirm()` is the existing pattern in
+  // this file and works the same on iOS/Android/Capacitor.
   const handleRevoke = (id: string) => {
     if (!confirm('Revoke this link? The recipient will lose access immediately.')) return;
+    // Free-text reason. Empty string is allowed (we'll store NULL).
+    // Three quick options via the prompt syntax: cancel = don't revoke,
+    // anything else = use as reason.
+    const reason = window.prompt(
+      'Optional: why are you revoking? (helps the audit log)\n' +
+      '— Labor ended\n' +
+      '— Link leaked\n' +
+      '— Person no longer needs access\n' +
+      '— Other (type your own)\n\n' +
+      'Leave empty to skip.',
+      '',
+    );
+    // Cancel = null. Empty string = empty reason (allowed, stored as null).
+    if (reason === null) return; // user hit Cancel
+    // T11: pass reason to relay revoke. Local revokeShare is sync (just
+    // marks the localStorage entry).
     revokeShare(id);
     setShares(getShares());
+    // Fire-and-forget the relay revoke with the reason.
+    revokeShareOnRelay(id, reason || undefined).catch(() => { /* best-effort */ });
   };
 
   const handleCopy = async (code: string) => {
@@ -197,17 +238,18 @@ export default function ShareSheet({ sessionId, contractions, onClose, onStateCh
         keeps working the whole time — no new codes to send.
       </div>
 
-      {/* Share mode — partner (full) or friends (read-only) */}
+      {/* v1.1: share mode — 'full' (all data, partner default) or 'stats' (aggregate only, friends default).
+          The relay enforces this server-side; the UI is no longer a lie. */}
       <div className="mb-3">
         <div className="text-[10px] uppercase tracking-[0.15em] text-ink-400 font-semibold mb-1.5">Who is this for?</div>
         <div className="space-y-1">
           {[
-            { value: 'partner', label: 'Partner — full access', desc: 'Sees all times, durations, and details' },
-            { value: 'friends', label: 'Friends — view only', desc: 'Sees progress and pattern, not every detail' },
+            { value: 'full', label: 'Partner — full access', desc: 'Sees all times, durations, and details' },
+            { value: 'stats', label: 'Friends — summary only', desc: 'Sees progress and pattern, not individual times' },
           ].map((opt) => (
             <button
               key={opt.value}
-              onClick={() => setShareMode(opt.value as any)}
+              onClick={() => setShareMode(opt.value as 'full' | 'stats')}
               className={`w-full text-left px-3 py-2 rounded-xl border text-xs transition-colors ${
                 shareMode === opt.value
                   ? 'border-rose-300/40 bg-rose-300/10 text-rose-200'
@@ -216,6 +258,27 @@ export default function ShareSheet({ sessionId, contractions, onClose, onStateCh
             >
               <div className="font-medium">{opt.label}</div>
               <div className="text-[10px] text-ink-500">{opt.desc}</div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* T10: TTL picker. Default 1 week. The relay already supports custom TTL
+          (server.js:209); the UI just wasn't exposing it. */}
+      <div className="mb-3">
+        <div className="text-[10px] uppercase tracking-[0.15em] text-ink-400 font-semibold mb-1.5">Link expires in</div>
+        <div className="grid grid-cols-4 gap-1.5">
+          {TTL_PRESETS.map((opt) => (
+            <button
+              key={opt.hours}
+              onClick={() => setShareTtlHours(opt.hours)}
+              className={`px-2 py-1.5 rounded-lg border text-[11px] transition-colors ${
+                shareTtlHours === opt.hours
+                  ? 'border-rose-300/40 bg-rose-300/10 text-rose-200 font-medium'
+                  : 'border-ink-200/30 bg-ink-100/5 text-ink-300 active:bg-ink-100/10'
+              }`}
+            >
+              {opt.label}
             </button>
           ))}
         </div>
