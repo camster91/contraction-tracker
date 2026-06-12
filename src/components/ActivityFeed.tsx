@@ -2,7 +2,10 @@
 // Subscribes to SSE for real-time message delivery.
 
 import { useEffect, useRef, useState } from 'react';
-import { Mic, Pause, Play } from 'lucide-react';
+// Mic was imported for the (unfinished) T6 voice-memo recording feature but
+// the recorder UI was never wired up. Pause/Play are still used by the inline
+// voice-memo player when the relay returns a 'voice' message kind.
+import { Pause, Play } from 'lucide-react';
 import { RELAY_URL } from '../lib/relay';
 import { getMessages, postMessage, type Message } from '../lib/feed';
 
@@ -114,12 +117,9 @@ export default function ActivityFeed({ code, shareState, viewerName, readOnly = 
   const [sending, setSending] = useState(false);
   const [showNamePrompt, setShowNamePrompt] = useState(false);
   const [compressing, setCompressing] = useState(false);
-  // T6: voice memo recording state.
-  const [recording, setRecording] = useState(false);
-  const [recordSeconds, setRecordSeconds] = useState(0);
-  const voiceRecorderRef = useRef<MediaRecorder | null>(null);
-  const voiceChunksRef = useRef<Blob[]>([]);
-  const voiceTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // T6 voice-memo recording state was removed (unused): the recorder UI was
+  // never wired up after the relay added the 'voice' message kind. When this
+  // comes back, hook a MediaRecorder + start/stop handlers here.
   const clientId = useRef(Date.now().toString(36) + Math.random().toString(36).slice(2, 6));
   const bottomRef = useRef<HTMLDivElement>(null);
 

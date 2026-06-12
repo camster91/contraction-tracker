@@ -492,6 +492,12 @@ export default function App() {
         pushContractionsToRelay(s.id, sessionContractions, sessionCurrent).catch(() => {});
       }
     } catch { /* relay sync is best-effort */ }
+    // activeSessionId is intentionally NOT in the dep array: this effect
+    // should fire on contraction/timer changes, not on session switches.
+    // When the user switches sessions, the filter `s.sessionId === activeSessionId`
+    // re-evaluates on the next save, so the right share gets the right data
+    // without us re-running on every session tap.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [current, contractions]);
 
   useEffect(() => {

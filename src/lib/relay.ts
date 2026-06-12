@@ -2,8 +2,23 @@
 // at https://relay.ashbi.ca when a share link is active.
 //
 // Used by: ShareSheet (push) and ShareView (pull)
-
-export const RELAY_URL = 'https://relay.ashbi.ca';
+//
+// The relay URL is the one piece of config that differs between production
+// and a local/staging build. Override at build time with
+//   VITE_RELAY_URL=https://my-relay.test npm run build
+// or for the Dockerfile:
+//   docker build --build-arg VITE_RELAY_URL=https://relay-staging.ashbi.ca .
+// If unset, defaults to production. The relay is HTTPS-only — no http://
+// fallbacks. If you need to talk to a localhost relay, set
+// VITE_RELAY_URL=http://localhost:8787 explicitly.
+//
+// The default is a const (not a `let`) so a runtime mutation can't
+// redirect all subsequent relay calls.
+// `import.meta.env` is typed by vite/client (see tsconfig.app.json
+// `types: ["vite/client"]`); the `?.` and `||` keep the build happy when
+// the type narrowing sees the env as possibly undefined.
+export const RELAY_URL: string =
+  (import.meta as any).env?.VITE_RELAY_URL || 'https://relay.ashbi.ca';
 
 export async function createShareOnRelay(input: {
   sessionId: string;
@@ -156,16 +171,32 @@ export async function getShareFromRelay(code: string): Promise<ShareFromRelay | 
   }
 }
 
-export async function validatePinOnRelay(code: string, pin: string): Promise<boolean> {
+// T11: validate a PIN against the relay. The relay is the source of truth
+// for the PIN — never trust a client-side string comparison (the local
+// `share.pin` is the masked '••••' placeholder, not the real PIN).
+//
+// Return shape:
+//   { ok: true,  }                 — PIN matched
+//   { ok: false, reason: 'pin' }   — wrong PIN
+//   { ok: false, reason: 'network' } — network/HTTP error (caller decides
+//                                     whether to show a retry or treat as
+//                                     locked-out)
+export type PinValidation =
+  | { ok: true }
+  | { ok: false; reason: 'pin' | 'network' };
+
+export async function validatePinOnRelay(code: string, pin: string): Promise<PinValidation> {
   try {
     const res = await fetch(`${RELAY_URL}/api/shares/${code}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'validate-pin', pin }),
     });
-    return res.ok;
+    if (res.ok) return { ok: true };
+    if (res.status === 401 || res.status === 403) return { ok: false, reason: 'pin' };
+    return { ok: false, reason: 'network' };
   } catch {
-    return false;
+    return { ok: false, reason: 'network' };
   }
 }
 

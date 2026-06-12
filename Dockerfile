@@ -3,6 +3,11 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 COPY . .
+# VITE_RELAY_URL is the only env-injected config. Set at build time:
+#   docker build --build-arg VITE_RELAY_URL=https://relay-staging.ashbi.ca .
+# Unset → falls back to https://relay.ashbi.ca in src/lib/relay.ts.
+ARG VITE_RELAY_URL
+ENV VITE_RELAY_URL=$VITE_RELAY_URL
 RUN npm run build
 ENV NODE_ENV=production
 ENV PORT=3000

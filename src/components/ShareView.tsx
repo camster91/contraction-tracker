@@ -3,9 +3,18 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { Heart, Shield, AlertTriangle, Clock } from 'lucide-react';
-// pdf-lib is bundled locally (was lazy-loaded from unpkg.com, but the live
-// app's CSP blocks script-src 'self'-only, so the CDN load was failing).
-import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
+// pdf-lib is loaded on demand inside handleDownloadMemoryBook() (was a
+// top-level import before, but that forced every share-viewer viewer — the
+// highest-traffic URL — to pay the ~250KB gzipped cost on first paint, even
+// though only archived shares ever trigger the PDF path). Vite will code-split
+// the dynamic import into a separate chunk that the read-only viewer never
+// fetches unless they hit "Download PDF" on an archived share.
+type PdfLib = typeof import('pdf-lib');
+let pdfLibPromise: Promise<PdfLib> | null = null;
+function loadPdfLib(): Promise<PdfLib> {
+  if (!pdfLibPromise) pdfLibPromise = import('pdf-lib');
+  return pdfLibPromise;
+}
 import {
   durationSeconds,
   formatClock,
@@ -27,6 +36,7 @@ import {
   markShareOpenedOnRelay,
   getShareStats,
   postContractionEventToRelay,
+  validatePinOnRelay,
   type ShareStats,
   RELAY_URL,
 } from '../lib/relay';
@@ -36,6 +46,8 @@ import ActivityFeed from './ActivityFeed';
 export default function ShareView({ code }: { code: string }) {
   const [pinInput, setPinInput] = useState('');
   const [pinError, setPinError] = useState(false);
+  const [pinBusy, setPinBusy] = useState(false);
+  const [pinNetworkError, setPinNetworkError] = useState(false);
   const [unlocked, setUnlocked] = useState(false);
   const [share, setShare] = useState<any>(null);
   const [stateChangedAt, setStateChangedAt] = useState<string | null>(null);
@@ -288,7 +300,10 @@ export default function ShareView({ code }: { code: string }) {
       try { es?.close(); } catch { /* ignore */ }
       stopPolling();
     };
-  }, [unlocked, share, code]);
+    // shareMode is a dep so the connection flips between SSE (full/track)
+    // and the stats-only polling loop when the host upgrades the share.
+    // The cleanup above closes the EventSource before the next run.
+  }, [unlocked, share, code, shareMode]);
 
   // ---- Derived ----
   const shareState = share?.state || 'prenatal';
@@ -304,14 +319,15 @@ export default function ShareView({ code }: { code: string }) {
   const sinceFinish = secondsSinceLastFinish(contractions, now);
   const showAlert = isFiveOneOne(contractions, now);
   // ---- Memory book PDF (archived shares) ----
-  // Generates a single-page PDF in the browser using pdf-lib. Lazy-loads
-  // the lib from a CDN on first use so the 80KB doesn't bloat the main
-  // bundle for users who never archive a share.
+  // Generates a single-page PDF in the browser. Loads pdf-lib on first use
+  // (see loadPdfLib above) so the read-only viewer doesn't carry the lib
+  // in its critical-path bundle.
   const [pdfBusy, setPdfBusy] = useState(false);
   const handleDownloadMemoryBook = async () => {
     if (pdfBusy) return;
     setPdfBusy(true);
     try {
+      const { PDFDocument, StandardFonts, rgb } = await loadPdfLib();
       const doc = await PDFDocument.create();
       // Letter-size: 612 x 792 pt
       const page = doc.addPage([612, 792]);
@@ -475,6 +491,29 @@ export default function ShareView({ code }: { code: string }) {
   }
 
   // PIN gate
+  // The PIN is verified against the relay, not locally. The local `share.pin`
+  // is the masked '••••' placeholder from the share summary, so a client-side
+  // string compare would always fail. We hit `validatePinOnRelay` and only
+  // set `unlocked` on a real OK. This means the relay is the source of
+  // truth and a bad guess doesn't open the share — even if the user opens
+  // devtools and patches `share.pin`.
+  const attemptUnlock = async () => {
+    if (pinBusy || pinInput.length < 4) return;
+    setPinBusy(true);
+    setPinError(false);
+    setPinNetworkError(false);
+    const result = await validatePinOnRelay(code, pinInput);
+    setPinBusy(false);
+    if (result.ok) {
+      setUnlocked(true);
+      markShareOpened(code);
+    } else if (result.reason === 'pin') {
+      setPinError(true);
+    } else {
+      setPinNetworkError(true);
+    }
+  };
+
   if (share.pin && !unlocked) {
     return (
       <div style={{ minHeight: '100dvh', background: pageBg, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
@@ -489,24 +528,24 @@ export default function ShareView({ code }: { code: string }) {
             inputMode="numeric"
             maxLength={4}
             value={pinInput}
-            onChange={(e) => { setPinInput(e.target.value.replace(/\D/g, '').slice(0, 4)); setPinError(false); }}
+            onChange={(e) => { setPinInput(e.target.value.replace(/\D/g, '').slice(0, 4)); setPinError(false); setPinNetworkError(false); }}
             style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 12, padding: '14px 16px', textAlign: 'center', fontSize: 24, fontFamily: 'Fraunces, Georgia, serif', letterSpacing: 8, color: textMain, outline: 'none', boxSizing: 'border-box' }}
             placeholder="• • • •"
             autoFocus
-          />
-          {pinError && <div style={{ fontSize: 12, color: rose, textAlign: 'center', marginTop: 8 }}>Wrong PIN. Try again.</div>}
-          <button
-            onClick={() => {
-              if (pinInput === share.pin) {
-                setUnlocked(true);
-                markShareOpened(code);
-              } else {
-                setPinError(true);
+            onKeyDown={async (e) => {
+              if (e.key === 'Enter' && pinInput.length === 4 && !pinBusy) {
+                e.preventDefault();
+                await attemptUnlock();
               }
             }}
-            disabled={pinInput.length < 4}
-            style={{ width: '100%', marginTop: 12, background: rose, border: 'none', borderRadius: 12, padding: '14px', fontSize: 14, fontWeight: 600, color: pageBg, cursor: 'pointer', opacity: pinInput.length < 4 ? 0.4 : 1 }}
-          >Unlock</button>
+          />
+          {pinError && <div style={{ fontSize: 12, color: rose, textAlign: 'center', marginTop: 8 }}>Wrong PIN. Try again.</div>}
+          {pinNetworkError && <div style={{ fontSize: 12, color: rose, textAlign: 'center', marginTop: 8 }}>Couldn’t reach the relay. Check your connection and try again.</div>}
+          <button
+            onClick={attemptUnlock}
+            disabled={pinInput.length < 4 || pinBusy}
+            style={{ width: '100%', marginTop: 12, background: rose, border: 'none', borderRadius: 12, padding: '14px', fontSize: 14, fontWeight: 600, color: pageBg, cursor: pinBusy ? 'wait' : 'pointer', opacity: pinInput.length < 4 || pinBusy ? 0.4 : 1 }}
+          >{pinBusy ? 'Checking…' : 'Unlock'}</button>
         </div>
       </div>
     );

@@ -6,7 +6,6 @@
 // When listening, a small mic icon pulses in the header.
 // Stop actions require 2-tap confirmation: same phrase spoken twice within 3s.
 // Start actions are single-tap.
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 let recognition: any = null;
 let listening = false;
