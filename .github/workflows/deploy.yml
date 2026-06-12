@@ -47,11 +47,17 @@ env:
   RELAY_PORT: "3032"
   PUBLIC_URL: https://contractions.ashbi.ca
   RELAY_PUBLIC_URL: https://relay.ashbi.ca
-  # Compose files are base64-encoded inline (see TRACKER_COMPOSE_B64
-  # and RELAY_COMPOSE_B64 below). Encoding avoids YAML/heredoc
-  # indentation issues with multi-line strings nested inside ssh heredocs
-  # on the runner. Decoded on the host into the right project dir.
+  # Compose files + .env are base64-encoded inline (see *_B64 vars below).
+  # Encoding avoids YAML/heredoc indentation issues with multi-line
+  # strings nested inside ssh heredocs on the runner. Decoded on the
+  # host into the right project dir. Earlier draft inlined the .env
+  # files via `cat > .env <<ENV_EOF` heredocs — that broke because the
+  # outer `<<EOF` heredoc captured the inner heredoc's body as literal
+  # text and the tracker .env ended up containing the relay's heredoc
+  # lines. base64 sidesteps it.
   TRACKER_COMPOSE_B64: c2VydmljZXM6CiAgYXBwOgogICAgYnVpbGQ6CiAgICAgIGNvbnRleHQ6IC4vc3JjCiAgICAgIGRvY2tlcmZpbGU6IERvY2tlcmZpbGUKICAgIGltYWdlOiBjYW1zdGVyOTEvY29udHJhY3Rpb24tdHJhY2tlcjpidWlsZC1sYXRlc3QKICAgIGNvbnRhaW5lcl9uYW1lOiBjb250cmFjdGlvbi10cmFja2VyCiAgICByZXN0YXJ0OiB1bmxlc3Mtc3RvcHBlZAogICAgZW52X2ZpbGU6CiAgICAgIC0gLmVudgogICAgcG9ydHM6CiAgICAgIC0gIiR7VFJBQ0tFUl9QT1JUOi0zMDMxfTozMDAwIgogICAgbmV0d29ya3M6CiAgICAgIC0gcHJveHkKCm5ldHdvcmtzOgogIHByb3h5OgogICAgbmFtZTogcHJveHkKICAgIGV4dGVybmFsOiB0cnVlCg==
+  TRACKER_ENV_B64: VklURV9SRUxBWV9VUkw9aHR0cHM6Ly9yZWxheS5hc2hiaS5jYQpWSVRFX1BVQkxJQ19VUkw9aHR0cHM6Ly9jb250cmFjdGlvbnMuYXNoYmkuY2EK
+  RELAY_ENV_B64: UE9SVD0zMDAwCkRCX1BBVEg9L2FwcC9kYXRhL3JlbGF5LmRiCkFMTE9XRURfT1JJR0lOPWh0dHBzOi8vY29udHJhY3Rpb25zLmFzaGJpLmNhCg==
   RELAY_COMPOSE_B64: c2VydmljZXM6CiAgYXBwOgogICAgYnVpbGQ6CiAgICAgIGNvbnRleHQ6IC4vc3JjCiAgICAgIGRvY2tlcmZpbGU6IERvY2tlcmZpbGUKICAgIGltYWdlOiBjYW1zdGVyOTEvY29udHJhY3Rpb24tdHJhY2tlci1yZWxheTpidWlsZC1sYXRlc3QKICAgIGNvbnRhaW5lcl9uYW1lOiBjb250cmFjdGlvbi10cmFja2VyLXJlbGF5CiAgICByZXN0YXJ0OiB1bmxlc3Mtc3RvcHBlZAogICAgZW52X2ZpbGU6CiAgICAgIC0gLmVudgogICAgdm9sdW1lczoKICAgICAgLSB0cmFja2VyLXJlbGF5LWRhdGE6L2FwcC9kYXRhCiAgICBwb3J0czoKICAgICAgLSAiJHtSRUxBWV9QT1JUOi0zMDMyfTozMDAwIgogICAgbmV0d29ya3M6CiAgICAgIC0gcHJveHkKCnZvbHVtZXM6CiAgdHJhY2tlci1yZWxheS1kYXRhOgoKbmV0d29ya3M6CiAgcHJveHk6CiAgICBuYW1lOiBwcm94eQogICAgZXh0ZXJuYWw6IHRydWUK
 
 jobs:
@@ -140,10 +146,10 @@ jobs:
             ~/repos/luna-relay/ $RELAY_PROJECT_DIR/src/"
 
       - name: Write docker-compose + .env on host
-        # Compose files are base64-encoded in the workflow env to
-        # avoid YAML/heredoc indentation issues. Decoded on the host
-        # into the right project dir. .env files are inline because
-        # they're short.
+        # Compose files + .env are base64-encoded in the workflow env
+        # to avoid YAML/heredoc indentation issues. Decoded on the
+        # host into the right project dir. See TRACKER_COMPOSE_B64,
+        # RELAY_COMPOSE_B64, TRACKER_ENV_B64, RELAY_ENV_B64 in env:.
         env:
           HOST: ${{ secrets.COOLIFY_HOST }}
           USER: ${{ secrets.COOLIFY_USER }}
@@ -153,17 +159,14 @@ jobs:
             mkdir -p $PROJECT_DIR $RELAY_PROJECT_DIR
             echo '$TRACKER_COMPOSE_B64' | base64 -d > $PROJECT_DIR/docker-compose.yml
             echo '$RELAY_COMPOSE_B64'   | base64 -d > $RELAY_PROJECT_DIR/docker-compose.yml
-            cat > $PROJECT_DIR/.env <<ENV_EOF
-            VITE_RELAY_URL=$RELAY_PUBLIC_URL
-            VITE_PUBLIC_URL=$PUBLIC_URL
-            ENV_EOF
-            cat > $RELAY_PROJECT_DIR/.env <<ENV_EOF
-            PORT=3000
-            DB_PATH=/app/data/relay.db
-            ALLOWED_ORIGIN=$PUBLIC_URL
-            ENV_EOF
+            echo '$TRACKER_ENV_B64'     | base64 -d > $PROJECT_DIR/.env
+            echo '$RELAY_ENV_B64'       | base64 -d > $RELAY_PROJECT_DIR/.env
             echo "Wrote compose + .env files:"
             ls -la $PROJECT_DIR/ $RELAY_PROJECT_DIR/
+            echo "--- tracker .env ---"
+            cat $PROJECT_DIR/.env
+            echo "--- relay .env ---"
+            cat $RELAY_PROJECT_DIR/.env
           EOF
 
       - name: Build + restart containers
