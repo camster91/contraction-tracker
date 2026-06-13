@@ -7,10 +7,20 @@ name: Build and Push Image
 # run it without needing source code, Node, or build tools on the host.
 #
 # Conventions:
-#   - Image: ghcr.io/camster91/<repo>:main (or :<tag> for releases)
+#   - Image: ghcr.io/camster91/<repo>:<tag>
+#     - <tag> is the inputs.tag value if the caller passes one (stable
+#       version like v2.0.4 or rollback label like rollback-2026-06-12),
+#       otherwise derived from the ref (main / master / branch / vX.Y.Z).
 #   - Multi-arch: linux/amd64 + linux/arm64 (Raspberry Pi, Apple Silicon hosts)
 #   - Buildx cache pushed to GHCR type=cache (saves ~3min per build)
 #   - SBOM + provenance attestations enabled (for supply-chain trust)
+#
+# Versioning / rollback contract:
+#   - Every push publishes three tags: <tag>, <tag>-<7-char-sha>, and latest.
+#   - The <tag>-<sha> tag is immutable and is the canonical rollback handle.
+#   - Callers that need rollback (e.g. deploy.yml) should pass an explicit
+#     `tag` input tied to the app's semver so the previous build is still
+#     pullable after the next main push overwrites :latest / :main.
 
 on:
   push:
@@ -34,6 +44,11 @@ on:
         required: false
         type: string
         default: 'linux/amd64,linux/arm64'
+      tag:
+        description: 'Image tag to push (default: derived from ref). Use a stable version like v2.0.4 or a rollback label like rollback-2026-06-12 so the previous image stays pullable.'
+        required: false
+        type: string
+        default: ''
     secrets:
       inherit: true
 
@@ -63,19 +78,39 @@ jobs:
         run: |
           REPO_NAME="${{ github.event.repository.name }}"
           if [ -n "${{ inputs.image_name }}" ]; then REPO_NAME="${{ inputs.image_name }}"; fi
-          REF="${{ github.ref }}"
-          if [[ "$REF" == refs/tags/* ]]; then
-            TAG="${REF#refs/tags/}"
-          elif [[ "$REF" == refs/heads/main || "$REF" == refs/heads/master ]]; then
-            TAG="main"
-          else
-            TAG="${REF#refs/heads/}"
-          fi
-          SHA_SHORT="${{ github.event.pull_request.head.sha || github.sha }}" | head -c 7
           SHA_SHORT=$(echo "${{ github.sha }}" | head -c 7)
+          # If the caller passed an explicit `tag` input, use it. Otherwise
+          # derive from the ref (push to main -> "main", push to tag vX.Y.Z
+          # -> "vX.Y.Z", branch pushes -> branch name). The input wins so
+          # deploy workflows can pin images to a stable version (v2.0.4)
+          # or a rollback label (rollback-2026-06-12) that survives
+          # subsequent main pushes.
+          TAG_SRC="auto"
+          if [ -n "${{ inputs.tag }}" ]; then
+            # Validate: Docker tag charset is [a-zA-Z0-9_.-]. Reject
+            # anything else (especially ':' or '@') so a buggy caller
+            # can't break the GHCR URL or push to the wrong digest.
+            if [[ ! "${{ inputs.tag }}" =~ ^[a-zA-Z0-9._-]+$ ]]; then
+              echo "::error::Invalid tag input: ${{ inputs.tag }}. Allowed: [a-zA-Z0-9._-]+"
+              exit 1
+            fi
+            TAG="${{ inputs.tag }}"
+            TAG_SRC="input"
+          else
+            REF="${{ github.ref }}"
+            if [[ "$REF" == refs/tags/* ]]; then
+              TAG="${REF#refs/tags/}"
+            elif [[ "$REF" == refs/heads/main || "$REF" == refs/heads/master ]]; then
+              TAG="main"
+            else
+              TAG="${REF#refs/heads/}"
+            fi
+          fi
           echo "image=ghcr.io/camster91/${REPO_NAME}" >> $GITHUB_OUTPUT
           echo "tag=${TAG}" >> $GITHUB_OUTPUT
           echo "sha=${SHA_SHORT}" >> $GITHUB_OUTPUT
+          echo "tag_src=${TAG_SRC}" >> $GITHUB_OUTPUT
+          echo "Resolved image: ghcr.io/${REPO_NAME}:${TAG} (source: ${TAG_SRC}, sha: ${SHA_SHORT})"
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -125,8 +160,12 @@ jobs:
           echo "## Image published" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Image:** \`${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.tag }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Tag source:** ${{ steps.meta.outputs.tag_src }}" >> $GITHUB_STEP_SUMMARY
           echo "**Pull:** \`docker pull ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.tag }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Pull (immutable):** \`docker pull ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.tag }}-${{ steps.meta.outputs.sha }}\`" >> $GITHUB_STEP_SUMMARY
           echo "**Run:** \`docker run -d -p 3000:3000 --name ${{ github.event.repository.name }} ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.tag }}\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Platforms:** ${{ inputs.platforms || 'linux/amd64,linux/arm64' }}" >> $GITHUB_STEP_SUMMARY
           echo "**SHA:** ${{ steps.meta.outputs.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "To rollback, redeploy the immutable tag: \`${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.tag }}-${{ steps.meta.outputs.sha }}\`" >> $GITHUB_STEP_SUMMARY

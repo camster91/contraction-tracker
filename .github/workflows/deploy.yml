@@ -10,6 +10,16 @@
 # can't resolve registry-1.docker.io even though nslookup works. Fix: the
 # repo is pre-cloned on the host at /root/repos/contraction-tracker, and
 # the compose file points at that local context.
+#
+# Image versioning / rollback:
+#   The companion reusable workflow (build-and-push.yml) publishes images
+#   to ghcr.io/camster91/contraction-tracker with three tags per build:
+#     <tag>          — caller-supplied (workflow_call) or ref-derived
+#     <tag>-<sha>    — immutable, canonical rollback handle
+#     latest         — always the most recent build
+#   To rollback on a host that pulls the GHCR image, redeploy the specific
+#   <tag>-<sha> digest. For hosts that build locally (this one), use the
+#   `git reset --hard origin/<sha>` step below with a known-good SHA.
 
 name: Deploy
 
