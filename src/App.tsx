@@ -1373,12 +1373,11 @@ export default function App() {
           />
           <ShareSheet
             sessionId={showShare}
-            contractions={contractionsInSession(contractions, showShare)}
+            _contractions={contractionsInSession(contractions, showShare)}
             onClose={() => {
               setShowShare(null);
               setSessions(getSessions());
             }}
-            onStateChange={(st) => setStateToast(st)}
           />
         </>
       )}
