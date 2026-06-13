@@ -1,37 +1,29 @@
-# Olive — Contraction Timer PWA
-# Deploy: build on main → SSH to coolify → docker compose build (no-cache)
-# → up -d → health-check live URL. Reports status to GitHub Actions summary.
+# contraction-tracker — VPS deploy
 #
-# Uses the SSH fallback path because contraction-tracker is a standalone
-# docker-compose deploy (not in Coolify's `applications` table). The
-# ~/.hermes/skills/devops/coolify/SKILL.md documents this pattern.
-#
-# Known host issue worked around here: the host's Docker build namespace
-# can't resolve registry-1.docker.io even though nslookup works. Fix: the
-# repo is pre-cloned on the host at /root/repos/contraction-tracker, and
-# the compose file points at that local context.
+# Thin caller for camster91/ashbi-deploy's reusable workflow. The
+# reusable handles ssh, docker build, up, smoke test, health check.
+# This file just provides the project-specific config (compose +
+# .env, port, public URL, paired relay).
 #
 # Image versioning / rollback:
-#   The companion reusable workflow (build-and-push.yml) publishes images
-#   to ghcr.io/camster91/contraction-tracker with three tags per build:
-#     <tag>          — caller-supplied (workflow_call) or ref-derived
-#     <tag>-<sha>    — immutable, canonical rollback handle
-#     latest         — always the most recent build
-#   To rollback on a host that pulls the GHCR image, redeploy the specific
-#   <tag>-<sha> digest. For hosts that build locally (this one), use the
-#   `git reset --hard origin/<sha>` step below with a known-good SHA.
-
+#   This repo deploys via the camster91/ashbi-deploy reusable, which
+#   builds from the local source on the host (see deploy-to-vps.sh +
+#   /opt/caddy/Caddyfile routing for the live setup). For the build
+#   reusable that publishes images to ghcr.io with three tags per
+#   build (caller-supplied, <tag>-<sha> immutable, latest), see
+#   camster91/deploy-template/.github/workflows/build-and-push.yml —
+#   the T28 commit on this repo mirrors the reusable for fleet
+#   consistency but isn't what this repo actually uses to deploy.
+#   To rollback this live app, redeploy with a known-good git SHA
+#   (the /root/repos/contraction-tracker clone on the VPS is reset
+#   to origin/main by the reusable's "Pull latest on host" step;
+#   manually `git checkout <sha>` on the host if you need to pin).
 name: Deploy
 
 on:
   push:
     branches: [main]
   workflow_dispatch:
-    inputs:
-      reason:
-        description: 'Reason for manual deploy'
-        required: false
-        default: 'manual'
 
 concurrency:
   group: production-deploy
@@ -39,139 +31,24 @@ concurrency:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    environment: production
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Resolve current version
-        id: version
-        run: |
-          VERSION=$(grep -oP "const APP_VERSION = '\K[^']+" src/App.tsx)
-          CACHE=$(grep -oP "const CACHE_NAME = '\K[^']+" public/sw.js)
-          SHORT_SHA=$(git rev-parse --short HEAD)
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "cache=$CACHE" >> $GITHUB_OUTPUT
-          echo "sha=$SHORT_SHA" >> $GITHUB_OUTPUT
-          echo "Deploying Olive v$VERSION ($CACHE) @ $SHORT_SHA"
-
-      - name: Setup SSH
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.COOLIFY_SSH_KEY }}
-
-      - name: Add host to known_hosts
-        # GitHub Actions runners block outbound port 22 by default, so
-        # `ssh-keyscan` times out. Inline the public host keys instead.
-        # Pulled from ~/.ssh/known_hosts on the build machine 2026-06-02.
-        # Lines written via printf so the YAML parser doesn't try to read
-        # the long base64 blobs as mapping keys.
-        run: |
-          mkdir -p ~/.ssh
-          printf '%s\n' \
-            '187.77.26.99 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIQQ4n2qo7ETfS7NG71tfx+OmLAIKpqJ/gBIiozkLGfO' \
-            '187.77.26.99 ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDYLLSOVRTyZegajBXcFRHhJYNGgp2f3GysKIvonWb/jkaF4hrqbdDF8nuTxjbRoEsLq/eY8Q5h41TKZqFel0rCGy1CT8IBHyGbRS4t+m+es3gGBCSEgz2DK/Fs5XNNYPUsQUc6HmEwRbsPVI1UP2rWeoIpFMjZgzVBh2F5XeO8qfNoSDkAOnI+dTC77scpZl/3Xa5EoiXy5hHfSHzqaVJ9xEojQI22B9TApFAyGQ+H1kEZ3HsRV4XDsRPaRGGxe1TmDSTJpc2Hr4ntaGbOe6jx35utpg9PIBcUH4ZBvNlqanNazYOQ8pMDrt3RF1cFFDDtyO/A8v6OW0JhmSEet4jWUlO7xb8YqFGdQ80XSwg0D2NNDg1OsA01NT6RHHJ6BaLHbRrqNi/8Ti3GbbbWB5uHOXrlryN+of1jrM48A+R0jR6LfunZ/QiQCxBGXuYes7J5iLbkpUZMwAQtujRw9MGbO7mY1WjJRTIvP7T8AzH6i6yS3mjwaeO6bHUwU1R998U=' \
-            '187.77.26.99 ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBP141ip0zmvMRjmYSEzVF4C7Ubt6hHeJHOUVcIhEB5jlXU4xKQfmcPBjiRGWkR4A69/WDoG573Oz6X4SV6ndn6o=' \
-            >> ~/.ssh/known_hosts
-          echo "Added $(wc -l < ~/.ssh/known_hosts) known hosts"
-
-      - name: "Pre-deploy: clear fail2ban self-ban"
-        # fail2ban on the Coolify host sometimes bans the GitHub Actions
-        # runner after repeated SSH attempts (the runner's IP rotates
-        # slightly). This step detects a self-ban and unbans the runner
-        # before the actual deploy SSH commands run.
-        continue-on-error: true
-        env:
-          HOST: ${{ secrets.COOLIFY_HOST }}
-          USER: ${{ secrets.COOLIFY_USER }}
-        run: |
-          MY_IP=$(curl -sS --max-time 10 https://api.ipify.org || echo "")
-          if [ -z "$MY_IP" ]; then
-            echo "Could not determine runner IP; skipping fail2ban check"
-            exit 0
-          fi
-          echo "Runner IP: $MY_IP"
-          ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new $USER@$HOST "fail2ban-client set sshd unbanip $MY_IP" || echo "fail2ban unban failed (probably not banned), continuing"
-
-      - name: Pull latest on host
-        # Force the host's local clone to match GitHub. Without --ff-only we
-        # can hit "Already up to date" lies when the local tracking ref is
-        # itself stale (documented in coolify skill).
-        run: |
-          ssh ${{ secrets.COOLIFY_USER }}@${{ secrets.COOLIFY_HOST }} <<'EOF'
-            set -e
-            cd /root/repos/contraction-tracker
-            git fetch origin
-            git reset --hard origin/main
-            echo "HEAD now at: $(git rev-parse --short HEAD)"
-            echo "APP_VERSION: $(grep "const APP_VERSION" src/App.tsx | head -1)"
-            echo "CACHE_NAME: $(grep "const CACHE_NAME" public/sw.js | head -1)"
-          EOF
-
-      - name: Build + restart container
-        run: |
-          ssh ${{ secrets.COOLIFY_USER }}@${{ secrets.COOLIFY_HOST }} <<'EOF'
-            set -e
-            cd /data/coolify/applications/contraction-tracker
-            # --no-cache + unique tag suffix avoids the stale-image double-trap
-            TAG="ct-$(date +%Y%m%d-%H%M%S)-${{ steps.version.outputs.sha }}"
-            echo "Building image tag: $TAG"
-            docker compose build --no-cache --pull
-            # Tag the freshly built image so the next run can't reuse a
-            # previous build's layer cache.
-            docker tag contraction-tracker-web:latest "$TAG" || true
-            docker compose up -d --no-deps --remove-orphans
-            sleep 4
-            echo "--- Container status ---"
-            docker ps --filter "name=contraction-tracker" --format "table {{.Names}}\t{{.Status}}\t{{.Image}}"
-          EOF
-
-      - name: Health check (live site)
-        run: |
-          sleep 5
-          # Hit the live site, verify it's serving the new SW cache + version
-          HTTP=$(curl -s -o /tmp/luna.html -w "%{http_code}" --max-time 30 https://contractions.ashbi.ca/)
-          CACHE_LIVE=$(curl -s https://contractions.ashbi.ca/sw.js | grep -oP "const CACHE_NAME = '\K[^']+" || echo "unknown")
-          echo "Live site HTTP: $HTTP"
-          echo "Live SW cache:  $CACHE_LIVE"
-          echo "Expected cache:  ${{ steps.version.outputs.cache }}"
-          if [ "$HTTP" != "200" ]; then
-            echo "::error::Live site returned $HTTP"
-            exit 1
-          fi
-          if [ "$CACHE_LIVE" != "${{ steps.version.outputs.cache }}" ]; then
-            echo "::warning::SW cache mismatch. Live=$CACHE_LIVE, expected=${{ steps.version.outputs.cache }}."
-            echo "This usually means the SW hasn't been activated yet (clients.claim takes a moment). Not a build failure."
-          fi
-
-      - name: Summary
-        if: always()
-        env:
-          VERSION: ${{ steps.version.outputs.version }}
-          CACHE: ${{ steps.version.outputs.cache }}
-          SHA: ${{ steps.version.outputs.sha }}
-          TRIGGER: ${{ github.event_name }}
-          REASON: ${{ github.event.inputs.reason || '' }}
-          COMMIT_MSG: ${{ github.event.head_commit.message || '' }}
-          JOB_STATUS: ${{ job.status }}
-        run: |
-          {
-            echo "## Olive deploy"
-            echo ""
-            echo "- **Version:** $VERSION"
-            echo "- **Cache:**  $CACHE"
-            echo "- **SHA:**    $SHA"
-            echo "- **URL:**    https://contractions.ashbi.ca/"
-            echo "- **Result:** $JOB_STATUS"
-            echo ""
-            if [ -n "$COMMIT_MSG" ]; then
-              echo "Trigger: $TRIGGER — $COMMIT_MSG"
-            elif [ -n "$REASON" ]; then
-              echo "Trigger: $TRIGGER ($REASON)"
-            else
-              echo "Trigger: $TRIGGER"
-            fi
-          } >> $GITHUB_STEP_SUMMARY
+    name: Deploy contraction-tracker
+    uses: camster91/ashbi-deploy/.github/workflows/deploy.yml@v0.1.0
+    with:
+      project_name: contraction-tracker
+      port: "3031"
+      public_url: https://contractions.ashbi.ca
+      # Base64-encoded docker-compose.yml and .env. Decoded into
+      # /opt/projects/contraction-tracker/ on the host. See the
+      # README in camster91/ashbi-deploy for why we base64 (YAML/
+      # heredoc nesting bug avoidance).
+      compose_b64: c2VydmljZXM6CiAgYXBwOgogICAgYnVpbGQ6CiAgICAgIGNvbnRleHQ6IC4vc3JjCiAgICAgIGRvY2tlcmZpbGU6IERvY2tlcmZpbGUKICAgIGltYWdlOiBjYW1zdGVyOTEvY29udHJhY3Rpb24tdHJhY2tlcjpidWlsZC1sYXRlc3QKICAgIGNvbnRhaW5lcl9uYW1lOiBjb250cmFjdGlvbi10cmFja2VyCiAgICByZXN0YXJ0OiB1bmxlc3Mtc3RvcHBlZAogICAgZW52X2ZpbGU6CiAgICAgIC0gLmVudgogICAgcG9ydHM6CiAgICAgIC0gIiR7VFJBQ0tFUl9QT1JUOi0zMDMxfTozMDAwIgogICAgbmV0d29ya3M6CiAgICAgIC0gcHJveHkKCm5ldHdvcmtzOgogIHByb3h5OgogICAgbmFtZTogcHJveHkKICAgIGV4dGVybmFsOiB0cnVlCg==
+      env_b64: VklURV9SRUxBWV9VUkw9aHR0cHM6Ly9yZWxheS5hc2hiaS5jYQpWSVRFX1BVQkxJQ19VUkw9aHR0cHM6Ly9jb250cmFjdGlvbnMuYXNoYmkuY2EK
+      # Paired relay (Express + sql.js SSE backend)
+      relay_project_name: contraction-tracker-relay
+      relay_port: "3032"
+      relay_compose_b64: c2VydmljZXM6CiAgYXBwOgogICAgYnVpbGQ6CiAgICAgIGNvbnRleHQ6IC4vc3JjCiAgICAgIGRvY2tlcmZpbGU6IERvY2tlcmZpbGUKICAgIGltYWdlOiBjYW1zdGVyOTEvY29udHJhY3Rpb24tdHJhY2tlci1yZWxheTpidWlsZC1sYXRlc3QKICAgIGNvbnRhaW5lcl9uYW1lOiBjb250cmFjdGlvbi10cmFja2VyLXJlbGF5CiAgICByZXN0YXJ0OiB1bmxlc3Mtc3RvcHBlZAogICAgZW52X2ZpbGU6CiAgICAgIC0gLmVudgogICAgdm9sdW1lczoKICAgICAgLSB0cmFja2VyLXJlbGF5LWRhdGE6L2FwcC9kYXRhCiAgICBwb3J0czoKICAgICAgLSAiJHtSRUxBWV9QT1JUOi0zMDMyfTozMDAwIgogICAgbmV0d29ya3M6CiAgICAgIC0gcHJveHkKCnZvbHVtZXM6CiAgdHJhY2tlci1yZWxheS1kYXRhOgoKbmV0d29ya3M6CiAgcHJveHk6CiAgICBuYW1lOiBwcm94eQogICAgZXh0ZXJuYWw6IHRydWUK
+      relay_env_b64: UE9SVD0zMDAwCkRCX1BBVEg9L2FwcC9kYXRhL3JlbGF5LmRiCkFMTE9XRURfT1JJR0lOPWh0dHBzOi8vY29udHJhY3Rpb25zLmFzaGJpLmNhCg==
+    secrets:
+      vps_ssh_key: ${{ secrets.VPS_SSH_KEY || secrets.COOLIFY_SSH_KEY }}
+      vps_host:    ${{ secrets.VPS_HOST    || secrets.COOLIFY_HOST }}
+      vps_user:    ${{ secrets.VPS_USER    || secrets.COOLIFY_USER }}
