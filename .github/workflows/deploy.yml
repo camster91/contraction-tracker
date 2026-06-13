@@ -5,20 +5,19 @@
 # This file just provides the project-specific config (compose +
 # .env, port, public URL, paired relay).
 #
-# Pattern matches the convention documented in
-# https://github.com/camster91/ashbi-deploy — see that repo's README
-# for the full migration guide.
-#
-# Required GitHub secrets in this repo:
-#   VPS_SSH_KEY  — private key, root@187.77.26.99
-#   VPS_HOST     — VPS hostname or IP (e.g. "187.77.26.99")
-#   VPS_USER     — SSH user (usually "root")
-#   (legacy aliases COOLIFY_SSH_KEY / COOLIFY_HOST / COOLIFY_USER
-#   also work — set them if you don't want to rename the secrets.)
-#
-# Required GitHub environment: production (for the manual-approval
-# gate under Settings → Environments).
-
+# Image versioning / rollback:
+#   This repo deploys via the camster91/ashbi-deploy reusable, which
+#   builds from the local source on the host (see deploy-to-vps.sh +
+#   /opt/caddy/Caddyfile routing for the live setup). For the build
+#   reusable that publishes images to ghcr.io with three tags per
+#   build (caller-supplied, <tag>-<sha> immutable, latest), see
+#   camster91/deploy-template/.github/workflows/build-and-push.yml —
+#   the T28 commit on this repo mirrors the reusable for fleet
+#   consistency but isn't what this repo actually uses to deploy.
+#   To rollback this live app, redeploy with a known-good git SHA
+#   (the /root/repos/contraction-tracker clone on the VPS is reset
+#   to origin/main by the reusable's "Pull latest on host" step;
+#   manually `git checkout <sha>` on the host if you need to pin).
 name: Deploy
 
 on:
