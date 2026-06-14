@@ -3,7 +3,7 @@
  * Pre-caches JS/CSS bundles during install so the app loads
  * instantly on repeat visits. */
 
-const CACHE_NAME = 'olive-v2';
+const CACHE_NAME = 'olive-v3';
 const APP_SHELL = [
   '/',
   '/index.html',
