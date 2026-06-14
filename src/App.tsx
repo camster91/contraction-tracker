@@ -105,6 +105,7 @@ import { getShareFromRelay, pushContractionsToRelay, setShareStateOnRelay, postC
 import { getOrCreateClientId } from './lib/identity';
 import Onboarding from './components/Onboarding';
 import StatusUpdatePrompt from './components/StatusUpdatePrompt';
+import BabyIsHereMount from './components/BabyIsHereMount';
 import TagFilter from './components/TagFilter';
 import HistoryHeader from './components/HistoryHeader';
 
@@ -1047,6 +1048,41 @@ export default function App() {
     [contractions],
   );
 
+  // Active share for the current session. Used to gate the inline
+  // status composer + Baby is here button. Only valid if there's a
+  // non-revoked share for the active session.
+  const activeShare = useMemo(() => {
+    return getShares().find(
+      (s) => s.sessionId === activeSessionId && !s.revoked,
+    ) || null;
+  }, [activeSessionId]);
+
+  // Hide the inline status composer + Baby button during onboarding
+  // (3am in-labor user has enough on screen).
+  const hideStatusSurface = onboardingStep !== null && finished.length === 0 && !current;
+
+  // Whether to show the Baby is here button. Only when there's an
+  // active share AND the share's state hasn't already moved past
+  // active labor (postpartum / archived means baby is already here
+  // or the share is dead). Without a share, the button has no place
+  // to post the celebration.
+  const showBabyButton = !!activeShare && activeShare.state !== 'postpartum' && activeShare.state !== 'archived';
+
+  // Local state for the inline status composer. Empty by default;
+  // cleared on submit.
+  const [statusDraft, setStatusDraft] = useState('');
+  const [statusSending, setStatusSending] = useState(false);
+  const handlePostStatus = async () => {
+    const text = statusDraft.trim();
+    if (!text || !activeShare || statusSending) return;
+    setStatusSending(true);
+    try {
+      await postMessage(activeShare.id, 'status', text, 'Cam', undefined);
+      setStatusDraft('');
+    } catch { /* best-effort */ }
+    setStatusSending(false);
+  };
+
   // One-time migration: stamp old contractions (no sessionId) with the primary
   // session. Idempotent — only writes if any are missing the field.
   useEffect(() => {
@@ -1793,6 +1829,55 @@ export default function App() {
         {/* Onboarding — 3 inline hint cards for first-time users */}
         {onboardingStep !== null && finished.length === 0 && !current && (
           <Onboarding onDismiss={() => setOnboardingStep(null)} />
+        )}
+
+        {/* Status update composer + Baby is here button.
+            Always visible when there's an active share and we're not in
+            onboarding. The composer is the canonical way to post a
+            free-text status note to the network (replaces the topbar
+            prompt). The Baby button is the celebratory birth trigger. */}
+        {!hideStatusSurface && activeShare && (
+          <div className="mb-3 space-y-2">
+            {/* Inline status composer. Posts a free-text message to
+                the network via the same path the partner's
+                StatusUpdatePrompt uses. Empty by default; cleared on
+                submit; Enter or Post button to send. Disabled while a
+                post is in flight to prevent double-submits. */}
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={statusDraft}
+                onChange={(e) => setStatusDraft(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handlePostStatus()}
+                placeholder={finished.length === 0
+                  ? "Tell your circle how it's going…"
+                  : "Update your circle…"}
+                disabled={statusSending}
+                className="flex-1 bg-ink-100/5 border border-ink-200/30 rounded-xl px-3 py-2 text-sm text-ink-50 placeholder:text-ink-500 focus:outline-none focus:border-rose-300/50 disabled:opacity-50"
+              />
+              <button
+                onClick={handlePostStatus}
+                disabled={!statusDraft.trim() || statusSending}
+                className="bg-rose-300 active:bg-rose-400 disabled:bg-rose-300/60 disabled:text-plum-950/60 text-plum-950 rounded-xl px-3 py-2 text-sm font-semibold transition-colors"
+                aria-label="Post status update"
+              >
+                {statusSending ? '…' : 'Post'}
+              </button>
+            </div>
+
+            {/* Baby is here — only when there's a share AND the
+                celebration hasn't happened yet. Once the host posts
+                the birth, the share's state transitions to postpartum
+                and this button disappears. */}
+            {showBabyButton && (
+              <BabyIsHereMount
+                share={activeShare.id}
+                onSuccess={() => {
+                  setStateToast('🎉 Baby is here! Share updated.');
+                }}
+              />
+            )}
+          </div>
         )}
 
         {/* Feature carousel — swipeable cards for quick access to every feature.
