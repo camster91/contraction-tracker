@@ -235,10 +235,10 @@ export default function ActivityFeed({ code, shareState, viewerName, readOnly = 
       <div style={{ padding: '20px 0' }}>
         <div style={{ textAlign: 'center', marginBottom: 16 }}>
           <div style={{ fontSize: 14, color: '#faf6f4', fontFamily: 'Fraunces, Georgia, serif', marginBottom: 4 }}>
-            Sign the guestbook
+            Sign in
           </div>
           <div style={{ fontSize: 12, color: '#8a6f64' }}>
-            Enter your name so others know who you are
+            Just so messages have a name attached
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
@@ -307,7 +307,7 @@ export default function ActivityFeed({ code, shareState, viewerName, readOnly = 
       {/* Messages list */}
       {messages.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '24px 0', color: '#8a6f64', fontSize: 12 }}>
-          No messages yet — be the first to share a thought.
+          No messages yet — say hi when you arrive.
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
