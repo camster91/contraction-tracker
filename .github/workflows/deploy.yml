@@ -32,7 +32,7 @@ concurrency:
 jobs:
   deploy:
     name: Deploy contraction-tracker
-    uses: camster91/ashbi-deploy/.github/workflows/deploy.yml@v0.2.2
+    uses: camster91/ashbi-deploy/.github/workflows/deploy.yml@v0.2.3
     with:
       project_name: contraction-tracker
       port: "3031"
