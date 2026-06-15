@@ -52,3 +52,28 @@ jobs:
       vps_ssh_key: ${{ secrets.VPS_SSH_KEY || secrets.COOLIFY_SSH_KEY }}
       vps_host:    ${{ secrets.VPS_HOST    || secrets.COOLIFY_HOST }}
       vps_user:    ${{ secrets.VPS_USER    || secrets.COOLIFY_USER }}
+
+  # Pre-flight: surface legacy COOLIFY_* secret usage as a warning.
+  # If a stale COOLIFY_* value is set in this repo, the deploy would
+  # silently use it via the || fallback above. The audit (commit
+  # a7aead4) flagged this as a LOW-severity issue. We can't read
+  # another secret's *value* (secrets are opaque), but we can detect
+  # presence via the `actions/secrets/variables` API or, more
+  # simply, by checking if the reusable's env landed in the
+  # working dir. This step is best-effort: if it can't tell, it
+  # says so and moves on. Hard-fail is overkill — the legacy
+  # alias is there for backward compat and shouldn't block deploys.
+  legacy-secret-check:
+    name: Warn if legacy COOLIFY_* secrets are set
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check secret presence
+        env:
+          HAS_VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY != '' }}
+          HAS_COOLIFY_SSH_KEY: ${{ secrets.COOLIFY_SSH_KEY != '' }}
+        run: |
+          if [ "$HAS_COOLIFY_SSH_KEY" = "true" ] && [ "$HAS_VPS_SSH_KEY" != "true" ]; then
+            echo "::warning::COOLIFY_SSH_KEY is set but VPS_SSH_KEY is not. Deploy will use the legacy alias. Remove the COOLIFY_* secret from this repo's settings to avoid silent fallback."
+          elif [ "$HAS_COOLIFY_SSH_KEY" = "true" ]; then
+            echo "::notice::COOLIFY_SSH_KEY is set (legacy) — VPS_SSH_KEY takes precedence. Safe to remove the COOLIFY_* alias when convenient."
+          fi

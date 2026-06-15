@@ -1083,7 +1083,7 @@ export default function App() {
     setStatusSending(true);
     setStatusError(null);
     try {
-      await postMessage(activeShare.id, 'status', text, 'Cam', undefined);
+      await postMessage(activeShare.id, 'status', text, 'Host', undefined);
       setStatusDraft('');
     } catch {
       // Don't clear the input — the user typed something meaningful
@@ -1420,7 +1420,6 @@ export default function App() {
           />
           <ShareSheet
             sessionId={showShare}
-            _contractions={contractionsInSession(contractions, showShare)}
             onClose={() => {
               setShowShare(null);
               setSessions(getSessions());

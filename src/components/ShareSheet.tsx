@@ -43,16 +43,10 @@ import {
   revokeShare,
 } from '../lib/sessions';
 import { createShareOnRelay, pushContractionsToRelay, revokeShareOnRelay } from '../lib/relay';
-import type { Contraction } from '../lib/contractions';
 import type { Person } from '../lib/sessions';
 
 type Props = {
   sessionId: string;
-  // Current contraction list for the session. Reserved for future use
-  // (e.g. a "X contractions in this share" badge or a "since last
-  // contraction" elapsed hint). Currently unused but kept in the
-  // API so callers don't have to change when we add the badge.
-  _contractions: Contraction[];
   onClose: () => void;
 };
 

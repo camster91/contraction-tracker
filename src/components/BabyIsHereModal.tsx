@@ -110,6 +110,16 @@ export default function BabyIsHereModal({ code, onClose, onBabyPosted }: Props) 
           <p className="text-[11px] text-ink-400 leading-relaxed">
             Share the happy news with your circle. All fields are optional — name is required.
           </p>
+          {/* Privacy disclosure. Per the v1.0.1 audit: the newborn's
+              name + weight + length + birth time are posted to the
+              share server and persisted there. Anyone with the
+              share link can read them. The host should be the one
+              deciding what's shared — say it explicitly. (Long-term
+              fix: split the "celebration" message from the structured
+              birth-stats fields; out of scope for this commit.) */}
+          <p className="text-[10px] text-ink-500 leading-relaxed italic">
+            What you enter here will be visible to anyone with the share link and stored on the share server. Tap Cancel to dismiss without sharing.
+          </p>
 
           {error && (
             <div className="rounded-xl border border-amber-300/40 bg-amber-300/10 px-3 py-2 text-xs text-amber-100">
