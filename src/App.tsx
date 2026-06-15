@@ -100,11 +100,10 @@ import {
 } from './lib/sessions';
 import { getChecklist, packedCount, saveChecklist } from './lib/checklist';
 import { getExams } from './lib/hospital';
-import { postMessage, type MessageKind } from './lib/feed';
+import { postMessage } from './lib/feed';
 import { getShareFromRelay, pushContractionsToRelay, setShareStateOnRelay, postContractionEventToRelay, RELAY_URL } from './lib/relay';
 import { getOrCreateClientId } from './lib/identity';
 import Onboarding from './components/Onboarding';
-import StatusUpdatePrompt from './components/StatusUpdatePrompt';
 import BabyIsHereMount from './components/BabyIsHereMount';
 import TagFilter from './components/TagFilter';
 import HistoryHeader from './components/HistoryHeader';
@@ -206,9 +205,10 @@ export default function App() {
   const [stateToast, setStateToast] = useState<string | null>(null);
   const [backupError, setBackupError] = useState<string | null>(null);
 
-  // Status update prompt — bottom-sheet replacing the old window.prompt
-  const [showStatusPrompt, setShowStatusPrompt] = useState(false);
-
+  // Status update prompt removed in v1.0.1 (replaced by the inline
+  // composer + Baby is here button, see commit history). The old
+  // StatusUpdatePrompt component still exists in src/components/
+  // for now but is no longer mounted from App.tsx.
   // Hidden file input for importing backups
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -1050,12 +1050,15 @@ export default function App() {
 
   // Active share for the current session. Used to gate the inline
   // status composer + Baby is here button. Only valid if there's a
-  // non-revoked share for the active session.
-  const activeShare = useMemo(() => {
-    return getShares().find(
-      (s) => s.sessionId === activeSessionId && !s.revoked,
-    ) || null;
-  }, [activeSessionId]);
+  // non-revoked share for the active session. Not memoized: a
+  // memoized version with dep [activeSessionId] would NOT re-run
+  // when the share is revoked (shares are stored in localStorage,
+  // and localStorage mutations don't trigger re-renders). For the
+  // tiny per-render cost of getShares() (a single JSON.parse),
+  // a plain read is the right call.
+  const activeShare = getShares().find(
+    (s) => s.sessionId === activeSessionId && !s.revoked,
+  ) || null;
 
   // Hide the inline status composer + Baby button during onboarding
   // (3am in-labor user has enough on screen).
@@ -1069,17 +1072,25 @@ export default function App() {
   const showBabyButton = !!activeShare && activeShare.state !== 'postpartum' && activeShare.state !== 'archived';
 
   // Local state for the inline status composer. Empty by default;
-  // cleared on submit.
+  // cleared on submit. On failure, kept + shown as inline error so
+  // the host can retry.
   const [statusDraft, setStatusDraft] = useState('');
   const [statusSending, setStatusSending] = useState(false);
+  const [statusError, setStatusError] = useState<string | null>(null);
   const handlePostStatus = async () => {
     const text = statusDraft.trim();
     if (!text || !activeShare || statusSending) return;
     setStatusSending(true);
+    setStatusError(null);
     try {
       await postMessage(activeShare.id, 'status', text, 'Cam', undefined);
       setStatusDraft('');
-    } catch { /* best-effort */ }
+    } catch {
+      // Don't clear the input — the user typed something meaningful
+      // and deserves to retry. Inline error message below the
+      // composer tells them what happened.
+      setStatusError("Couldn't reach the share server. Tap Post to retry.");
+    }
     setStatusSending(false);
   };
 
@@ -1418,20 +1429,6 @@ export default function App() {
         </>
       )}
 
-      {/* Status update prompt — bottom-sheet replacing window.prompt */}
-      {showStatusPrompt && (
-        <StatusUpdatePrompt
-          share={activeSessionId}
-          onClose={() => setShowStatusPrompt(false)}
-          onPost={(kind, content) => {
-            const shares = getShares().filter(s => s.sessionId === activeSessionId && !s.revoked);
-            if (shares[0]) {
-              postMessage(shares[0].id, kind as MessageKind, content, 'Cam', undefined).catch(() => {});
-            }
-          }}
-        />
-      )}
-
       {/* Header */}
       <header className="flex-shrink-0 px-5 pt-5 pb-3 flex items-center justify-between relative">
         <button
@@ -1476,15 +1473,6 @@ export default function App() {
             title="Share with partner"
           >
             <Share2 className="w-4 h-4" strokeWidth={1.75} />
-          </button>
-          {/* Status update — opens bottom-sheet prompt */}
-          <button
-            onClick={() => setShowStatusPrompt(true)}
-            className="p-2 rounded-lg text-ink-300 active:text-sage-300 active:bg-sage-300/10 transition-colors"
-            aria-label="Post status update"
-            title="Post status update"
-          >
-            <Tag className="w-4 h-4" strokeWidth={1.75} />
           </button>
           {/* Sound on/off */}
           <button
@@ -1852,6 +1840,12 @@ export default function App() {
                 placeholder={finished.length === 0
                   ? "Tell your circle how it's going…"
                   : "Update your circle…"}
+                // Cap matches ActivityFeed's composer (src/components/
+                // ActivityFeed.tsx:336). Without a cap, a runaway tab/
+                // extension can fill localStorage + the relay DB
+                // with unbounded content that broadcasts to every
+                // viewer on every refresh.
+                maxLength={2000}
                 disabled={statusSending}
                 className="flex-1 bg-ink-100/5 border border-ink-200/30 rounded-xl px-3 py-2 text-sm text-ink-50 placeholder:text-ink-500 focus:outline-none focus:border-rose-300/50 disabled:opacity-50"
               />
@@ -1864,6 +1858,11 @@ export default function App() {
                 {statusSending ? '…' : 'Post'}
               </button>
             </div>
+            {statusError && (
+              <div className="text-[11px] text-amber-200 px-1">
+                {statusError}
+              </div>
+            )}
 
             {/* Baby is here — only when there's a share AND the
                 celebration hasn't happened yet. Once the host posts

@@ -5,6 +5,8 @@
 import { useState } from 'react';
 import { X } from 'lucide-react';
 import { postMessage } from '../lib/feed';
+import { setShareState } from '../lib/sessions';
+import { setShareStateOnRelay } from '../lib/relay';
 
 type Props = {
   code: string;
@@ -52,7 +54,23 @@ export default function BabyIsHereModal({ code, onClose, onBabyPosted }: Props) 
 
     const message = parts.join(' · ');
 
-    await postMessage(code, 'status', message, 'Host', undefined);
+    try {
+      // Post the celebration to the partner's activity feed first.
+      // If this fails, don't transition state — the host can re-tap.
+      await postMessage(code, 'status', message, 'Host', undefined);
+    } catch {
+      setError("Couldn't reach the share server. Tap Save to retry.");
+      setSaving(false);
+      return;
+    }
+    // Celebration posted — transition the share to 'postpartum' both
+    // locally and on the relay. The host's button hides (the showBaby
+    // flag in App.tsx gates on state !== 'postpartum'); the partner
+    // view also sees the state change. Without this, the Baby
+    // button would stay visible after the celebration and the host
+    // could re-tap it, posting duplicate "X is here!" messages.
+    setShareState(code, 'postpartum');
+    setShareStateOnRelay(code, 'postpartum').catch(() => { /* best-effort — local mirror is the source of truth */ });
     setSaving(false);
     onBabyPosted();
     onClose();
@@ -109,6 +127,10 @@ export default function BabyIsHereModal({ code, onClose, onBabyPosted }: Props) 
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Rowan"
+              // Cap to a reasonable baby-name length (60 chars covers
+              // any real name + nicknames). Without a cap, a runaway
+              // tab could post a 100KB name to the relay.
+              maxLength={60}
               className="w-full bg-ink-100/5 border border-ink-200/30 rounded-xl px-3 py-2.5 text-sm text-ink-50 placeholder:text-ink-500 focus:outline-none focus:border-rose-300/50"
               autoFocus
             />
