@@ -32,11 +32,21 @@ concurrency:
 jobs:
   deploy:
     name: Deploy contraction-tracker
-    uses: camster91/ashbi-deploy/.github/workflows/deploy.yml@v0.1.0
+    uses: camster91/ashbi-deploy/.github/workflows/deploy.yml@v0.2.2
     with:
       project_name: contraction-tracker
       port: "3031"
       public_url: https://contractions.ashbi.ca
+      # ashbi-deploy v0.2.0+ added deploy_mode (build|pull) and
+      # pull_always (true|false). The reusable's input default
+      # ('build') is decorative — if the caller doesn't pass the
+      # input explicitly, ${{ inputs.deploy_mode }} evaluates to ''
+      # inside the reusable, which the validation rejects. So we
+      # pass it explicitly even though it's the default. (The
+      # v0.2.2 reusable fix means these vars now propagate to the
+      # remote shell correctly — see ashbi-deploy commit ff74413.)
+      deploy_mode: build
+      pull_always: true
       # Base64-encoded docker-compose.yml and .env. Decoded into
       # /opt/projects/contraction-tracker/ on the host. See the
       # README in camster91/ashbi-deploy for why we base64 (YAML/
