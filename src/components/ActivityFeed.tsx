@@ -13,7 +13,12 @@ type Props = {
   code: string;
   shareState: string;
   viewerName?: string;
-  isHost?: boolean;
+  // isHost removed (2026-06-15) — the readOnly prop below is the
+  // single source of truth for the partner-vs-host behavior. The
+  // previous isHost prop was a stub declared but never read; keeping
+  // it would have been a trap for future contributors. Host = the
+  // app's own user (readOnly=false); partner = the recipient of
+  // /?share=CODE (readOnly=true, set by ShareView).
   readOnly?: boolean;
 };
 
