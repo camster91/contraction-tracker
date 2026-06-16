@@ -33,24 +33,25 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # Pre-flight: pull latest source on the host so the build context
-  # in /opt/projects/contraction-tracker/src/ is up-to-date when the
-  # reusable runs `docker compose build --no-cache`. Without this
-  # step, the build would use whatever was checked out at the time
-  # of the first deploy, and the deploy workflow would silently
-  # produce an old image even after a "successful" run.
+  # Pre-flight: rsync the latest source from the runner's git
+  # checkout to the host's /opt/projects/contraction-tracker/src/
+  # directory. The reusable runs `docker compose build --no-cache`
+  # from the host's src/ as the build context — without this
+  # pre-flight, the build would use whatever files were copied at
+  # the time of the first manual deploy (often a stale chore-champs
+  # clone or similar), and `docker compose build` would happily
+  # produce an old image even after a "successful" workflow run.
+  # The pre-flight is what keeps the live container in sync with
+  # the current source.
   #
-  # Idempotent: a fast-forward merge when main is ahead, or a
-  # no-op when the host's checkout is already at the same SHA.
-  # If the local checkout has uncommitted changes (e.g. an
-  # operator was debugging on the host), the fetch + reset would
-  # discard them — that's the intended "deploy overrides local
-  # edits" behavior. The reusable doesn't touch source, so
-  # there's no merge conflict possible.
+  # Why rsync instead of git pull: the host's src/ is a plain
+  # directory copy (no .git) from a previous manual setup. We
+  # could `git init && git pull origin/main` but rsync from the
+  # runner's git checkout is faster and matches the source
+  # exactly (same SHA as the commit the workflow just built).
   #
-  # Runs on a dummy ubuntu runner with the SSH key, mirrors the
-  # reusable's setup. The reusable runs separately, picks up the
-  # updated source, and builds from it.
+  # Runs on a dummy ubuntu runner with the SSH key. The reusable
+  # runs after, picks up the updated source, and builds from it.
   sync-source-on-host:
     name: Sync source on host to origin/main
     runs-on: ubuntu-latest
@@ -59,40 +60,30 @@ jobs:
         uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.VPS_SSH_KEY || secrets.COOLIFY_SSH_KEY }}
-      - name: Pull latest on host
+      - name: Push source to host via rsync
         env:
           HOST: ${{ secrets.VPS_HOST || secrets.COOLIFY_HOST }}
           USER: ${{ secrets.VPS_USER || secrets.COOLIFY_USER }}
         run: |
-          ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new $USER@$HOST <<'EOF'
-            set -e
-            cd /opt/projects/contraction-tracker/src
-            # Defensive: if the remote is misnamed (a previous
-            # deploy set it to chore-champs, or some other app
-            # cloned in as a sentinel), point it at the real
-            # contraction-tracker repo. Cheap no-op if already
-            # correct.
-            if ! git remote get-url origin | grep -q contraction-tracker; then
-              echo "Origin remote is not contraction-tracker; resetting"
-              git remote set-url origin https://github.com/camster91/contraction-tracker.git
-            fi
-            # Track main if not already on it (the build context
-            # needs to be the source the deploy workflow just
-            # pushed to, not some side branch).
-            CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "detached")
-            if [ "$CURRENT_BRANCH" != "main" ]; then
-              echo "Currently on '$CURRENT_BRANCH'; switching to main"
-              git checkout main 2>&1 | tail -3 || true
-            fi
-            # Fetch + hard-reset to origin/main. The build context
-            # after this is exactly the source the workflow just
-            # pushed. The reusable's `docker compose build --no-cache`
-            # will then use this as the build context.
-            git fetch origin main 2>&1 | tail -3
-            git reset --hard origin/main 2>&1 | tail -3
-            echo "Source now at:"
-            git log --oneline -1
-          EOF
+          # Push every file in this repo EXCEPT .git (the host
+          # doesn't need git history — it just needs the working
+          # tree as the Docker build context), node_modules
+          # (Docker builds from package*.json + a `npm ci` step,
+          # no need to push 100K+ files of dependencies), and
+          # .github/workflows (host doesn't run GH Actions; the
+          # reusable handles the deploy). Also skip dist/ (output
+          # directory) and .hermes/ (local-only).
+          ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new $USER@$HOST "mkdir -p /opt/projects/contraction-tracker/src"
+          rsync -az --delete \
+            --exclude='.git/' \
+            --exclude='node_modules/' \
+            --exclude='dist/' \
+            --exclude='.hermes/' \
+            --exclude='.github/workflows/' \
+            --exclude='*.log' \
+            ./ $USER@$HOST:/opt/projects/contraction-tracker/src/
+          echo "Synced. Verifying host SHA matches the pushed commit:"
+          ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new $USER@$HOST "cd /opt/projects/contraction-tracker/src && head -5 public/sw.js"
 
   deploy:
     name: Deploy contraction-tracker
