@@ -1,5 +1,12 @@
 // Read-only share view rendered at `/?share=CODE`.
 // v3 — state-aware with activity feed.
+//
+// Audience: the host's "circle" — partner, parents, siblings,
+// doula, OB/GYN. The copy is written for the non-medical
+// members of the circle (parents, siblings): clinical terms
+// like "active labor" are softened to "things are starting",
+// "contractions so far" is softened to "first signs recorded"
+// etc. Medical users still get the numerical data below.
 
 import { useEffect, useMemo, useState } from 'react';
 import { Heart, Shield, AlertTriangle, Clock } from 'lucide-react';
@@ -574,13 +581,18 @@ export default function ShareView({ code }: { code: string }) {
           );
         })()}
 
-        {/* State banner */}
+        {/* State banner. v3.1 — copy softened for non-medical circle
+            members (parents, siblings). The clinical state names
+            stay in the data layer; here we use plain-language
+            "things are starting" / "first signs recorded" so a
+            parent who has never seen a labor app before knows
+            what they're looking at. */}
         {shareState === 'prenatal' && (
           <div style={{ borderRadius: 14, border: '1px solid rgba(232,149,122,0.25)', background: 'rgba(232,149,122,0.08)', padding: '10px 14px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#8a6f64', flexShrink: 0 }} />
             <div>
-              <div style={{ fontSize: 12, color: '#e8957a', fontWeight: 600 }}>Waiting for labor to begin</div>
-              <div style={{ fontSize: 10, color: '#8a6f64', marginTop: 2 }}>Share this link with your circle — they'll see updates in real time</div>
+              <div style={{ fontSize: 12, color: '#e8957a', fontWeight: 600 }}>All quiet for now</div>
+              <div style={{ fontSize: 10, color: '#8a6f64', marginTop: 2 }}>We'll let you know when something happens</div>
             </div>
           </div>
         )}
@@ -588,8 +600,8 @@ export default function ShareView({ code }: { code: string }) {
           <div style={{ borderRadius: 14, border: '1px solid rgba(232,149,122,0.4)', background: 'rgba(232,149,122,0.12)', padding: '10px 14px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#e8957a', flexShrink: 0, animation: 'pulse 2s infinite' }} />
             <div>
-              <div style={{ fontSize: 12, color: '#e8957a', fontWeight: 600 }}>Active labor</div>
-              <div style={{ fontSize: 10, color: '#b89184', marginTop: 2 }}>{finished.length} contraction{finished.length !== 1 ? 's' : ''} so far</div>
+              <div style={{ fontSize: 12, color: '#e8957a', fontWeight: 600 }}>Things are starting</div>
+              <div style={{ fontSize: 10, color: '#b89184', marginTop: 2 }}>{finished.length === 0 ? 'No contractions recorded yet — but she\'s getting ready' : `${finished.length} contraction${finished.length !== 1 ? 's' : ''} so far`}</div>
             </div>
           </div>
         )}
