@@ -197,13 +197,13 @@ export default function ActivityFeed({ code, shareState, viewerName, readOnly = 
     if (!effectiveName) return;
     setSending(true);
     try {
+      // postMessage throws on failure now (was: returned null). The
+      // try/catch below is finally wired — see feed.ts comment.
       const msg = await postMessage(code, kind, content, nameInput.trim(), clientId.current);
-      if (msg) {
-        setMessages((prev) => {
-          if (prev.find((m) => m.id === msg.id)) return prev;
-          return [...prev, msg];
-        });
-      }
+      setMessages((prev) => {
+        if (prev.find((m) => m.id === msg.id)) return prev;
+        return [...prev, msg];
+      });
     } catch { /* ignore */ }
     setSending(false);
   };

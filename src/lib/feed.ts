@@ -32,17 +32,27 @@ export async function postMessage(
   content: string,
   authorName: string,
   clientId?: string,
-): Promise<Message | null> {
-  try {
-    const res = await fetch(`${RELAY_URL}/api/shares/${code}/messages`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ kind, content, authorName, clientId }),
-    });
-    if (!res.ok) return null;
-    const data = await res.json();
-    return data.message || null;
-  } catch {
-    return null;
+): Promise<Message> {
+  // Throws on failure rather than returning null. The v1.0.2 audit
+  // (a7aead4 comment) and the b75adb5 cycle audit both flagged the
+  // earlier return-null pattern: callers wrap this in try/catch but
+  // the catch block is dead because we never throw. Worst case was
+  // BabyIsHereModal.handleSave — on relay failure the modal would
+  // still transition the share to 'postpartum' and close, silently
+  // losing the celebration. Throwing here means the catch block
+  // in the caller fires and the host sees the error + can retry.
+  const res = await fetch(`${RELAY_URL}/api/shares/${code}/messages`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ kind, content, authorName, clientId }),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`postMessage failed: ${res.status} ${res.statusText} ${text}`.trim());
   }
+  const data = await res.json();
+  if (!data.message) {
+    throw new Error(`postMessage: relay returned 200 but no message body`);
+  }
+  return data.message;
 }

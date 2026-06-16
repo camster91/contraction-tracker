@@ -82,6 +82,15 @@ jobs:
           # was the root cause of the 'Olive source is b75adb5
           # not d32663f' bug fixed by this commit. Retrying
           # makes the sync robust to that 1-2x-per-day blip.
+          #
+          # Failure gate: if all 3 attempts fail, the script
+          # exits non-zero. Without this gate, the verify step
+          # would print the host's old public/sw.js (which would
+          # pass the `head -5` check), and the deploy step
+          # would then build from the same stale source. The
+          # audit (b75adb5) flagged this as a HIGH severity
+          # silent-failure mode.
+          SYNC_SUCCEEDED=0
           for i in 1 2 3; do
             if ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new $USER@$HOST "mkdir -p /opt/projects/contraction-tracker/src" 2>/dev/null \
               && rsync -az --delete \
@@ -93,16 +102,38 @@ jobs:
                    --exclude='*.log' \
                    ./ $USER@$HOST:/opt/projects/contraction-tracker/src/ 2>/dev/null; then
               echo "Sync attempt $i succeeded"
+              SYNC_SUCCEEDED=1
               break
             fi
             echo "Sync attempt $i failed, retrying in 10s..."
             sleep 10
           done
-          echo "Verifying host SHA matches the pushed commit:"
-          ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new $USER@$HOST "cd /opt/projects/contraction-tracker/src && head -5 public/sw.js"
+          if [ "$SYNC_SUCCEEDED" != "1" ]; then
+            echo "::error::All 3 sync attempts failed; host source may be stale. Refusing to deploy."
+            exit 1
+          fi
+          # Verify the synced CACHE_NAME matches the expected
+          # version (currently olive-v9). Without this check, a
+          # corrupt partial-sync (where rsync left a truncated
+          # file mid-transfer) would silently slip through to
+          # the build. The b75adb5 audit flagged this as
+          # MEDIUM severity.
+          EXPECTED_CACHE="olive-v10"
+          ACTUAL_CACHE=$(ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new $USER@$HOST "grep -oE 'CACHE_NAME = .[^;]+' /opt/projects/contraction-tracker/src/public/sw.js | head -1 | sed \"s/.*'\(.*\)'/\1/\"")
+          echo "Expected SW CACHE_NAME: $EXPECTED_CACHE"
+          echo "Actual SW CACHE_NAME:   $ACTUAL_CACHE"
+          if [ "$ACTUAL_CACHE" != "$EXPECTED_CACHE" ]; then
+            echo "::error::Host SW CACHE_NAME '$ACTUAL_CACHE' does not match expected '$EXPECTED_CACHE'. Refusing to deploy."
+            exit 1
+          fi
 
   deploy:
     name: Deploy contraction-tracker
+    # The deploy job MUST run after sync-source-on-host. Without
+    # `needs:`, both jobs start in parallel and the deploy could
+    # build from a stale src/ if the rsync hasn't completed yet.
+    # The b75adb5 audit flagged this as MEDIUM severity.
+    needs: [sync-source-on-host, legacy-secret-check]
     uses: camster91/ashbi-deploy/.github/workflows/deploy.yml@v0.1.0
     with:
       project_name: contraction-tracker
