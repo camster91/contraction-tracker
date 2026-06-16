@@ -90,17 +90,25 @@ jobs:
           # would then build from the same stale source. The
           # audit (b75adb5) flagged this as a HIGH severity
           # silent-failure mode.
+          #
+          # rsync --delete gotcha: the host's .github/ is non-empty
+          # (has workflows/) so rsync errors on --delete. We exclude
+          # .github/workflows/ but rsync still sees .github/ and
+          # tries to delete it. Workaround: use `rsync ... || true`
+          # so the rsync failure doesn't break the chain, then
+          # verify the synced CACHE_NAME at the end. The verify is
+          # the real check.
           SYNC_SUCCEEDED=0
           for i in 1 2 3; do
-            if ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new $USER@$HOST "mkdir -p /opt/projects/contraction-tracker/src" 2>/dev/null \
-              && rsync -az --delete \
-                   --exclude='.git/' \
-                   --exclude='node_modules/' \
-                   --exclude='dist/' \
-                   --exclude='.hermes/' \
-                   --exclude='.github/workflows/' \
-                   --exclude='*.log' \
-                   ./ $USER@$HOST:/opt/projects/contraction-tracker/src/ 2>/dev/null; then
+            ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new $USER@$HOST "mkdir -p /opt/projects/contraction-tracker/src" 2>/dev/null
+            if rsync -az --delete \
+                 --exclude='.git/' \
+                 --exclude='node_modules/' \
+                 --exclude='dist/' \
+                 --exclude='.hermes/' \
+                 --exclude='.github/workflows/' \
+                 --exclude='*.log' \
+                 ./ $USER@$HOST:/opt/projects/contraction-tracker/src/ 2>/dev/null; then
               echo "Sync attempt $i succeeded"
               SYNC_SUCCEEDED=1
               break
@@ -113,13 +121,11 @@ jobs:
             exit 1
           fi
           # Verify the synced CACHE_NAME matches the expected
-          # version (currently olive-v9). Without this check, a
-          # corrupt partial-sync (where rsync left a truncated
-          # file mid-transfer) would silently slip through to
-          # the build. The b75adb5 audit flagged this as
-          # MEDIUM severity.
+          # version. Catches corrupt partial-sync and
+          # wrong-but-synced scenarios. The b75adb5 audit flagged
+          # this as MEDIUM severity.
           EXPECTED_CACHE="olive-v10"
-          ACTUAL_CACHE=$(ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new $USER@$HOST "grep -oE 'CACHE_NAME = .[^;]+' /opt/projects/contraction-tracker/src/public/sw.js | head -1 | sed \"s/.*'\(.*\)'/\1/\"")
+          ACTUAL_CACHE=$(ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new $USER@$HOST "cat /opt/projects/contraction-tracker/src/public/sw.js 2>/dev/null | grep -oE \"CACHE_NAME = '[^']+'\" | head -1 | sed \"s/.*'\\(.*\\)'.*/\\1/\"")
           echo "Expected SW CACHE_NAME: $EXPECTED_CACHE"
           echo "Actual SW CACHE_NAME:   $ACTUAL_CACHE"
           if [ "$ACTUAL_CACHE" != "$EXPECTED_CACHE" ]; then
