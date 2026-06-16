@@ -294,3 +294,34 @@ export function migrateContractionsToSessions(contractions: Contraction[]): Cont
   });
   return changed ? out : contractions;
 }
+
+// ---- Host display name ------------------------------------------------
+// The host's display name is the author name attached to status
+// updates and Baby-is-here posts in the partner's activity feed.
+// Stored in localStorage so the host can customize it (and so
+// partners see "Bianca" instead of "Host" when the host posts).
+// The fallback is "Host" so the relay is never called with an
+// empty authorName (the relay's `authorName` field is required).
+//
+// The `olive:host-name` localStorage key is intentionally NOT
+// session-scoped. The host is a single person per device; a
+// per-session name would force the host to re-enter it on every
+// new session.
+const HOST_NAME_KEY = 'olive:host-name';
+const DEFAULT_HOST_NAME = 'Host';
+
+export function getHostName(): string {
+  try {
+    const v = localStorage.getItem(HOST_NAME_KEY);
+    if (v && v.trim()) return v.trim().slice(0, 40);
+  } catch { /* localStorage may be disabled; fall through */ }
+  return DEFAULT_HOST_NAME;
+}
+
+export function setHostName(name: string): void {
+  try {
+    const trimmed = name.trim().slice(0, 40);
+    if (trimmed) localStorage.setItem(HOST_NAME_KEY, trimmed);
+    else localStorage.removeItem(HOST_NAME_KEY);
+  } catch { /* best-effort */ }
+}

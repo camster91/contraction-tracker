@@ -5,7 +5,7 @@
 import { useState } from 'react';
 import { X } from 'lucide-react';
 import { postMessage } from '../lib/feed';
-import { setShareState } from '../lib/sessions';
+import { setShareState, getHostName } from '../lib/sessions';
 import { setShareStateOnRelay } from '../lib/relay';
 
 type Props = {
@@ -57,7 +57,10 @@ export default function BabyIsHereModal({ code, onClose, onBabyPosted }: Props) 
     try {
       // Post the celebration to the partner's activity feed first.
       // If this fails, don't transition state — the host can re-tap.
-      await postMessage(code, 'status', message, 'Host', undefined);
+      // The authorName is the host's display name from local
+      // storage (default 'Host') so the partner sees "Bianca"
+      // instead of "Host" if the host has set their name.
+      await postMessage(code, 'status', message, getHostName(), undefined);
     } catch {
       setError("Couldn't reach the share server. Tap Save to retry.");
       setSaving(false);

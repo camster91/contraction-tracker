@@ -1,7 +1,8 @@
 // Settings sheet — bottom overlay with theme, time format, quiet hours, backup, and version
-import { type Dispatch, type SetStateAction } from 'react';
+import { useEffect, useState, type Dispatch, type SetStateAction } from 'react';
 import { Cog, Moon, Download, Share2, Upload } from 'lucide-react';
 import { type MuteSchedule, isInQuietHours } from '../lib/settings';
+import { getHostName, setHostName } from '../lib/sessions';
 
 interface SettingsSheetProps {
   bigText: boolean;
@@ -36,6 +37,21 @@ export default function SettingsSheet({
   appVersion,
   onClose,
 }: SettingsSheetProps) {
+  // Host display name (separate from props — owned by this sheet
+  // because it's a write-target for the host, not a global state).
+  // The partner view shows this name as the author of all host
+  // posts. Default 'Host' (see getHostName helper) — the host
+  // can change it here to "Bianca" or any name they want their
+  // circle to see.
+  const [hostName, setHostNameLocal] = useState<string>('');
+  useEffect(() => {
+    setHostNameLocal(getHostName());
+  }, []);
+  const handleHostNameChange = (v: string) => {
+    const trimmed = v.slice(0, 40);
+    setHostNameLocal(trimmed);
+    setHostName(trimmed);
+  };
   return (
     <>
       <div
@@ -51,6 +67,28 @@ export default function SettingsSheet({
           <div className="flex items-center gap-2 mb-3">
             <Cog className="w-4 h-4 text-ink-300" strokeWidth={1.75} />
             <div className="text-sm font-semibold text-ink-50 font-display">Settings</div>
+          </div>
+
+          {/* Host display name. The host's posts (status updates,
+              baby-is-here) appear in the partner view with this
+              name as the author. Default 'Host' (per the getHostName
+              helper) — set it to your name so the partner (a parent,
+              a sibling, a doula) sees a real person posting. */}
+          <div className="mb-3">
+            <label className="block text-[10px] uppercase tracking-[0.15em] text-ink-400 font-semibold mb-1.5">
+              Your name (visible to your circle)
+            </label>
+            <input
+              type="text"
+              value={hostName}
+              onChange={(e) => handleHostNameChange(e.target.value)}
+              placeholder="e.g. Bianca"
+              maxLength={40}
+              className="w-full bg-ink-100/5 border border-ink-200/30 rounded-xl px-3 py-2 text-sm text-ink-50 placeholder:text-ink-500 focus:outline-none focus:border-rose-300/50"
+            />
+            <div className="text-[10px] text-ink-500 mt-1">
+              Posts from this device will be signed with this name. Leave blank to stay anonymous.
+            </div>
           </div>
 
           {/* Big text toggle */}

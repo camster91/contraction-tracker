@@ -92,6 +92,7 @@ import {
   createSession,
   getSessions,
   getActiveSessionId,
+  getHostName,
   getPeople,
   getShares,
   migrateContractionsToSessions,
@@ -1083,7 +1084,12 @@ export default function App() {
     setStatusSending(true);
     setStatusError(null);
     try {
-      await postMessage(activeShare.id, 'status', text, 'Host', undefined);
+      // Author the post with the host's display name from local
+      // storage (default 'Host'). The partner view shows the
+      // authorName in the activity feed, so a parent who has the
+      // link open will see "Bianca" instead of "Host" when the
+      // host has set their name in Settings.
+      await postMessage(activeShare.id, 'status', text, getHostName(), undefined);
       setStatusDraft('');
     } catch {
       // Don't clear the input — the user typed something meaningful
