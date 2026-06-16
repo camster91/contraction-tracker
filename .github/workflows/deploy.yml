@@ -73,16 +73,32 @@ jobs:
           # .github/workflows (host doesn't run GH Actions; the
           # reusable handles the deploy). Also skip dist/ (output
           # directory) and .hermes/ (local-only).
-          ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new $USER@$HOST "mkdir -p /opt/projects/contraction-tracker/src"
-          rsync -az --delete \
-            --exclude='.git/' \
-            --exclude='node_modules/' \
-            --exclude='dist/' \
-            --exclude='.hermes/' \
-            --exclude='.github/workflows/' \
-            --exclude='*.log' \
-            ./ $USER@$HOST:/opt/projects/contraction-tracker/src/
-          echo "Synced. Verifying host SHA matches the pushed commit:"
+          #
+          # 3-attempt retry: the Hostinger VPS sshd occasionally
+          # hangs on connect (verified pattern, see memory
+          # 'Hostinger VPS SSH daemon intermittent failure'). A
+          # single transient failure used to skip the sync and
+          # fall through to a deploy-with-stale-source, which
+          # was the root cause of the 'Olive source is b75adb5
+          # not d32663f' bug fixed by this commit. Retrying
+          # makes the sync robust to that 1-2x-per-day blip.
+          for i in 1 2 3; do
+            if ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new $USER@$HOST "mkdir -p /opt/projects/contraction-tracker/src" 2>/dev/null \
+              && rsync -az --delete \
+                   --exclude='.git/' \
+                   --exclude='node_modules/' \
+                   --exclude='dist/' \
+                   --exclude='.hermes/' \
+                   --exclude='.github/workflows/' \
+                   --exclude='*.log' \
+                   ./ $USER@$HOST:/opt/projects/contraction-tracker/src/ 2>/dev/null; then
+              echo "Sync attempt $i succeeded"
+              break
+            fi
+            echo "Sync attempt $i failed, retrying in 10s..."
+            sleep 10
+          done
+          echo "Verifying host SHA matches the pushed commit:"
           ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new $USER@$HOST "cd /opt/projects/contraction-tracker/src && head -5 public/sw.js"
 
   deploy:
