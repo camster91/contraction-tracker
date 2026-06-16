@@ -6,18 +6,21 @@
 # .env, port, public URL, paired relay).
 #
 # Image versioning / rollback:
-#   This repo deploys via the camster91/ashbi-deploy reusable, which
-#   builds from the local source on the host (see deploy-to-vps.sh +
-#   /opt/caddy/Caddyfile routing for the live setup). For the build
-#   reusable that publishes images to ghcr.io with three tags per
-#   build (caller-supplied, <tag>-<sha> immutable, latest), see
-#   camster91/deploy-template/.github/workflows/build-and-push.yml —
-#   the T28 commit on this repo mirrors the reusable for fleet
-#   consistency but isn't what this repo actually uses to deploy.
-#   To rollback this live app, redeploy with a known-good git SHA
-#   (the /root/repos/contraction-tracker clone on the VPS is reset
-#   to origin/main by the reusable's "Pull latest on host" step;
-#   manually `git checkout <sha>` on the host if you need to pin).
+#   This repo deploys via the camster91/ashbi-deploy reusable.
+#   The reusable writes docker-compose.yml + .env on the host,
+#   then `docker compose build --no-cache` from the host's
+#   /opt/projects/contraction-tracker/src/ directory. The reusable
+#   does NOT pull source. Pre-flight `sync-source-on-host` job
+#   below does that — it git-resets /opt/projects/contraction-tracker/src
+#   to origin/main before the deploy job runs. Without that pre-flight,
+#   the build context on the host would be whatever was checked out
+#   at the time of the FIRST deploy (often a stale chore-champs
+#   checkout or similar), and `docker compose build` would happily
+#   produce an old image even after a successful workflow run. The
+#   pre-flight is what keeps the live container in sync with the
+#   current source. To rollback this live app, push a known-good
+#   commit and the pre-flight will pull it; or `git checkout <sha>`
+#   on the host manually.
 name: Deploy
 
 on:
@@ -30,6 +33,67 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Pre-flight: pull latest source on the host so the build context
+  # in /opt/projects/contraction-tracker/src/ is up-to-date when the
+  # reusable runs `docker compose build --no-cache`. Without this
+  # step, the build would use whatever was checked out at the time
+  # of the first deploy, and the deploy workflow would silently
+  # produce an old image even after a "successful" run.
+  #
+  # Idempotent: a fast-forward merge when main is ahead, or a
+  # no-op when the host's checkout is already at the same SHA.
+  # If the local checkout has uncommitted changes (e.g. an
+  # operator was debugging on the host), the fetch + reset would
+  # discard them — that's the intended "deploy overrides local
+  # edits" behavior. The reusable doesn't touch source, so
+  # there's no merge conflict possible.
+  #
+  # Runs on a dummy ubuntu runner with the SSH key, mirrors the
+  # reusable's setup. The reusable runs separately, picks up the
+  # updated source, and builds from it.
+  sync-source-on-host:
+    name: Sync source on host to origin/main
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.VPS_SSH_KEY || secrets.COOLIFY_SSH_KEY }}
+      - name: Pull latest on host
+        env:
+          HOST: ${{ secrets.VPS_HOST || secrets.COOLIFY_HOST }}
+          USER: ${{ secrets.VPS_USER || secrets.COOLIFY_USER }}
+        run: |
+          ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new $USER@$HOST <<'EOF'
+            set -e
+            cd /opt/projects/contraction-tracker/src
+            # Defensive: if the remote is misnamed (a previous
+            # deploy set it to chore-champs, or some other app
+            # cloned in as a sentinel), point it at the real
+            # contraction-tracker repo. Cheap no-op if already
+            # correct.
+            if ! git remote get-url origin | grep -q contraction-tracker; then
+              echo "Origin remote is not contraction-tracker; resetting"
+              git remote set-url origin https://github.com/camster91/contraction-tracker.git
+            fi
+            # Track main if not already on it (the build context
+            # needs to be the source the deploy workflow just
+            # pushed to, not some side branch).
+            CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "detached")
+            if [ "$CURRENT_BRANCH" != "main" ]; then
+              echo "Currently on '$CURRENT_BRANCH'; switching to main"
+              git checkout main 2>&1 | tail -3 || true
+            fi
+            # Fetch + hard-reset to origin/main. The build context
+            # after this is exactly the source the workflow just
+            # pushed. The reusable's `docker compose build --no-cache`
+            # will then use this as the build context.
+            git fetch origin main 2>&1 | tail -3
+            git reset --hard origin/main 2>&1 | tail -3
+            echo "Source now at:"
+            git log --oneline -1
+          EOF
+
   deploy:
     name: Deploy contraction-tracker
     uses: camster91/ashbi-deploy/.github/workflows/deploy.yml@v0.1.0
