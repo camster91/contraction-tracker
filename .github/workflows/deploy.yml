@@ -84,12 +84,12 @@ jobs:
           # makes the sync robust to that 1-2x-per-day blip.
           for i in 1 2 3; do
             if ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new $USER@$HOST "mkdir -p /opt/projects/contraction-tracker/src" 2>/dev/null \
-              && rsync -az --delete \
+              && rsync -az \
                    --exclude='.git/' \
                    --exclude='node_modules/' \
                    --exclude='dist/' \
                    --exclude='.hermes/' \
-                   --exclude='.github/workflows/' \
+                   --exclude='.github/' \
                    --exclude='*.log' \
                    ./ $USER@$HOST:/opt/projects/contraction-tracker/src/ 2>/dev/null; then
               echo "Sync attempt $i succeeded"
