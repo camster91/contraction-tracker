@@ -81,6 +81,7 @@ import FrequencyChart from './components/FrequencyChart';
 import SessionsSheet from './components/SessionsSheet';
 import PeopleSheet from './components/PeopleSheet';
 import ShareSheet from './components/ShareSheet';
+import ActivityFeed from './components/ActivityFeed';
 import ChecklistSheet from './components/ChecklistSheet';
 import SettingsSheet from './components/SettingsSheet';
 import HospitalSheet from './components/HospitalSheet';
@@ -1881,6 +1882,20 @@ export default function App() {
                 }}
               />
             )}
+
+            {/* T33 — host-side mirror of the activity feed. The
+                host can already POST updates via the composer
+                above (line 1847). This shows the host what the
+                circle has said back. readOnly=true hides the
+                composer inside ActivityFeed (the host posts via
+                the dedicated inline composer, not the ActivityFeed
+                one). Lives below the Baby is here button so the
+                primary actions are visible first. */}
+            <ActivityFeed
+              code={activeShare.id}
+              shareState={activeShare.state || 'prenatal'}
+              readOnly={true}
+            />
           </div>
         )}
 
