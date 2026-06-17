@@ -5,7 +5,7 @@
 import { useState } from 'react';
 import { X } from 'lucide-react';
 import { postMessage } from '../lib/feed';
-import { setShareState, getHostName } from '../lib/sessions';
+import { setShareState, getHostName, saveBirthStats } from '../lib/sessions';
 import { setShareStateOnRelay } from '../lib/relay';
 
 type Props = {
@@ -36,31 +36,45 @@ export default function BabyIsHereModal({ code, onClose, onBabyPosted }: Props) 
     setSaving(true);
     setError(null);
 
-    const parts: string[] = [`${name.trim()} is here! 🎉`];
-    if (weightLbs || weightKg) {
-      const w = weightLbs ? `${weightLbs} lb` : '';
-      const k = weightKg ? `${weightKg} kg` : '';
-      parts.push(w && k ? `${weightLbs} lb / ${weightKg} kg` : w || k);
-    }
-    if (lengthIn || lengthCm) {
-      const l = lengthIn ? `${lengthIn} in` : '';
-      const c = lengthCm ? `${lengthCm} cm` : '';
-      parts.push(l && c ? `${lengthIn} in / ${lengthCm} cm` : l || c);
-    }
-    if (birthTime) {
-      const d = new Date(birthTime);
-      parts.push(`Born ${d.toLocaleString()}`);
-    }
+    // (Name + emoji goes to the relay below. Weight / length /
+    // birth time are kept client-side via saveBirthStats() — see
+    // the public-message section later in this function.)
 
-    const message = parts.join(' · ');
+    // Public message (to the partner's feed via the relay):
+    // name + emoji ONLY. Birth stats (weight, length, time) are
+    // private to the host — they go into the local journal via
+    // saveBirthStats() below, never to the relay. Per the v1.0.1
+    // audit (commit a7aead4): the previous version joined
+    // name + weight + length + birth time into a single message
+    // and posted to the relay, where it persisted forever and was
+    // broadcast to anyone holding the share link. That PII risk
+    // is what this split fixes.
+    const publicParts: string[] = [`${name.trim()} is here! 🎉`];
+    const publicMessage = publicParts.join(' ');
+
+    // Private journal (localStorage only): structured birth stats
+    // for the host's records. Captured client-side and never
+    // transmitted. Stored under a stable key the host can read or
+    // export later via a Settings/journal surface (T32 follow-up).
+    const birthTimeIso = birthTime ? new Date(birthTime).toISOString() : null;
+    saveBirthStats(code, {
+      name: name.trim(),
+      weightLbs: weightLbs ? Number(weightLbs) : null,
+      weightKg: weightKg ? Number(weightKg) : null,
+      lengthIn: lengthIn ? Number(lengthIn) : null,
+      lengthCm: lengthCm ? Number(lengthCm) : null,
+      birthTime: birthTimeIso,
+      recordedAt: new Date().toISOString(),
+    });
 
     try {
-      // Post the celebration to the partner's activity feed first.
-      // If this fails, don't transition state — the host can re-tap.
+      // Post the celebration (public message only) to the
+      // partner's activity feed. If this fails, don't transition
+      // state — the host can re-tap.
       // The authorName is the host's display name from local
       // storage (default 'Host') so the partner sees "Bianca"
       // instead of "Host" if the host has set their name.
-      await postMessage(code, 'status', message, getHostName(), undefined);
+      await postMessage(code, 'status', publicMessage, getHostName(), undefined);
     } catch {
       setError("Couldn't reach the share server. Tap Save to retry.");
       setSaving(false);
@@ -121,7 +135,7 @@ export default function BabyIsHereModal({ code, onClose, onBabyPosted }: Props) 
               fix: split the "celebration" message from the structured
               birth-stats fields; out of scope for this commit.) */}
           <p className="text-[10px] text-ink-500 leading-relaxed italic">
-            What you enter here will be visible to anyone with the share link and stored on the share server. Tap Cancel to dismiss without sharing.
+            Your baby's name will be visible to anyone with the share link. Weight, length, and birth time are kept private on this device only.
           </p>
 
           {error && (

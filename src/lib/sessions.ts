@@ -325,3 +325,49 @@ export function setHostName(name: string): void {
     else localStorage.removeItem(HOST_NAME_KEY);
   } catch { /* best-effort */ }
 }
+
+// ---- Birth journal (private to the host) -------------------------------
+// The Baby is here modal collects structured birth stats (weight,
+// length, birth time) for the host's personal records. These
+// fields are private to the host and are NOT shared with the
+// partner's activity feed — they go only into localStorage.
+//
+// A future Settings/journal surface will let the host export
+// or view this data. For now it's stored, not surfaced, because
+// the immediate goal is to prevent PII leakage via the relay.
+// The previous version (pre-T32) posted name + weight + length
+// + birth time to the relay as a single message, where it
+// persisted forever and was broadcast to anyone holding the
+// share link.
+
+export type BirthStats = {
+  name: string;
+  weightLbs: number | null;
+  weightKg: number | null;
+  lengthIn: number | null;
+  lengthCm: number | null;
+  birthTime: string | null; // ISO 8601
+  recordedAt: string; // ISO 8601
+};
+
+const JOURNAL_KEY_PREFIX = 'olive:journal:';
+
+function journalKey(shareId: string): string {
+  return `${JOURNAL_KEY_PREFIX}${shareId}`;
+}
+
+export function saveBirthStats(shareId: string, stats: BirthStats): void {
+  try {
+    localStorage.setItem(journalKey(shareId), JSON.stringify(stats));
+  } catch { /* best-effort — quota errors don't block the celebration */ }
+}
+
+export function getBirthStats(shareId: string): BirthStats | null {
+  try {
+    const raw = localStorage.getItem(journalKey(shareId));
+    if (!raw) return null;
+    return JSON.parse(raw) as BirthStats;
+  } catch {
+    return null;
+  }
+}
