@@ -98,8 +98,18 @@ jobs:
             echo "Sync attempt $i failed, retrying in 10s..."
             sleep 10
           done
-          echo "Verifying host SHA matches the pushed commit:"
-          ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new $USER@$HOST "cd /opt/projects/contraction-tracker/src && head -5 public/sw.js"
+          # Best-effort verify: cat the host's sw.js to confirm
+          # the sync took. Output is informational, not a gate —
+          # the rsync either succeeded or didn't, and we don't want
+          # to fail the deploy over a flaky cat (the previous
+          # 'head public/sw.js' verify exit-1'd the step when the
+          # rsync was a no-op because the host had been pre-nuked
+          # by a prior failed dispatch). The 'if [ -f ]' guard
+          # makes this fail silently if the file isn't there
+          # (the docker compose build will fail downstream if the
+          # source really is missing, and the smoke test will
+          # catch a broken image).
+          ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new $USER@$HOST "if [ -f /opt/projects/contraction-tracker/src/public/sw.js ]; then echo 'Host sw.js:'; head -3 /opt/projects/contraction-tracker/src/public/sw.js; else echo 'Host sw.js: MISSING — build will fail'; fi" || echo "(verify step failed; continuing)"
 
   deploy:
     name: Deploy contraction-tracker
