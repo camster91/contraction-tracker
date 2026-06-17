@@ -2,7 +2,7 @@
 // The active session is stored separately so Cam can quickly hop between
 // past and current labor sessions.
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Plus, Square, Trash2, Users, ArrowLeft, Play, Eye } from 'lucide-react';
 import {
   PRIMARY_SESSION_ID,
@@ -67,18 +67,40 @@ export default function SessionsSheet({
     setSessions(getSessions());
   };
 
+  // Inline two-tap delete confirmation. First tap arms it; second tap
+  // (within ARM_WINDOW_MS) confirms. The trash button briefly shows
+  // "Tap to confirm" with a red background. Auto-disarms if the user
+  // doesn't follow through. Replaces the old window.confirm() that
+  // blocked the page and was flaky on iOS PWAs.
+  const [armedDeleteId, setArmedDeleteId] = useState<string | null>(null);
+  const armTimerRef = useRef<number | null>(null);
+  const ARM_WINDOW_MS = 4000;
+
+  const disarmDelete = useCallback(() => {
+    if (armTimerRef.current) {
+      window.clearTimeout(armTimerRef.current);
+      armTimerRef.current = null;
+    }
+    setArmedDeleteId(null);
+  }, []);
+
+  useEffect(() => disarmDelete, [disarmDelete]);
+
+  const armDelete = (id: string) => {
+    if (id === PRIMARY_SESSION_ID) return;
+    disarmDelete();
+    setArmedDeleteId(id);
+    armTimerRef.current = window.setTimeout(disarmDelete, ARM_WINDOW_MS);
+  };
+
   const handleDelete = (id: string) => {
     if (id === PRIMARY_SESSION_ID) return; // button is disabled for primary
-    const count = contractionsInSession(contractions, id).length;
-    // Delete is destructive and not undo-protected (no toast stack for
-    // sessions). The confirm() is the only warning. TODO: replace with
-    // a custom in-app modal so the experience is consistent across
-    // iOS/Android/web. For now, keep the native confirm here.
-    if (count > 0) {
-      if (!confirm(`This session has ${count} contractions. Delete it anyway?`)) return;
-    } else {
-      if (!confirm('Delete this session?')) return;
+    if (armedDeleteId !== id) {
+      armDelete(id);
+      return;
     }
+    // Confirmed — disarm and delete.
+    disarmDelete();
     deleteSession(id);
     setSessions(getSessions());
     if (getActiveSessionId() === id) switchTo(PRIMARY_SESSION_ID);
@@ -210,9 +232,9 @@ export default function SessionsSheet({
                       <button
                         onClick={() => handleDelete(s.id)}
                         disabled={s.id === PRIMARY_SESSION_ID}
-                        className={`p-1.5 transition-colors ${s.id === PRIMARY_SESSION_ID ? 'text-ink-600 cursor-not-allowed' : 'text-ink-400 active:text-rose-300'}`}
-                        aria-label="Delete"
-                        title={s.id === PRIMARY_SESSION_ID ? 'Primary session cannot be deleted' : 'Delete'}
+                        className={`p-1.5 transition-colors ${s.id === PRIMARY_SESSION_ID ? 'text-ink-600 cursor-not-allowed' : armedDeleteId === s.id ? 'text-rose-300 bg-rose-300/15 rounded-lg' : 'text-ink-400 active:text-rose-300'}`}
+                        aria-label={armedDeleteId === s.id ? 'Tap again to confirm delete' : 'Delete'}
+                        title={s.id === PRIMARY_SESSION_ID ? 'Primary session cannot be deleted' : armedDeleteId === s.id ? 'Tap again to confirm' : 'Delete'}
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
