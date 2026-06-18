@@ -101,9 +101,11 @@ import {
   migrateContractionsToSessions,
   sessionIdOf,
   type Session,
+  type Person,
+  type Share,
 } from './lib/sessions';
-import { getChecklist, packedCount, saveChecklist } from './lib/checklist';
-import { getExams } from './lib/hospital';
+import { getChecklist, packedCount, saveChecklist, type ChecklistItem } from './lib/checklist';
+import { getExams, type CervicalExam } from './lib/hospital';
 import { postMessage } from './lib/feed';
 import { getShareFromRelay, pushContractionsToRelay, setShareStateOnRelay, postContractionEventToRelay, RELAY_URL } from './lib/relay';
 import { getOrCreateClientId } from './lib/identity';
@@ -242,14 +244,23 @@ export default function App() {
   // Check for data integrity issues surfaced by validateStoredData on load.
   // If the primary was corrupted but shadow restored, show the recovery toast.
   useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
     try {
       const raw = sessionStorage.getItem('olive:data-damaged');
       if (raw) {
         sessionStorage.removeItem('olive:data-damaged');
         setDataDamagedToast(true);
-        setTimeout(() => setDataDamagedToast(false), 6000);
+        // Store the id in the closure so the cleanup can clear it
+        // if the user navigates away within the 6s window. Without
+        // the cleanup, setState fires on an unmounted component —
+        // React 18+ ignores silently but it's a footgun for future
+        // maintainers.
+        timer = setTimeout(() => setDataDamagedToast(false), 6000);
       }
     } catch { /* ignore */ }
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
   }, []);
 
   // Quota exceeded check — runs every time contractions or current change.
@@ -969,24 +980,27 @@ export default function App() {
         setBackupError('This file is not a valid Olive backup.');
         return;
       }
-      // Build existing maps using proper types
+      // Build existing maps using proper types. Previously these
+      // were Map<string, { id: string }> with `as never[]` casts on
+      // the write-back (App.tsx:1014-1022). The casts hid real
+      // type errors — if the merged data shape was wrong, TS
+      // couldn't catch it. Using Person/Share/CervicalExam/ChecklistItem
+      // means TS will check both the read and the write.
       const allPeople = getPeople();
       const allShares = getShares();
       const existingContractions = new Map<string, Contraction>(contractions.map((c) => [c.id, c]));
       const existingSessions = new Map<string, Session>(sessions.map((s) => [s.id, s]));
-      const existingPeople = new Map<string, { id: string }>(allPeople.map((p: { id: string }) => [p.id, p]));
-      const existingShares = new Map<string, { id: string }>(allShares.map((sh: { id: string }) => [sh.id, sh]));
-      const existingExams = new Map<string, Map<string, { id: string }>>();
-      const existingChecklists = new Map<string, Map<string, { id: string }>>();
+      const existingPeople = new Map<string, Person>(allPeople.map((p) => [p.id, p]));
+      const existingShares = new Map<string, Share>(allShares.map((sh) => [sh.id, sh]));
+      const existingExams = new Map<string, Map<string, CervicalExam>>();
+      const existingChecklists = new Map<string, Map<string, ChecklistItem>>();
 
       for (const s of sessions) {
-        const ex = getExams(s.id) as Array<{ id: string }>;
-        existingExams.set(s.id, new Map(ex.map((x) => [x.id, x])));
+        existingExams.set(s.id, new Map(getExams(s.id).map((x) => [x.id, x])));
       }
       const { writeExams } = await import('./lib/hospital');
       for (const s of sessions) {
-        const cl = getChecklist(s.id);
-        existingChecklists.set(s.id, new Map(cl.map((i) => [i.id, i])));
+        existingChecklists.set(s.id, new Map(getChecklist(s.id).map((i) => [i.id, i])));
       }
 
       const result = mergeBackup(parsed, {
@@ -1002,15 +1016,15 @@ export default function App() {
       setContractions([...existingContractions.values()]);
       setSessions([...existingSessions.values()]);
       const { setPeople, setShares } = await import('./lib/sessions');
-      setPeople([...existingPeople.values()] as never[]);
-      setShares([...existingShares.values()] as never[]);
+      setPeople([...existingPeople.values()]);
+      setShares([...existingShares.values()]);
 
       // Persist exams and checklists
       for (const [sid, examMap] of existingExams) {
-        writeExams(sid, [...examMap.values()] as never[]);
+        writeExams(sid, [...examMap.values()]);
       }
       for (const [sid, itemMap] of existingChecklists) {
-        saveChecklist(sid, [...itemMap.values()] as never[]);
+        saveChecklist(sid, [...itemMap.values()]);
       }
       setBackupError(null);
       toast.success(
@@ -1122,13 +1136,19 @@ export default function App() {
 
   // One-time migration: stamp old contractions (no sessionId) with the primary
   // session. Idempotent — only writes if any are missing the field.
+  //
+  // We used to also call setSessions(getSessions()) here, "to make sure
+  // the primary session exists in the sessions list". But that's a
+  // no-op: the useState initializer on line ~174 already loaded
+  // sessions via getSessions(), and no edits can happen between the
+  // first render and the mount-effect. The extra call was dead code
+  // and would silently overwrite any in-memory session edits if
+  // they ever did land in this 0-tick window. Removed.
   useEffect(() => {
     const migrated = migrateContractionsToSessions(contractions);
     if (migrated !== contractions) {
       setContractions(migrated);
     }
-    // Make sure the primary session exists in the sessions list
-    setSessions(getSessions());
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const lastFinished = finished[finished.length - 1];
   const prevFinished = finished[finished.length - 2];
