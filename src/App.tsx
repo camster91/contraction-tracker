@@ -405,8 +405,22 @@ export default function App() {
   // from days ago (app left open, phone put in a drawer, etc.). Surface a
   // 4h amber warning as before, but at 12h silently discard it and offer an
   // undo from the toast stack.
+  //
+  // The dep array used to be [current && current.start] (non-idiomatic
+  // but correct: triggers when current becomes truthy or when its start
+  // changes). The `lastSeenStartRef` makes the intent explicit: re-run
+  // the effect only when the start time of the current timer differs
+  // from what we last inspected. Same semantics, more readable.
+  const lastSeenStartRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!current || current.end) return;
+    if (!current || current.end) {
+      // No active timer. Clear the ref so a future timer's start
+      // re-triggers the check.
+      lastSeenStartRef.current = null;
+      return;
+    }
+    if (lastSeenStartRef.current === current.start) return; // already handled
+    lastSeenStartRef.current = current.start;
     const ageMs = Date.now() - new Date(current.start).getTime();
     const TWELVE_HOURS = 12 * 60 * 60 * 1000;
     if (ageMs <= TWELVE_HOURS) return;
@@ -418,9 +432,7 @@ export default function App() {
       contractions,
       current: snapshot,
     });
-    // Only run this once per stale timer.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [current && current.start]);
+  }, [current]);
 
   // On first mount: if localStorage is empty but IndexedDB has a backup, restore it.
   // Also check for a solo current-timer backup (separate from the full backup).

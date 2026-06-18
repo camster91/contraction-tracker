@@ -83,7 +83,12 @@ function MessageRow({ msg }: { msg: Message }) {
         {msg.kind === 'image' && (
           <img
             src={msg.content}
-            alt="Shared moment"
+            // Alt text derived from message metadata — we don't know
+            // the image content, but the timestamp + author tells
+            // a screen reader user when and from whom the photo came.
+            // A real caption would need a relay schema change (see
+            // code review M5); this is the no-cost interim.
+            alt={`Photo shared by ${msg.authorName} at ${new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
             style={{ maxHeight: 200, borderRadius: 12, display: 'block', marginTop: 2 }}
           />
         )}
@@ -606,8 +611,20 @@ function VoiceMemoPlayer({ src }: { src: string }) {
 }
 
 // ---- Image resizing helper ----
+//
+// Output size cap: a 1200x1200 JPEG at quality 0.8 is typically 100-300 KB.
+// A phone camera can produce 5+ MB JPEGs and we want to reject them
+// before even loading them into memory. Hard cap on the source file
+// size, then resize, then check the output too.
+const MAX_SOURCE_BYTES = 8 * 1024 * 1024; // 8 MB
+const MAX_OUTPUT_BYTES = 500 * 1024; // 500 KB
 
 function resizeImage(file: File): Promise<string> {
+  if (file.size > MAX_SOURCE_BYTES) {
+    return Promise.reject(
+      new Error(`Image too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Try a smaller photo.`),
+    );
+  }
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -630,7 +647,24 @@ function resizeImage(file: File): Promise<string> {
         const ctx = canvas.getContext('2d');
         if (!ctx) { reject(new Error('no canvas')); return; }
         ctx.drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL('image/jpeg', 0.8));
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+        // Base64-encoded size = (len * 3) / 4 (minus padding). For
+        // an 8MB source file with a 500KB cap, this guards against
+        // a multi-image post blowing out the partner's SSE feed
+        // size and the host's localStorage quota.
+        const base64Size = Math.floor((dataUrl.length - 'data:image/jpeg;base64,'.length) * 3 / 4);
+        if (base64Size > MAX_OUTPUT_BYTES) {
+          // Image content was too complex to compress below the cap.
+          // Fall through rather than fail silently — caller will
+          // surface the error via the existing sendError path.
+          reject(
+            new Error(
+              `Image is too complex to compress below ${MAX_OUTPUT_BYTES / 1024} KB. Try a simpler photo.`,
+            ),
+          );
+          return;
+        }
+        resolve(dataUrl);
       };
       img.onerror = reject;
       img.src = e.target?.result as string;
