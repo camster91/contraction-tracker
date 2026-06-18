@@ -100,32 +100,52 @@ jobs:
             echo "Sync attempt $i failed, retrying in 10s..."
             sleep 10
           done
-          # Real verify: compute a git tree hash on the runner, fetch
-          # the host's sw.js cache-name, and compare. The cache-name
-          # is a deterministic stamp of the current source — if the
-          # sync silently no-op'd (the rsync mtime-skew bug from the
-          # 2026-06-17 deploy chain), this verify catches it and
-          # fails the step so the deploy doesn't ship stale source.
+          # Real verify: read the SW cache-name from the runner and
+          # the host, compare them. The cache-name is a deterministic
+          # stamp of the current source (it's bumped on every source
+          # change) — if the sync silently no-op'd (the rsync mtime-
+          # skew bug from the 2026-06-17 deploy chain), this verify
+          # catches it and fails the step so the deploy doesn't ship
+          # stale source.
           #
           # Why not `git rev-parse HEAD`? The host's src/ has no
           # .git directory (it's a plain rsync copy from a previous
           # manual setup), so we can't ask the host for its HEAD.
-          # Comparing the SW cache-name is the next best thing —
-          # the cache is bumped on every source change, and it's
-          # something the runner can read directly without ssh.
+          # Comparing the SW cache-name is the next best thing.
+          #
+          # We retry the host read up to 3 times because the ssh
+          # connection to the Hostinger VPS is occasionally flaky
+          # (1-2x/day, 30-120s blip, verified pattern). One read
+          # failing doesn't mean the host is stale — it just means
+          # the ssh is having a moment. Three failures in a row
+          # means something is genuinely wrong, so we fail the step.
           RUNNER_CACHE=$(grep -oE "CACHE_NAME = '[^']+'" public/sw.js | head -1)
+          if [ -z "$RUNNER_CACHE" ]; then
+            echo "FAIL: Could not read runner CACHE_NAME from public/sw.js"
+            exit 1
+          fi
           echo "Runner CACHE_NAME: $RUNNER_CACHE"
-          HOST_CACHE=$(ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new $USER@$HOST "grep -oE \"CACHE_NAME = '[^']+'\" /opt/projects/contraction-tracker/src/public/sw.js 2>/dev/null | head -1" || echo "")
+          HOST_CACHE=""
+          for v in 1 2 3; do
+            HOST_CACHE=$(ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new $USER@$HOST "grep -oE \"CACHE_NAME = '[^']+'\" /opt/projects/contraction-tracker/src/public/sw.js 2>/dev/null | head -1" 2>/dev/null || true)
+            if [ -n "$HOST_CACHE" ]; then break; fi
+            echo "Verify ssh read $v failed, retrying in 5s..."
+            sleep 5
+          done
           if [ -z "$HOST_CACHE" ]; then
-            echo "WARN: Could not read host CACHE_NAME (ssh failed or file missing)"
-          elif [ "$RUNNER_CACHE" != "$HOST_CACHE" ]; then
+            echo "FAIL: Could not read host CACHE_NAME after 3 ssh attempts."
+            echo "FAIL: This is either a Hostinger sshd blip that didn't recover,"
+            echo "FAIL: or the host is unreachable. Failing the step to avoid"
+            echo "FAIL: shipping stale source silently."
+            exit 1
+          fi
+          if [ "$RUNNER_CACHE" != "$HOST_CACHE" ]; then
             echo "FAIL: Host CACHE_NAME ($HOST_CACHE) does not match runner ($RUNNER_CACHE)"
             echo "FAIL: The rsync reported success but did not actually update the source."
             echo "FAIL: This is the mtime-skew silent-no-op bug. Failing the step so the deploy does not ship stale source."
             exit 1
-          else
-            echo "Verify OK: host matches runner ($RUNNER_CACHE)"
           fi
+          echo "Verify OK: host matches runner ($RUNNER_CACHE)"
 
   deploy:
     name: Deploy contraction-tracker
