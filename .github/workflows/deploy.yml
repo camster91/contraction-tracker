@@ -56,6 +56,8 @@ jobs:
     name: Sync source on host to origin/main
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
       - name: Set up SSH
         uses: webfactory/ssh-agent@v0.9.0
         with:
