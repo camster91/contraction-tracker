@@ -722,7 +722,12 @@ export default function App() {
 
   const handleSaveEdit = () => {
     if (!editingId) return;
-    const intensity = intensityDraft ? Math.max(1, Math.min(10, Number(intensityDraft))) : null;
+    // Number('abc') returns NaN, and Math.max(1, NaN) === NaN. That NaN
+    // would propagate into localStorage and silently break later code
+    // that does `c.intensity > 5`. Number.isFinite gates the parse.
+    const n = Number(intensityDraft);
+    const intensity =
+      intensityDraft && Number.isFinite(n) ? Math.max(1, Math.min(10, n)) : null;
     const note = noteDraft.trim();
     // De-dupe tags and strip empty
     const cleanTags = Array.from(new Set(tagsDraft.filter(Boolean)));

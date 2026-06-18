@@ -118,18 +118,33 @@ function MessageRow({ msg }: { msg: Message }) {
 export default function ActivityFeed({ code, shareState, viewerName, readOnly = false }: Props) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [textInput, setTextInput] = useState('');
-  const [nameInput, setNameInput] = useState(viewerName || '');
+  // Lazy init — saves one localStorage read per keystroke. (In render
+  // body would fire on every state change including each textInput char.)
+  const [nameInput, setNameInput] = useState<string>(() => {
+    // initial value: prop or empty; the saved name is read on submit
+    return viewerName || '';
+  });
   const [sending, setSending] = useState(false);
   const [showNamePrompt, setShowNamePrompt] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
   const [compressing, setCompressing] = useState(false);
   // T6 voice-memo recording state was removed (unused): the recorder UI was
   // never wired up after the relay added the 'voice' message kind. When this
   // comes back, hook a MediaRecorder + start/stop handlers here.
-  const clientId = useRef(Date.now().toString(36) + Math.random().toString(36).slice(2, 6));
+  // Lazy init so Math.random + Date.now() only run once, not per render.
+  const [clientId] = useState(() => Date.now().toString(36) + Math.random().toString(36).slice(2, 6));
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  const savedName = localStorage.getItem(`olive:viewer-name:${code}`);
-  const effectiveName = nameInput.trim() || savedName || '';
+  // Read the saved name only on the code change (and on mount). Not
+  // per-render — see the comment on the `nameInput` lazy init above.
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(`olive:viewer-name:${code}`);
+      if (saved && !nameInput) setNameInput(saved);
+    } catch { /* ignore */ }
+  }, [code]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const effectiveName = nameInput.trim();
 
   useEffect(() => {
     if (!effectiveName) {
@@ -196,15 +211,21 @@ export default function ActivityFeed({ code, shareState, viewerName, readOnly = 
   const post = async (kind: 'reaction' | 'text' | 'image' | 'status', content: string) => {
     if (!effectiveName) return;
     setSending(true);
+    setSendError(null);
     try {
-      // postMessage throws on failure now (was: returned null). The
-      // try/catch below is finally wired — see feed.ts comment.
-      const msg = await postMessage(code, kind, content, nameInput.trim(), clientId.current);
+      // postMessage throws on failure (feed.ts comment). Mirror the
+      // inline-composer pattern from App.tsx handlePostStatus: surface
+      // the error inline so the partner knows the message didn't go
+      // through. Previous behaviour was to swallow the throw (catch {
+      // /* ignore */ }) which silently lost messages on relay failures.
+      const msg = await postMessage(code, kind, content, nameInput.trim(), clientId);
       setMessages((prev) => {
         if (prev.find((m) => m.id === msg.id)) return prev;
         return [...prev, msg];
       });
-    } catch { /* ignore */ }
+    } catch (err) {
+      setSendError(err instanceof Error ? err.message : "Couldn't reach the share server. Tap to retry.");
+    }
     setSending(false);
   };
 
@@ -225,8 +246,14 @@ export default function ActivityFeed({ code, shareState, viewerName, readOnly = 
     setCompressing(true);
     try {
       const base64 = await resizeImage(file);
+      // post() handles its own errors (sets sendError) — no need to
+      // catch here. The previous `catch { /* ignore */ }` was masking
+      // the post() throw so resize errors AND post errors both fell
+      // into the void. Now the user sees a real error message.
       await post('image', base64);
-    } catch { /* ignore */ }
+    } catch (err) {
+      setSendError(err instanceof Error ? err.message : 'Image upload failed');
+    }
     setCompressing(false);
     e.target.value = '';
   };
@@ -332,6 +359,22 @@ export default function ActivityFeed({ code, shareState, viewerName, readOnly = 
       {/* Input row — hidden if read-only */}
       {!isReadOnly && (
         <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {sendError && (
+            <div
+              role="alert"
+              style={{
+                fontSize: 12,
+                color: '#f0c89a',
+                background: 'rgba(232,149,122,0.08)',
+                border: '1px solid rgba(232,149,122,0.25)',
+                borderRadius: 10,
+                padding: '8px 12px',
+                lineHeight: 1.4,
+              }}
+            >
+              {sendError}
+            </div>
+          )}
           <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
             <input
               type="text"
