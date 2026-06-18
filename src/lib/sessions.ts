@@ -191,6 +191,10 @@ function generateShareCode(): string {
   return out;
 }
 
+export type CreateShareResult =
+  | { kind: 'reused'; share: Share; previousMode?: string }
+  | { kind: 'created'; share: Share };
+
 export function createShare(input: {
   sessionId: string;
   // Optional id override — used by handleCreate to pass the relay's
@@ -202,7 +206,7 @@ export function createShare(input: {
   ttlHours?: number;
   pin?: string;
   mode?: string;
-}): Share {
+}): CreateShareResult {
   // One share per session. If an active share already exists for this
   // session, return it instead of creating a new one. This means the
   // partner with the existing code keeps seeing live updates as the
@@ -214,11 +218,12 @@ export function createShare(input: {
   if (active) {
     // Update mode if the user is upgrading from "friends" to "partner"
     // or vice versa. Keep the same code.
+    const previousMode = active.mode;
     if (input.mode && input.mode !== active.mode) {
       active.mode = input.mode;
       setShares(existing);
     }
-    return active;
+    return { kind: 'reused', share: active, previousMode };
   }
   const id = input.id || generateShareCode();
   // Ensure unique across all sessions (defensive — should not collide
@@ -241,7 +246,7 @@ export function createShare(input: {
     createdAt: new Date().toISOString(),
   };
   setShares([...existing, share]);
-  return share;
+  return { kind: 'created', share };
 }
 
 export function getShare(id: string): Share | null {

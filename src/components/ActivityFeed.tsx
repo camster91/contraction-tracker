@@ -335,6 +335,18 @@ export default function ActivityFeed({ code, shareState, viewerName, readOnly = 
     e.target.value = '';
   };
 
+  // Submit the viewer's name. Used by both the Join button and the
+  // Enter key in the input — single source of truth so the two
+  // paths can't drift.
+  const submitName = () => {
+    const trimmed = nameInput.trim();
+    if (!trimmed) return;
+    try {
+      localStorage.setItem(`olive:viewer-name:${code}`, trimmed);
+    } catch { /* localStorage may be disabled */ }
+    setShowNamePrompt(false);
+  };
+
   // The 24h postpartum read-only check is now passed in from the parent
   // (ShareView) via the readOnly prop, since it has access to stateChangedAt.
   const isReadOnly = readOnly || shareState === 'archived';
@@ -368,15 +380,11 @@ export default function ActivityFeed({ code, shareState, viewerName, readOnly = 
               outline: 'none',
               fontFamily: 'Inter, system-ui, sans-serif',
             }}
-            onKeyDown={(e) => { if (e.key === 'Enter' && nameInput.trim()) { localStorage.setItem(`olive:viewer-name:${code}`, nameInput.trim()); setShowNamePrompt(false); } }}
+            onKeyDown={(e) => { if (e.key === 'Enter') submitName(); }}
           />
           <button
-            onClick={() => {
-              if (nameInput.trim()) {
-                localStorage.setItem(`olive:viewer-name:${code}`, nameInput.trim());
-                setShowNamePrompt(false);
-              }
-            }}
+            onClick={submitName}
+            disabled={!nameInput.trim()}
             style={{
               background: '#e8957a',
               border: 'none',
@@ -385,7 +393,8 @@ export default function ActivityFeed({ code, shareState, viewerName, readOnly = 
               fontSize: 13,
               fontWeight: 600,
               color: '#120c10',
-              cursor: 'pointer',
+              cursor: nameInput.trim() ? 'pointer' : 'default',
+              opacity: nameInput.trim() ? 1 : 0.5,
             }}
           >
             Join

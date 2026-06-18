@@ -15,10 +15,10 @@
 // The default is a const (not a `let`) so a runtime mutation can't
 // redirect all subsequent relay calls.
 // `import.meta.env` is typed by vite/client (see tsconfig.app.json
-// `types: ["vite/client"]`); the `?.` and `||` keep the build happy when
-// the type narrowing sees the env as possibly undefined.
+// `types: ["vite/client"]`). The `??` keeps the build happy when
+// the env var is unset (Vite types it as `string | undefined`).
 export const RELAY_URL: string =
-  (import.meta as any).env?.VITE_RELAY_URL || 'https://relay.ashbi.ca';
+  import.meta.env.VITE_RELAY_URL ?? 'https://relay.ashbi.ca';
 
 export async function createShareOnRelay(input: {
   sessionId: string;
