@@ -54,7 +54,7 @@ import {
   rotateBackup,
   validateBackup,
 } from './lib/backup';
-import { initSync, broadcastContractions, broadcastCurrent, isReceiving } from './lib/sync';
+import { initSync, broadcastContractions, broadcastCurrent } from './lib/sync';
 import {
   chimeAlert,
   chimeStart,
@@ -477,14 +477,19 @@ export default function App() {
     autoBackup(contractions, current).then((ok) => {
       if (ok) setSavedAt(new Date());
     });
-    if (!isReceiving()) broadcastContractions(contractions);
+    // The broadcast function itself dedupes via the hash LRU (see
+    // lib/sync.ts) — no need for an isReceiving() guard at the call
+    // site. The old queueMicrotask-based counter was broken (it
+    // decremented before React's useEffect ran) so the guard never
+    // actually fired; it was dead code.
+    broadcastContractions(contractions);
   }, [contractions, current]);
   useEffect(() => {
     save(SESSION_KEY, current);
     autoBackup(contractions, current).then((ok) => {
       if (ok) setSavedAt(new Date());
     });
-    if (!isReceiving()) broadcastCurrent(current);
+    broadcastCurrent(current);
     // Auto-sync to relay if a share is active for this session
     try {
       const activeShares = getShares().filter(s => !s.revoked && s.sessionId === activeSessionId);
