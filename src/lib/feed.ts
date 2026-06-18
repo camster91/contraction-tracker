@@ -26,6 +26,34 @@ export async function getMessages(code: string): Promise<Message[]> {
   }
 }
 
+/**
+ * Typed error thrown by postMessage. The `code` lets callers
+ * distinguish failure modes:
+ *   - 'network': fetch threw (no response). Retryable.
+ *   - 'http'   : non-2xx response. The relay explicitly rejected
+ *                the message (e.g. archived share, validation).
+ *                Usually NOT retryable as-is.
+ *   - 'shape'  : 2xx but response body missing `message`. The relay
+ *                is reachable but speaking a different shape. Bug.
+ * The `status` field is set for 'http' errors.
+ *
+ * Callers can switch on err.code to decide whether to retry.
+ */
+export class PostMessageError extends Error {
+  code: 'network' | 'http' | 'shape';
+  status: number | null;
+  constructor(
+    code: 'network' | 'http' | 'shape',
+    message: string,
+    status: number | null = null,
+  ) {
+    super(message);
+    this.code = code;
+    this.status = status;
+    this.name = 'PostMessageError';
+  }
+}
+
 export async function postMessage(
   code: string,
   kind: MessageKind,
@@ -41,18 +69,43 @@ export async function postMessage(
   // still transition the share to 'postpartum' and close, silently
   // losing the celebration. Throwing here means the catch block
   // in the caller fires and the host sees the error + can retry.
-  const res = await fetch(`${RELAY_URL}/api/shares/${code}/messages`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ kind, content, authorName, clientId }),
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${RELAY_URL}/api/shares/${code}/messages`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ kind, content, authorName, clientId }),
+    });
+  } catch (err) {
+    // fetch threw — no response at all. Network-level failure.
+    // Retryable: the user can tap the retry button.
+    throw new PostMessageError(
+      'network',
+      `Couldn't reach the share server: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
   if (!res.ok) {
     const text = await res.text().catch(() => '');
-    throw new Error(`postMessage failed: ${res.status} ${res.statusText} ${text}`.trim());
+    throw new PostMessageError(
+      'http',
+      `postMessage failed: ${res.status} ${res.statusText} ${text}`.trim(),
+      res.status,
+    );
   }
-  const data = await res.json();
+  let data: { message?: Message };
+  try {
+    data = await res.json();
+  } catch {
+    throw new PostMessageError(
+      'shape',
+      'postMessage: relay returned 2xx but no parseable JSON body',
+    );
+  }
   if (!data.message) {
-    throw new Error(`postMessage: relay returned 200 but no message body`);
+    throw new PostMessageError(
+      'shape',
+      'postMessage: relay returned 200 but no message body',
+    );
   }
   return data.message;
 }

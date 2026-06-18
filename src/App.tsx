@@ -106,7 +106,7 @@ import {
 } from './lib/sessions';
 import { getChecklist, packedCount, saveChecklist, type ChecklistItem } from './lib/checklist';
 import { getExams, type CervicalExam } from './lib/hospital';
-import { postMessage } from './lib/feed';
+import { postMessage, PostMessageError } from './lib/feed';
 import { getShareFromRelay, pushContractionsToRelay, setShareStateOnRelay, postContractionEventToRelay, RELAY_URL } from './lib/relay';
 import { getOrCreateClientId } from './lib/identity';
 import Onboarding from './components/Onboarding';
@@ -1125,11 +1125,20 @@ export default function App() {
       // host has set their name in Settings.
       await postMessage(activeShare.id, 'status', text, getHostName(), undefined);
       setStatusDraft('');
-    } catch {
+    } catch (err) {
       // Don't clear the input — the user typed something meaningful
       // and deserves to retry. Inline error message below the
-      // composer tells them what happened.
-      setStatusError("Couldn't reach the share server. Tap Post to retry.");
+      // composer tells them what happened. Use the typed PostMessage-
+      // Error to distinguish network failures (retryable) from
+      // http/shape failures (the relay rejected it, retrying won't
+      // help without a code change).
+      if (err instanceof PostMessageError && err.code === 'http') {
+        setStatusError(
+          `The share server rejected the post (${err.status ?? 'error'}). It may have been archived.`,
+        );
+      } else {
+        setStatusError("Couldn't reach the share server. Tap Post to retry.");
+      }
     }
     setStatusSending(false);
   };

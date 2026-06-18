@@ -156,51 +156,128 @@ export default function ActivityFeed({ code, shareState, viewerName, readOnly = 
     getMessages(code).then(setMessages).catch(() => {});
   }, [code, effectiveName]);
 
-  // SSE subscription
+  // SSE subscription + polling fallback
+  //
+  // Strategy:
+  //   1. Try SSE first. Real-time, low-latency.
+  //   2. If SSE fails to connect within a few seconds, OR drops
+  //      mid-session, fall back to 15s polling.
+  //   3. While polling, periodically retry SSE (every 60s) so the
+  //      feed transitions back to real-time when the relay recovers.
+  //   4. On every inbound SSE message, dedupe against a per-mount
+  //      Set of seen ids. SSE can re-broadcast on reconnect, and
+  //      useShareActivity.ts (the host-side toast hook) had the same
+  //      fix in 9a4dbdc.
+  //
+  // Dedupe LRU is bounded so we don't leak memory on long sessions.
+  const seenRef = useRef<Set<string>>(new Set());
+  const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const sseRetryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const SSE_RETRY_MS = 60_000;
+
   useEffect(() => {
     if (!effectiveName) return;
     const url = `${RELAY_URL}/api/shares/${code}/stream`;
     let es: EventSource | null = null;
-    let pollTimer: ReturnType<typeof setTimeout> | null = null;
-    let sseWorking = false;
+    // Reset dedupe set on code change — different share = different
+    // conversation.
+    seenRef.current = new Set();
+
+    const stopPolling = () => {
+      if (pollTimerRef.current) {
+        clearTimeout(pollTimerRef.current);
+        pollTimerRef.current = null;
+      }
+    };
+    const stopSseRetry = () => {
+      if (sseRetryTimerRef.current) {
+        clearTimeout(sseRetryTimerRef.current);
+        sseRetryTimerRef.current = null;
+      }
+    };
 
     const startPolling = () => {
-      if (pollTimer) return;
+      if (pollTimerRef.current) return;
       const tick = async () => {
         try {
           const msgs = await getMessages(code);
-          setMessages(msgs);
+          // Re-apply dedupe + ordering against seenRef so the
+          // transition from SSE -> polling doesn't dup messages.
+          setMessages((prev) => {
+            const known = new Set(prev.map((m) => m.id));
+            const fresh = msgs.filter((m) => !known.has(m.id) && !seenRef.current.has(m.id));
+            for (const m of fresh) seenRef.current.add(m.id);
+            return fresh.length ? [...prev, ...fresh] : prev;
+          });
         } catch { /* ignore */ }
-        pollTimer = setTimeout(tick, 15000);
+        pollTimerRef.current = setTimeout(tick, 15000);
       };
       tick();
     };
 
-    const stopPolling = () => {
-      if (pollTimer) { clearTimeout(pollTimer); pollTimer = null; }
+    const scheduleSseRetry = () => {
+      if (sseRetryTimerRef.current) return;
+      sseRetryTimerRef.current = setTimeout(() => {
+        sseRetryTimerRef.current = null;
+        // Re-attempt SSE. If it works, the onopen handler stops
+        // polling. If it fails again, the onerror handler will
+        // reschedule.
+        connect();
+      }, SSE_RETRY_MS);
     };
 
-    try {
-      es = new EventSource(url);
-      es.onopen = () => { sseWorking = true; stopPolling(); };
-      es.onmessage = async (e) => {
-        try {
-          const payload = JSON.parse(e.data);
-          if (payload.type === 'message') {
-            setMessages((prev) => {
-              if (prev.find((m) => m.id === payload.message.id)) return prev;
-              return [...prev, payload.message];
-            });
-          }
-        } catch { /* ignore */ }
-      };
-      es.onerror = () => {
-        if (!sseWorking) { es?.close(); es = null; startPolling(); }
-      };
-    } catch {
-      startPolling();
-    }
-    return () => { es?.close(); stopPolling(); };
+    const connect = () => {
+      try {
+        es = new EventSource(url);
+        es.onopen = () => {
+          stopPolling();
+          stopSseRetry();
+        };
+        es.onmessage = async (e) => {
+          try {
+            const payload = JSON.parse(e.data);
+            if (payload.type === 'message') {
+              const id = payload.message.id as string;
+              if (seenRef.current.has(id)) return; // dedupe
+              seenRef.current.add(id);
+              // Cap the seen-set to avoid unbounded growth on
+              // long sessions (a 12hr labor can produce thousands
+              // of messages). We only need the most recent N for
+              // dedupe.
+              if (seenRef.current.size > 500) {
+                const arr = [...seenRef.current];
+                seenRef.current = new Set(arr.slice(-300));
+              }
+              setMessages((prev) => {
+                if (prev.find((m) => m.id === id)) return prev;
+                return [...prev, payload.message];
+              });
+            }
+          } catch { /* ignore */ }
+        };
+        es.onerror = () => {
+          // Either: SSE never connected, or it dropped mid-session.
+          // We can't tell the difference from the EventSource API
+          // (no "onclose" reason). Strategy: close this es, start
+          // polling, and schedule a one-shot SSE retry.
+          try { es?.close(); } catch { /* ignore */ }
+          es = null;
+          startPolling();
+          scheduleSseRetry();
+        };
+      } catch {
+        // Browser doesn't support EventSource at all (very rare).
+        startPolling();
+      }
+    };
+
+    connect();
+    return () => {
+      try { es?.close(); } catch { /* ignore */ }
+      es = null;
+      stopPolling();
+      stopSseRetry();
+    };
   }, [code, effectiveName]);
 
   // Auto-scroll to bottom when new messages arrive
