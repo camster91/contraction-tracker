@@ -5,6 +5,7 @@
 import { useState } from 'react';
 import { Plus, Trash2, ArrowLeft, Mail, Phone, User, MessageSquare } from 'lucide-react';
 import { addPerson, deletePerson, getPeople, type Person } from '../lib/sessions';
+import { toast } from '../lib/toast';
 
 type Props = {
   onClose: () => void;
@@ -200,7 +201,12 @@ export default function PeopleSheet({ onClose, finished = [] }: Props) {
                     if (navigator.share) {
                       try { await navigator.share({ text: msg }); return; } catch { /* cancelled */ }
                     }
-                    try { await navigator.clipboard.writeText(msg); alert('Update copied'); } catch { alert(msg); }
+                    try {
+                      await navigator.clipboard.writeText(msg);
+                      toast.success(`Update for ${p.name} copied to clipboard`);
+                    } catch {
+                      toast.info(msg, { duration: 8000 });
+                    }
                   }}
                   className="p-1.5 text-ink-400 active:text-rose-300 transition-colors"
                   aria-label={`Send update to ${p.name}`}

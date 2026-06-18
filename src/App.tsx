@@ -88,6 +88,8 @@ import HospitalSheet from './components/HospitalSheet';
 import ViewSessionModal from './components/ViewSessionModal';
 import ActiveLaborBanner from './components/ActiveLaborBanner';
 import PainLocationPicker from './components/PainLocationPicker';
+import ToastHost from './components/ToastHost';
+import { toast } from './lib/toast';
 import {
   contractionsInSession,
   createSession,
@@ -866,9 +868,13 @@ export default function App() {
     }
     try {
       await navigator.clipboard.writeText(text);
-      alert('Summary copied to clipboard');
+      toast.success('Summary copied to clipboard');
     } catch {
-      alert(text);
+      // Last-resort fallback: the user has no clipboard, no share,
+      // no relay. Surface the text inline rather than blocking the
+      // page with an alert. Long summaries wrap in a scrollable
+      // pre so this stays usable.
+      toast.info(text.length > 200 ? text.slice(0, 200) + '…' : text, { duration: 10_000 });
     }
   };
 
@@ -1002,7 +1008,10 @@ export default function App() {
         saveChecklist(sid, [...itemMap.values()] as never[]);
       }
       setBackupError(null);
-      alert(`Imported ${result.contractions} contractions, ${result.sessions} session(s), ${result.people} contacts, ${result.exams} exams.`);
+      toast.success(
+        `Imported ${result.contractions} contractions, ${result.sessions} session(s), ${result.people} contacts, ${result.exams} exams.`,
+        { duration: 5000 },
+      );
     } catch (err) {
       setBackupError('Failed to import: ' + (err instanceof Error ? err.message : String(err)));
     } finally {
@@ -1044,9 +1053,9 @@ export default function App() {
     }
     try {
       await navigator.clipboard.writeText(json);
-      alert('Backup copied to clipboard. Paste it into a message to send.');
+      toast.success('Backup copied to clipboard. Paste it into a message to send.', { duration: 6000 });
     } catch {
-      alert('Could not share the backup file.');
+      toast.error('Could not share the backup file.', { duration: 6000 });
     }
   };
 
@@ -2309,6 +2318,11 @@ export default function App() {
             />
           );
         })()}
+
+        {/* Global toast host — renders any active toast from the
+            toast store. Mounted last so it sits above other fixed
+            elements (Undo, DataRestored, QuotaExceeded). */}
+        <ToastHost />
       </main>
     </div>
   );

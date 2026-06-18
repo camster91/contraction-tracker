@@ -48,6 +48,7 @@ import {
   RELAY_URL,
 } from '../lib/relay';
 import { getOrCreateClientId } from '../lib/identity';
+import { toast } from '../lib/toast';
 import ActivityFeed from './ActivityFeed';
 
 export default function ShareView({ code }: { code: string }) {
@@ -411,7 +412,7 @@ export default function ShareView({ code }: { code: string }) {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch (e) {
-      alert('PDF generation failed: ' + (e as Error).message);
+      toast.error('PDF generation failed: ' + (e as Error).message, { duration: 8000 });
     } finally {
       setPdfBusy(false);
     }
