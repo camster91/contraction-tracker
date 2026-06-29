@@ -10,7 +10,6 @@ on:
 # Cancel in-progress runs of the same workflow when a new commit lands
 concurrency:
   group: gauntlet-${{ github.ref }}
-  cancel-in-progress: true
 
 jobs:
   e2e:
