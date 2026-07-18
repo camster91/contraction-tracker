@@ -12,6 +12,7 @@
  */
 import { test, expect } from '@playwright/test';
 import * as helpers from './helpers';
+import type { Contraction } from '../../src/lib/contractions';
 
 const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'https://contractions.ashbi.ca/';
 
@@ -80,7 +81,7 @@ test('end-to-end: partner sees only active session data, not cross-session', asy
 
   // Wait for the relay to receive the data — poll up to 10s
   // (Relay can rate-limit pushes, so we check what's actually there)
-  let shareData = null;
+  let shareData: { contractions: Contraction[] } | null = null;
   for (let i = 0; i < 20; i++) {
     const r = await partnerPage.request.get(`https://relay.ashbi.ca/api/shares/${shareCode}/contractions`);
     if (r.ok()) {
