@@ -10,6 +10,7 @@
  */
 import { test, expect } from '@playwright/test';
 import * as helpers from './helpers';
+import type { Contraction } from '../../src/lib/contractions';
 
 const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'https://contractions.ashbi.ca/';
 
@@ -54,8 +55,8 @@ test('relay-push: only the active session contractions are pushed, not all', asy
 
   const result = await page.evaluate(() => {
     // Inline implementation of contractionsInSession
-    const sessionIdOf = (c) => c.sessionId || 'primary';
-    const contractions = JSON.parse(localStorage.getItem('contraction-tracker:v1') || '{"contractions":[]}').contractions;
+    const sessionIdOf = (c: Contraction) => c.sessionId || 'primary';
+    const contractions: Contraction[] = JSON.parse(localStorage.getItem('contraction-tracker:v1') || '{"contractions":[]}').contractions;
     const thursday = contractions.filter((c) => sessionIdOf(c) === 'thursday');
     const wednesday = contractions.filter((c) => sessionIdOf(c) === 'wednesday');
     return {
