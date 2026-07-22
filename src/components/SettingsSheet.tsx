@@ -75,10 +75,14 @@ export default function SettingsSheet({
               helper) — set it to your name so the partner (a parent,
               a sibling, a doula) sees a real person posting. */}
           <div className="mb-3">
-            <label className="block text-[10px] uppercase tracking-[0.15em] text-ink-400 font-semibold mb-1.5">
+            <label
+              htmlFor="host-name-input"
+              className="block text-[10px] uppercase tracking-[0.15em] text-ink-400 font-semibold mb-1.5"
+            >
               Your name (visible to your circle)
             </label>
             <input
+              id="host-name-input"
               type="text"
               value={hostName}
               onChange={(e) => handleHostNameChange(e.target.value)}

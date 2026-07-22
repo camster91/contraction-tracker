@@ -91,7 +91,11 @@ export default function PeopleSheet({ onClose, finished = [] }: Props) {
 
       {adding && (
         <div className="mb-3 rounded-xl border border-ink-200/30 bg-ink-100/5 p-3 space-y-2">
+          <label htmlFor="person-name-input" className="sr-only">
+            Person name
+          </label>
           <input
+            id="person-name-input"
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -99,7 +103,11 @@ export default function PeopleSheet({ onClose, finished = [] }: Props) {
             className="w-full bg-transparent text-sm text-ink-50 placeholder-ink-400 focus:outline-none"
             autoFocus
           />
+          <label htmlFor="person-relationship-select" className="sr-only">
+            Relationship
+          </label>
           <select
+            id="person-relationship-select"
             value={relationship}
             onChange={(e) => setRelationship(e.target.value)}
             className="w-full bg-ink-100/10 text-sm text-ink-100 rounded px-2 py-1.5"
@@ -111,8 +119,12 @@ export default function PeopleSheet({ onClose, finished = [] }: Props) {
             ))}
           </select>
           <div className="flex items-center gap-2 bg-ink-100/5 rounded px-2 py-1.5">
-            <Phone className="w-3.5 h-3.5 text-ink-500" />
+            <Phone className="w-3.5 h-3.5 text-ink-500" aria-hidden="true" />
+            <label htmlFor="person-phone-input" className="sr-only">
+              Phone number
+            </label>
             <input
+              id="person-phone-input"
               type="tel"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
@@ -121,8 +133,12 @@ export default function PeopleSheet({ onClose, finished = [] }: Props) {
             />
           </div>
           <div className="flex items-center gap-2 bg-ink-100/5 rounded px-2 py-1.5">
-            <Mail className="w-3.5 h-3.5 text-ink-500" />
+            <Mail className="w-3.5 h-3.5 text-ink-500" aria-hidden="true" />
+            <label htmlFor="person-email-input" className="sr-only">
+              Email address
+            </label>
             <input
+              id="person-email-input"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}

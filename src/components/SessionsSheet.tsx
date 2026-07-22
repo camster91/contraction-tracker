@@ -132,7 +132,11 @@ export default function SessionsSheet({
 
       {creating && (
         <div className="mb-3 rounded-xl border border-ink-200/30 bg-ink-100/5 p-3">
+          <label htmlFor="session-name-input" className="sr-only">
+            Session name
+          </label>
           <input
+            id="session-name-input"
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
