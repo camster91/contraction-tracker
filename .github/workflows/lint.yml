@@ -24,6 +24,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -39,5 +41,11 @@ jobs:
       - name: Run lint
 
         run: npm run lint
+        env:
+          CI: true
+
+      - name: Check sw.js CACHE_NAME matches package.json version
+
+        run: npm run check:sw
         env:
           CI: true

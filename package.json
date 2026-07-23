@@ -7,6 +7,10 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write \"src/**/*.{ts,tsx,css}\"",
+    "check:sw": "node scripts/check-sw-cache-name.js",
+    "verify": "npm run lint && npm run check:sw && npm run build",
     "preview": "vite preview"
   },
   "dependencies": {

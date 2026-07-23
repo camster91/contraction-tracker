@@ -116,7 +116,11 @@ import HistoryHeader from './components/HistoryHeader';
 
 const STORAGE_KEY = 'contraction-tracker:v1';
 const SESSION_KEY = 'contraction-tracker:current';
-const APP_VERSION = '1.0.0';
+// Resolved at build time from package.json via vite.config.ts (define).
+// vite/client types this as string | undefined; the fallback to '0.0.0'
+// is a paranoia guard against an unset build environment. In practice
+// every real build has VITE_APP_VERSION set.
+const APP_VERSION = import.meta.env.VITE_APP_VERSION ?? '0.0.0';
 const MUTED_KEY = 'contraction-tracker:muted';
 const BACKUP_REMINDER_KEY = 'contraction-tracker:backup-dismissed';
 
@@ -411,6 +415,14 @@ export default function App() {
   // changes). The `lastSeenStartRef` makes the intent explicit: re-run
   // the effect only when the start time of the current timer differs
   // from what we last inspected. Same semantics, more readable.
+  //
+  // The dep array is [current] intentionally — `contractions` and `undo`
+  // are captured at effect-fire time, which is when `current` changes
+  // (the only meaningful trigger for this logic). Re-running on
+  // `contractions` would cause the effect to fire on every contraction
+  // add/remove, which is wasteful and would re-evaluate the stale timer
+  // check for unchanged timers. `undo.push` is a stable reference from
+  // `useUndo` (push is wrapped in useCallback with empty deps).
   const lastSeenStartRef = useRef<string | null>(null);
   useEffect(() => {
     if (!current || current.end) {
@@ -432,6 +444,7 @@ export default function App() {
       contractions,
       current: snapshot,
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [current]);
 
   // On first mount: if localStorage is empty but IndexedDB has a backup, restore it.

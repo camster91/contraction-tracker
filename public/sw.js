@@ -3,7 +3,16 @@
  * Pre-caches JS/CSS bundles during install so the app loads
  * instantly on repeat visits. */
 
-const CACHE_NAME = 'olive-v19';
+// CACHE_NAME must be bumped on every source change so the deploy
+// workflow's pre-flight check (deploy.yml) can detect stale source
+// on the host. The CI workflow lints that this name matches the
+// package.json version + a "v" prefix. Bump it manually when you
+// ship a meaningful source change that requires cache invalidation.
+//
+// Pattern: 'olive-v<NUM>' where NUM is monotonically increasing per
+// release. Don't reset it across releases — users with old service
+// workers will get a clean migration via the activate handler.
+const CACHE_NAME = 'olive-v20';
 const APP_SHELL = [
   '/',
   '/index.html',
