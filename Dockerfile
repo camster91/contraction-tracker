@@ -20,4 +20,11 @@ EXPOSE 3000
 # public/404/ is served for /404/ explicitly, and `serve` returns its
 # default 404 text for everything else. The user-facing error UX comes
 # from this static HTML page when explicitly linked.
-CMD ["sh", "-c", "serve dist -l 3000 --no-clipboard"]
+#
+# NOTE: signal handling — `serve` listens for SIGTERM by default. The
+# `["sh", "-c", ...]` exec form would have prevented SIGTERM from
+# reaching the `serve` process (the shell wrapper would receive it
+# and exit, leaving `serve` orphaned). Exec form directly invokes
+# `serve` as PID 1, so docker stop / docker-compose down / Kubernetes
+# pod termination all hit the right process. Graceful shutdown works.
+CMD ["serve", "dist", "-l", "3000", "--no-clipboard"]
