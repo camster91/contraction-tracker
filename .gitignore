@@ -1,4 +1,5 @@
 node_modules
+ios/build/  # Capacitor iOS build artifacts (already-tracked ExportOptions.plist stays in git history)
 dist
 .DS_Store
 *.log
