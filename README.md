@@ -2,7 +2,7 @@
 
 A mobile-first contraction timer built as a PWA + Capacitor iOS/Android app. Tap when a contraction starts, tap when it ends, and Olive tracks duration, interval, and the 5-1-1 pattern automatically. Your partner's device stays in sync in real time.
 
-**Live:** [contractions.ashbi.ca](https://contractions.ashbi.ca) (PWA) · [relay.ashbi.ca](https://relay.ashbi.ca) (backend) · **Release pricing:** decision required (free or upfront paid).
+**Live:** [contractions.ashbi.ca](https://contractions.ashbi.ca) (PWA) · [relay.ashbi.ca](https://relay.ashbi.ca) (backend) · **Release pricing:** free.
 
 ---
 

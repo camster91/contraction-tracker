@@ -56,7 +56,7 @@ trying to time their contractions.
 
 - Marketing copy / app icon design (those are aesthetic, not functional)
 - Specific feature requests (this is v1.0.0, save it for v1.1)
-- Release pricing (decision required before store submission; the v1.0.0 build has no IAP)
+- Release pricing: free (the v1.0.1 build has no IAP)
 
 ## Bug report template
 

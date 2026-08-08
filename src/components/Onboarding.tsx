@@ -65,11 +65,16 @@ export default function Onboarding({ onDismiss }: Props) {
             <button
               key={i}
               onClick={() => setStep(i)}
-              className={`h-1.5 rounded-full transition-all ${
-                i === step ? 'w-6 bg-rose-300' : 'w-1.5 bg-ink-400/40 active:bg-ink-400/60'
-              }`}
+              className="group w-6 h-6 flex items-center justify-center rounded-full"
               aria-label={`Go to step ${i + 1}`}
-            />
+            >
+              <span
+                aria-hidden="true"
+                className={`h-1.5 rounded-full transition-all ${
+                  i === step ? 'w-6 bg-rose-300' : 'w-1.5 bg-ink-400/40 group-active:bg-ink-400/60'
+                }`}
+              />
+            </button>
           ))}
         </div>
         {step < 2 ? (

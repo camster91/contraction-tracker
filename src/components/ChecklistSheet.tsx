@@ -3,6 +3,7 @@ import { useState, useRef } from 'react';
 import { X, Check, Plus, GripVertical, Trash2 } from 'lucide-react';
 import { getChecklist, toggleChecklistItem, packedCount, saveChecklist, type ChecklistItem } from '../lib/checklist';
 import { uid } from '../lib/storage';
+import { useModalDialog } from '../hooks/useModalDialog';
 
 type Props = {
   sessionId: string;
@@ -10,6 +11,7 @@ type Props = {
 };
 
 export default function ChecklistSheet({ sessionId, onClose }: Props) {
+  const dialogRef = useModalDialog(onClose);
   const [items, setItems] = useState<ChecklistItem[]>(() => getChecklist(sessionId));
   const [adding, setAdding] = useState(false);
   const [newText, setNewText] = useState('');
@@ -73,7 +75,14 @@ export default function ChecklistSheet({ sessionId, onClose }: Props) {
         onClick={onClose}
         aria-hidden="true"
       />
-      <div className="fixed inset-x-0 bottom-0 z-50 rounded-t-3xl border-t border-ink-200/30 bg-plum-950/98  shadow-[0_-8px_32px_-8px_rgba(0,0,0,0.6)] max-h-[85dvh] flex flex-col animate-slide-up">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Hospital bag"
+        tabIndex={-1}
+        className="fixed inset-x-0 bottom-0 z-50 rounded-t-3xl border-t border-ink-200/30 bg-plum-950/98  shadow-[0_-8px_32px_-8px_rgba(0,0,0,0.6)] max-h-[85dvh] flex flex-col animate-slide-up"
+      >
         {/* Handle bar */}
         <div className="flex justify-center pt-3 pb-2">
           <div className="w-8 h-1 rounded-full bg-ink-200/40" />

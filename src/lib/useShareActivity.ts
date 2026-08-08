@@ -15,7 +15,7 @@
 // trigger duplicate toasts.
 
 import { useEffect, useRef, useState } from 'react';
-import { RELAY_URL } from './relay';
+import { getShareEventStreamUrl } from './relay';
 
 export type IncomingMessage = {
   id: string;
@@ -61,7 +61,7 @@ export function useShareActivitySubscription(code: string | null): ShareActivity
     setConnected(false);
     setEventCount(0);
 
-    const url = `${RELAY_URL}/api/shares/${code}/stream`;
+    const url = getShareEventStreamUrl(code);
 
     const connect = () => {
       try {

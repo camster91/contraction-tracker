@@ -32,10 +32,9 @@ export default defineConfig({
   ],
   base: '/',
   build: {
-    // Source maps for production debugging. ~2-3x bundle size but only
-    // fetched when DevTools is open (modern browsers gate source map fetches
-    // on the DevTools toggle, not on the bundle itself).
-    sourcemap: true,
+    // Production source maps expose the full client source tree to anyone
+    // who can fetch the asset. Keep them disabled for the public build.
+    sourcemap: false,
     // Split pdf-lib into its own chunk so the ShareView's memory-book
     // download doesn't bloat the entrypoint for the 90% of users who
     // never open a share link. Entry ~428KB → ~30KB after this.

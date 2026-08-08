@@ -91,7 +91,7 @@ test('relay-push: contract with relay — only session-specific data is sent', a
     test.skip(true, 'Could not create share on relay — rate-limited or down');
     return;
   }
-  const { code: realCode } = await createRes.json();
+  const { code: realCode, hostToken } = await createRes.json();
 
   // Push session-specific contractions
   const now = Date.now();
@@ -110,6 +110,7 @@ test('relay-push: contract with relay — only session-specific data is sent', a
   ];
 
   await request.post(`${relayUrl}/api/shares/${realCode}/contractions`, {
+    headers: { Authorization: `Bearer ${hostToken}` },
     data: { contractions, current: null },
   });
 

@@ -1,7 +1,8 @@
 // Activity feed — wraps the relay messages API
 // Used by ActivityFeed.tsx and host-side status posting
 
-import { RELAY_URL } from './relay';
+import { RELAY_URL, getShareAuthorizationHeaders } from './relay';
+import { getOrCreateClientSecret } from './identity';
 
 export type MessageKind = 'reaction' | 'text' | 'image' | 'voice' | 'status';
 
@@ -17,7 +18,9 @@ export type Message = {
 
 export async function getMessages(code: string): Promise<Message[]> {
   try {
-    const res = await fetch(`${RELAY_URL}/api/shares/${code}/messages`);
+    const res = await fetch(`${RELAY_URL}/api/shares/${code}/messages`, {
+      headers: getShareAuthorizationHeaders(code),
+    });
     if (!res.ok) return [];
     const data = await res.json();
     return data.messages || [];
@@ -73,8 +76,14 @@ export async function postMessage(
   try {
     res = await fetch(`${RELAY_URL}/api/shares/${code}/messages`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ kind, content, authorName, clientId }),
+      headers: { 'Content-Type': 'application/json', ...getShareAuthorizationHeaders(code) },
+      body: JSON.stringify({
+        kind,
+        content,
+        authorName,
+        clientId,
+        clientSecret: clientId ? getOrCreateClientSecret() : undefined,
+      }),
     });
   } catch (err) {
     // fetch threw — no response at all. Network-level failure.

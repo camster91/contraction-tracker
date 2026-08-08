@@ -47,11 +47,13 @@ test('share flow: relay accepts createShare, viewer fetchShare, all good', async
   expect(createBody).toBeTruthy();
   expect(createBody.code).toMatch(/^(?:[a-z2-9]{6}|[a-z2-9]{12})$/);
   const code = createBody.code;
+  const hostToken = createBody.hostToken;
+  expect(hostToken).toMatch(/^[A-Za-z0-9_-]{32,}$/);
   console.log(`Created share: ${code}`);
 
   // 2. Push a fake contraction to the share (so the viewer has data)
   const pushRes = await request.post(`${RELAY}/api/shares/${code}/contractions`, {
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${hostToken}` },
     data: {
       contractions: [{
         id: 'test-c-1',
@@ -127,6 +129,12 @@ test('share flow: relay PIN flow (create with PIN, fetch returns hasPin, validat
     data: { action: 'validate-pin', pin: '1234' },
   });
   expect(rightRes.ok(), `Right PIN should succeed, got status ${rightRes.status()}`).toBe(true);
+  const accessToken = (await rightRes.json()).accessToken;
+  expect(accessToken).toMatch(/^[A-Za-z0-9_-]{32,}$/);
+  const protectedRead = await request.get(`${RELAY}/api/shares/${code}/contractions`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  expect(protectedRead.ok()).toBe(true);
 });
 
 test('share flow: non-existent code returns 404, not crash', async ({ request }) => {

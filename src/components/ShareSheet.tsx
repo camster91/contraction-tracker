@@ -42,8 +42,9 @@ import {
   isShareValid,
   revokeShare,
 } from '../lib/sessions';
-import { createShareOnRelay, pushContractionsToRelay, revokeShareOnRelay } from '../lib/relay';
+import { createShareOnRelay, getShareCapability, pushContractionsToRelay, revokeShareOnRelay } from '../lib/relay';
 import type { Person } from '../lib/sessions';
+import { useModalDialog } from '../hooks/useModalDialog';
 
 type Props = {
   sessionId: string;
@@ -53,6 +54,7 @@ type Props = {
 const DEFAULT_TTL_HOURS = 168; // 7 days
 
 export default function ShareSheet({ sessionId, onClose }: Props) {
+  const dialogRef = useModalDialog(onClose);
   const [relayError, setRelayError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [shares, setShares] = useState<Share[]>(() => getShares());
@@ -85,7 +87,7 @@ export default function ShareSheet({ sessionId, onClose }: Props) {
     const existing = getShares().find(
       (s) => s.sessionId === sessionId && isShareValid(s),
     );
-    if (existing) {
+    if (existing && getShareCapability(existing.id)) {
       // The host is in the share-setup screen with an already-active
       // share. Just re-mark the host marker so the partner view's
       // isHost check works. No relay POST — the existing remote
@@ -96,6 +98,13 @@ export default function ShareSheet({ sessionId, onClose }: Props) {
       } catch { /* ignore */ }
       setCreating(false);
       return;
+    }
+    if (existing) {
+      // Shares created before host capabilities cannot safely perform host
+      // mutations after the relay security migration. Retire the local record
+      // and create a fresh protected link instead of silently reusing it.
+      revokeShare(existing.id);
+      setShares(getShares());
     }
     const relayResult = await createShareOnRelay({
       sessionId,
@@ -157,8 +166,15 @@ export default function ShareSheet({ sessionId, onClose }: Props) {
 
   return (
     <>
-      <div className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="fixed bottom-0 inset-x-0 z-50 bg-plum-950 border-t border-ink-200/20 rounded-t-3xl max-h-[88vh] overflow-y-auto">
+      <div className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm" onClick={onClose} aria-hidden="true" />
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Share with partner"
+        tabIndex={-1}
+        className="fixed bottom-0 inset-x-0 z-50 bg-plum-950 border-t border-ink-200/20 rounded-t-3xl max-h-[88vh] overflow-y-auto"
+      >
         <div className="max-w-md mx-auto px-5 pt-3 pb-8">
           {/* Drag handle */}
           <div className="w-10 h-1 bg-ink-200/30 rounded-full mx-auto mb-3" />

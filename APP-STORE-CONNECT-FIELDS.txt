@@ -50,7 +50,7 @@ Medical
 ────────────────────────────────────────────────────────────────────────
 PRICE
 ────────────────────────────────────────────────────────────────────────
-Tier 1: USD 1.99 (one-time, no IAP, no subscription)
+Free (no IAP, no subscription)
 
 
 ────────────────────────────────────────────────────────────────────────
@@ -100,7 +100,7 @@ WHAT IT DOES
 • One-tap Start/Stop timer — no menus, no settings, just a big button
 • Screen stays on while timing (wake lock API)
 • 5-1-1 active labor detection — alerts you when to call your provider
-• Share with your partner via a 6-character code — they see updates in real time from their own phone
+• Share with your partner via a 12-character code — they see updates in real time from their own phone
 • Voice control — say "start" or "stop" hands-free
 • Hospital bag checklist with pre-loaded items
 • Contraction history with intensity (1-10), tags, and pain location
@@ -196,7 +196,7 @@ How to test the app:
 To test the partner sharing:
   1. From the main screen, tap the "Share" card
   2. Tap "Create share link"
-  3. Copy the 6-character code
+  3. Copy the 12-character code
   4. Open https://contractions.ashbi.ca/?share=CODE in another browser
   5. The partner view shows the active labor and contraction history
 
@@ -206,9 +206,9 @@ To test the 5-1-1 alert:
 
 Notes for reviewer:
   - Sharing is optional. If enabled, contraction/session data and optional activity-feed content are transmitted to the Olive relay as disclosed in the privacy policy.
-  - The single network call is to our relay server (relay.ashbi.ca), used
-    only for the partner-sharing feature. The main app works fully offline.
-  - All code is original, no third-party SDKs.
+  - Network requests to relay.ashbi.ca are used only for the optional
+    partner-sharing feature. The main timer and local history work offline.
+  - The app uses the open-source libraries listed in its packaged dependencies.
   - Tested on iPhone 12, 13, 14, 15, and 15 Pro Max. Supports iOS 15+.
 
 Contact: cameron@ashbi.ca

@@ -12,7 +12,7 @@
 // Pattern: 'olive-v<NUM>' where NUM is monotonically increasing per
 // release. Don't reset it across releases — users with old service
 // workers will get a clean migration via the activate handler.
-const CACHE_NAME = 'olive-v20';
+const CACHE_NAME = 'olive-v21';
 const APP_SHELL = [
   '/',
   '/index.html',
@@ -64,16 +64,18 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
 
-  // Network-first for HTML so updates ship immediately
+  // Prefer a cached navigation so a reload works when the device is offline.
+  // New releases still ship immediately because each version installs into a
+  // fresh cache before the new worker claims clients.
   if (request.mode === 'navigate' || (request.headers.get('accept') || '').includes('text/html')) {
     event.respondWith(
-      fetch(request)
+      caches.match(request).then((cached) => cached || fetch(request)
         .then((response) => {
           const copy = response.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
           return response;
         })
-        .catch(() => caches.match('/index.html').then((r) => r || new Response('Offline', { status: 503 }))),
+        .catch(() => caches.match('/index.html').then((r) => r || new Response('Offline', { status: 503 })))),
     );
     return;
   }

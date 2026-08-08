@@ -107,7 +107,7 @@ import {
 import { getChecklist, packedCount, saveChecklist, type ChecklistItem } from './lib/checklist';
 import { getExams, type CervicalExam } from './lib/hospital';
 import { postMessage, PostMessageError } from './lib/feed';
-import { getShareFromRelay, pushContractionsToRelay, setShareStateOnRelay, postContractionEventToRelay, RELAY_URL } from './lib/relay';
+import { getShareFromRelay, pushContractionsToRelay, setShareStateOnRelay, postContractionEventToRelay, RELAY_URL, getShareAuthorizationHeaders } from './lib/relay';
 import { getOrCreateClientId } from './lib/identity';
 import Onboarding from './components/Onboarding';
 import BabyIsHereMount from './components/BabyIsHereMount';
@@ -376,7 +376,9 @@ export default function App() {
         } else {
           // First active share. (Same simplification as T2.)
           const s = activeShares[0];
-          const r = await fetch(`${RELAY_URL}/api/shares/${s.id}/contractions`);
+          const r = await fetch(`${RELAY_URL}/api/shares/${s.id}/contractions`, {
+            headers: getShareAuthorizationHeaders(s.id),
+          });
           if (r.ok) {
             const data = await r.json();
             const cur = data.current || null;
@@ -2317,7 +2319,12 @@ export default function App() {
               role="button"
               aria-label="Tap to start a contraction"
               tabIndex={0}
-              onKeyDown={(e) => e.key === 'Enter' && handleStart()}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleStart();
+                }
+              }}
             >
               <div className="font-display text-2xl font-light text-ink-200 tracking-tight">
                 When you're ready.

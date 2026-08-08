@@ -2,15 +2,14 @@
 
 Last updated: 2026-08-07. Status: **WEB RELEASED; STORE SUBMISSION BLOCKED.**
 
-Verified on 2026-08-07: strict lint/typecheck/build passed; the local browser
-suite completed with 93 passed, 20 environment-gated skips, and 0 failures;
-14 additional app/relay integration tests passed against a local relay; and
-the relay's six security/retention regression tests passed. The coordinated app
-and relay releases are live behind publicly trusted Let's Encrypt certificates.
-The post-deploy production suite passed 11/11 tests, including share creation,
-PIN validation, SSE, cross-session isolation, privacy, and 12-character links.
-Store submission remains blocked by signing, iOS validation on macOS/Xcode, and
-a pricing decision.
+Verified on 2026-08-07: strict lint/typecheck/build passed; the combined local
+Chromium release suite completed with 110 passed, 7 environment/optional skips,
+and 0 failures against the new relay contract. Focused app/relay integration
+passed 11/11, and the relay security/retention suite passed 15/15. Release
+coverage includes host and PIN capabilities, identity proof, malformed payload
+rejection, offline reload, modal keyboard behavior, zoom, session isolation,
+SSE, privacy, and 12-character links. Store submission remains blocked only by
+iOS validation on macOS/Xcode and manual store-console access.
 
 The `olive-release-candidate:1.0.1` Docker image also builds successfully with
 the production relay origin, and the focused WebKit compatibility run passed
@@ -22,7 +21,7 @@ All features verified by 76+ gauntlet tests (3.5 min CI). Zero TODOs, zero FIXME
 
 ### Performance
 - Self-hosted fonts (Fraunces + Inter, Latin subset) — zero external font deps
-- SW cache v2 with bundle pre-caching — second visit loads instantly
+- SW cache v21 with cache-first navigation — the installed PWA reloads offline
 - Dark preloader during React mount (~15s cold start)
 - CSP simplified: no googleapis.com, no gstatic.com
 - Dist: 1.7MB (16 font files, Latin subset only)
@@ -52,7 +51,9 @@ All features verified by 76+ gauntlet tests (3.5 min CI). Zero TODOs, zero FIXME
 - WCAG AA contrast on all text (ink-500 bumped to #a47a6e)
 - Header buttons have aria-labels
 - Feature cards have visible text (accessible name via text content)
-- 16 icon-only button labels documented as follow-up
+- Mobile zoom is enabled
+- Bottom sheets expose dialog semantics, enter/trap/restore focus, and close with Escape
+- Timer supports Enter and Space; onboarding step targets are at least 24x24 CSS pixels
 
 ### Sharing (revised 2026-06-09)
 - **One share per session** — creating again returns the same code
@@ -68,13 +69,16 @@ All features verified by 76+ gauntlet tests (3.5 min CI). Zero TODOs, zero FIXME
 - Zero analytics, zero tracking, zero third-party SDKs
 - Privacy policy at /privacy (self-hosted, no external deps)
 - CSP: script-src 'self' only
-- Relay: stores optional shared-session data; expiry cleanup and sensitive-data purge on revocation are covered by automated tests
+- Relay: host and PIN access use hashed capabilities; activity identities use separate hashed client proof
+- Production source maps are disabled; browser security headers are emitted by the static server
+- Expiry cleanup and sensitive-data purge on revocation are covered by automated tests
 
 ## Android
 
-- Release AAB compiles successfully after Capacitor sync
-- The current local AAB uses the debug key because `android/app/keystore.properties` is absent; Google Play will reject it
-- A production keystore and signed-bundle verification are required
+- Release AAB compiles successfully after Capacitor sync and is signed with the dedicated Olive upload key
+- Signed AAB: `android/app/build/outputs/bundle/release/app-release.aab`
+- SHA-256: `CEFD68BA6D5D50AFF2F1654D90D9B66D254B05C4B66DF5534C8B53EBB810BD72`
+- `jarsigner -verify` and the release signing task both passed
 - Sideload guide: docs/SIDELOAD-APK.md
 - Upload script: scripts/upload-play-store.py
 
@@ -96,7 +100,7 @@ All features verified by 76+ gauntlet tests (3.5 min CI). Zero TODOs, zero FIXME
 - Bundle ID: com.ashbi.olive
 - Version: 1.0.1
 - Category: Health & Fitness (primary), Medical (secondary)
-- Price: decision required before listing creation (free or upfront paid; no v1.0.1 IAP)
+- Price: free (no v1.0.1 IAP)
 - Privacy URL: https://contractions.ashbi.ca/privacy
 - Support URL: https://contractions.ashbi.ca
 - Screenshots: 20 images at 4 device sizes (6.7", 6.1", 5.5", 12.9")
@@ -105,8 +109,6 @@ All features verified by 76+ gauntlet tests (3.5 min CI). Zero TODOs, zero FIXME
 
 ## Remaining store-release work
 
-1. Choose free or upfront-paid pricing. v1.0.1 has no in-app purchase implementation.
-2. Provide/configure the Olive Android release keystore and build a production-signed AAB. No Olive keystore was found on this Windows machine.
-3. Archive and validate iOS on macOS/Xcode with the Apple Developer team; Xcode is not available on this machine.
-4. Review current App Store Connect and Google Play data declarations before manual submission.
-5. Resolve the GitHub account billing/spending-limit error so hosted Actions can start again. Production was deployed manually from verified Git archives because GitHub rejected all runner jobs before their first step.
+1. Archive and validate iOS on macOS/Xcode with the Apple Developer team; Xcode is not available on this machine.
+2. Review current App Store Connect and Google Play data declarations before manual submission.
+3. Upload the signed Android AAB and complete the two store-console review flows manually. GitHub Actions are intentionally skipped for this release; production uses the verified manual deployment path.

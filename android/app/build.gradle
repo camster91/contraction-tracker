@@ -1,5 +1,11 @@
 apply plugin: 'com.android.application'
 
+def oliveKeystoreProperties = new Properties()
+def oliveKeystorePropertiesFile = file('keystore.properties')
+if (oliveKeystorePropertiesFile.exists()) {
+    oliveKeystorePropertiesFile.withInputStream { oliveKeystoreProperties.load(it) }
+}
+
 android {
     namespace = "com.ashbi.olive"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -16,33 +22,24 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        release {
+            if (oliveKeystorePropertiesFile.exists()) {
+                storeFile file(oliveKeystoreProperties['KEYSTORE_PATH'])
+                storePassword oliveKeystoreProperties['KEYSTORE_PASSWORD']
+                keyAlias oliveKeystoreProperties['KEY_ALIAS']
+                keyPassword oliveKeystoreProperties['KEY_PASSWORD']
+            }
+        }
+    }
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-            // Sign release builds with the Olive upload keystore. The
-            // keystore file (olive-upload.keystore) and credentials live in
-            // android/app/keystore.properties — NOT committed. See
-            // SHIPPING.md for the one-time setup:
-            //   1. Generate keystore: keytool -genkey -v -keystore olive-upload.keystore ...
-            //   2. Create keystore.properties with KEYSTORE_PATH, KEYSTORE_PASSWORD, KEY_ALIAS, KEY_PASSWORD
-            //   3. Build: cd android && ./gradlew bundleRelease
-            if (project.hasProperty('KEYSTORE_PATH')) {
+            if (oliveKeystorePropertiesFile.exists()) {
                 signingConfig signingConfigs.release
             } else {
-                // Build will fail at sign-time without the keystore. Print a
-                // clear hint so the failure mode is obvious.
-                logger.warn("android/app/keystore.properties not found. Release build will use the default debug key (rejected by Google Play). See SHIPPING.md.")
-            }
-        }
-    }
-    signingConfigs {
-        release {
-            if (project.hasProperty('KEYSTORE_PATH')) {
-                storeFile file(KEYSTORE_PATH)
-                storePassword KEYSTORE_PASSWORD
-                keyAlias KEY_ALIAS
-                keyPassword KEY_PASSWORD
+                logger.warn("android/app/keystore.properties not found. Release output will not be store-signed.")
             }
         }
     }

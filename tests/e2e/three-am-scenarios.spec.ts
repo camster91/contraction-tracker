@@ -204,11 +204,28 @@ test('3am: 5-1-1 trigger — active labor banner appears at threshold', async ({
 });
 
 test('3am: app loads offline after first visit (SW cache works)', async ({ page, context }) => {
-  // First visit: app loads, SW caches the shell
+  // First visit: app loads, the worker controls the page, and the shell is cached.
   await page.goto(BASE_URL, { waitUntil: 'domcontentloaded' });
   await helpers.waitForApp(page);
-  // Give the SW time to install and cache
-  await page.waitForTimeout(3_000);
+
+  const serviceWorker = await page.evaluate(async () => {
+    const registration = await navigator.serviceWorker.ready;
+    if (!navigator.serviceWorker.controller) {
+      await new Promise<void>((resolve) => {
+        navigator.serviceWorker.addEventListener('controllerchange', () => resolve(), { once: true });
+      });
+    }
+    const cacheNames = await caches.keys();
+    return {
+      active: Boolean(registration.active),
+      controlled: Boolean(navigator.serviceWorker.controller),
+      cacheNames,
+    };
+  });
+
+  expect(serviceWorker.active, 'service worker should be active before going offline').toBe(true);
+  expect(serviceWorker.controlled, 'service worker should control the page before going offline').toBe(true);
+  expect(serviceWorker.cacheNames.some((name) => name.startsWith('olive-v')), 'app shell cache should exist').toBe(true);
 
   // Second visit: set network offline, reload
   await context.setOffline(true);
@@ -216,13 +233,6 @@ test('3am: app loads offline after first visit (SW cache works)', async ({ page,
     await page.reload({ waitUntil: 'domcontentloaded', timeout: 10_000 });
     const bodyText = (await page.locator('body').textContent()) || '';
     expect(bodyText.length, 'App should still render from SW cache when offline').toBeGreaterThan(100);
-  } catch (e: unknown) {
-    // Some apps intentionally fail on reload-while-offline. That's
-    // also acceptable as long as the initial load worked. Log and
-    // skip rather than fail.
-    const message = e instanceof Error ? e.message : String(e);
-    console.log('Offline reload failed (acceptable if first load worked):', message);
-    test.skip();
   } finally {
     await context.setOffline(false);
   }

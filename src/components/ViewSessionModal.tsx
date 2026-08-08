@@ -4,6 +4,7 @@ import { X, Clock } from 'lucide-react';
 import { formatClock, formatDuration, getTags, durationSeconds, intervalSeconds } from '../lib/contractions';
 import type { Contraction } from '../lib/contractions';
 import type { Session } from '../lib/sessions';
+import { useModalDialog } from '../hooks/useModalDialog';
 
 type Props = {
   session: Session;
@@ -12,6 +13,7 @@ type Props = {
 };
 
 export default function ViewSessionModal({ session, contractions, onClose }: Props) {
+  const dialogRef = useModalDialog(onClose);
   const [now] = useState(() => Date.now());
   const sorted = [...contractions].filter((c) => c.end).sort((a, b) => a.start.localeCompare(b.start));
 
@@ -22,7 +24,14 @@ export default function ViewSessionModal({ session, contractions, onClose }: Pro
         onClick={onClose}
         aria-hidden="true"
       />
-      <div className="fixed inset-x-0 bottom-0 z-50 rounded-t-3xl border-t border-ink-200/30 bg-plum-950/98  shadow-[0_-8px_32px_-8px_rgba(0,0,0,0.6)] max-h-[90dvh] flex flex-col animate-slide-up">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Session ${session.name}`}
+        tabIndex={-1}
+        className="fixed inset-x-0 bottom-0 z-50 rounded-t-3xl border-t border-ink-200/30 bg-plum-950/98  shadow-[0_-8px_32px_-8px_rgba(0,0,0,0.6)] max-h-[90dvh] flex flex-col animate-slide-up"
+      >
         {/* Handle + header */}
         <div className="flex justify-center pt-3 pb-2">
           <div className="w-8 h-1 rounded-full bg-ink-200/40" />

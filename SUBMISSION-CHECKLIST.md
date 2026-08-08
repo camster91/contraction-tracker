@@ -1,6 +1,6 @@
 # Olive v1.0.1 — Submission Checklist
 
-**Deadline: June 12 (3 days before launch). Reviews: Apple 1-3 days, Google 1-7 days.**
+**Prepared August 7, 2026. Store review timing is controlled by Apple and Google.**
 
 Total work: **~1.5 hours** spread over 2 days.
 
@@ -42,7 +42,7 @@ field. The file is formatted exactly as the fields appear in the UI.
 Specifically:
 - App name, subtitle, category, price
 - Description, keywords, promotional text
-- All 14 data-type questions = "No"
+- Use the conservative data declarations in `APP-STORE-CONNECT-FIELDS.txt`
 - Tracking = "No"
 - Screenshots (drag 5 files into order)
 - App icon (auto from xcassets)
@@ -67,8 +67,7 @@ Go to https://play.google.com/console
 2. App name: Olive
 3. Default language: English (United States)
 4. App or game: App
-5. Free or paid: **DECISION REQUIRED before creating the listing.** The v1.0.1
-   build has no IAP, so choose either free or upfront paid.
+5. Free or paid: **Free.** The v1.0.1 build has no IAP.
 6. Accept declarations, click "Create app"
 
 ### Step 2: Set up store listing (20 min)
@@ -101,7 +100,7 @@ Go to Policy > App content > Data safety
 ### Step 5: Set up internal testing (5 min)
 Go to Testing > Internal testing
 - Click "Create new release"
-- Upload AAB: `android/app/build/outputs/bundle/release/app-release.aab` (4.1MB)
+- Upload the signed AAB: `android/app/build/outputs/bundle/release/app-release.aab`
 - Release name: 1.0.1
 - Release notes: paste from `play-store-release-notes.txt`
 - Click "Review release" then "Start rollout to Internal testing"

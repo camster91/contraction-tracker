@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { X, Plus, Trash2, Stethoscope } from 'lucide-react';
 import { addExam, deleteExam, getExams, type CervicalExam } from '../lib/hospital';
 import { isHour12Preferred } from '../lib/contractions';
+import { useModalDialog } from '../hooks/useModalDialog';
 
 type Props = {
   sessionId: string;
@@ -13,6 +14,7 @@ const DILATION_OPTIONS = [1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5
 const STATION_OPTIONS = [-3, -2, -1, 0, +1, +2, +3];
 
 export default function HospitalSheet({ sessionId, onClose }: Props) {
+  const dialogRef = useModalDialog(onClose);
   const [exams, setExams] = useState<CervicalExam[]>(() => getExams(sessionId));
   const [adding, setAdding] = useState(false);
   const [dilation, setDilation] = useState<number>(3);
@@ -45,7 +47,14 @@ export default function HospitalSheet({ sessionId, onClose }: Props) {
         onClick={onClose}
         aria-hidden="true"
       />
-      <div className="fixed inset-x-0 bottom-0 z-50 rounded-t-3xl border-t border-ink-200/30 bg-plum-950/98  shadow-[0_-8px_32px_-8px_rgba(0,0,0,0.6)] max-h-[85dvh] flex flex-col animate-slide-up">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Hospital exams"
+        tabIndex={-1}
+        className="fixed inset-x-0 bottom-0 z-50 rounded-t-3xl border-t border-ink-200/30 bg-plum-950/98  shadow-[0_-8px_32px_-8px_rgba(0,0,0,0.6)] max-h-[85dvh] flex flex-col animate-slide-up"
+      >
         {/* Handle bar */}
         <div className="flex justify-center pt-3 pb-2">
           <div className="w-8 h-1 rounded-full bg-ink-200/40" />

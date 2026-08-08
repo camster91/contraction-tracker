@@ -3,6 +3,7 @@ import { useEffect, useState, type Dispatch, type SetStateAction } from 'react';
 import { Cog, Moon, Download, Share2, Upload } from 'lucide-react';
 import { type MuteSchedule, isInQuietHours } from '../lib/settings';
 import { getHostName, setHostName } from '../lib/sessions';
+import { useModalDialog } from '../hooks/useModalDialog';
 
 interface SettingsSheetProps {
   bigText: boolean;
@@ -37,6 +38,7 @@ export default function SettingsSheet({
   appVersion,
   onClose,
 }: SettingsSheetProps) {
+  const dialogRef = useModalDialog(onClose);
   // Host display name (separate from props — owned by this sheet
   // because it's a write-target for the host, not a global state).
   // The partner view shows this name as the author of all host
@@ -59,7 +61,14 @@ export default function SettingsSheet({
         onClick={onClose}
         aria-hidden="true"
       />
-      <div className="fixed inset-x-0 bottom-0 z-50 rounded-t-3xl border-t border-ink-200/30 bg-plum-950/98 backdrop-blur-xl shadow-[0_-8px_32px_-8px_rgba(0,0,0,0.6)] max-h-[85dvh] flex flex-col animate-slide-up">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Settings"
+        tabIndex={-1}
+        className="fixed inset-x-0 bottom-0 z-50 rounded-t-3xl border-t border-ink-200/30 bg-plum-950/98 backdrop-blur-xl shadow-[0_-8px_32px_-8px_rgba(0,0,0,0.6)] max-h-[85dvh] flex flex-col animate-slide-up"
+      >
         <div className="flex justify-center pt-3 pb-2">
           <div className="w-8 h-1 rounded-full bg-ink-200/40" />
         </div>

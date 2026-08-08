@@ -20,6 +20,7 @@
 // olive:client-name:{code}.
 
 const CLIENT_ID_KEY = 'olive:client-id';
+const CLIENT_SECRET_KEY = 'olive:client-secret';
 const CLIENT_NAME_KEY_PREFIX = 'olive:client-name:';
 
 function generateClientId(): string {
@@ -41,6 +42,25 @@ export function getOrCreateClientId(): string {
     // per-session ID. The relay still works, just loses cross-session
     // continuity on this device.
     return generateClientId();
+  }
+}
+
+function generateClientSecret(): string {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
+}
+
+/** Private proof used when posting or renaming a feed identity. Never rendered. */
+export function getOrCreateClientSecret(): string {
+  try {
+    const existing = localStorage.getItem(CLIENT_SECRET_KEY);
+    if (existing && /^[a-f0-9]{64}$/.test(existing)) return existing;
+    const fresh = generateClientSecret();
+    localStorage.setItem(CLIENT_SECRET_KEY, fresh);
+    return fresh;
+  } catch {
+    return generateClientSecret();
   }
 }
 

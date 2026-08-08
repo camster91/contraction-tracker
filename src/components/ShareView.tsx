@@ -45,7 +45,7 @@ import {
   postContractionEventToRelay,
   validatePinOnRelay,
   type ShareStats,
-  RELAY_URL,
+  getShareEventStreamUrl,
 } from '../lib/relay';
 import { getOrCreateClientId } from '../lib/identity';
 import { toast } from '../lib/toast';
@@ -218,7 +218,7 @@ export default function ShareView({ code }: { code: string }) {
       tick();
       return () => { if (pollTimer2) clearTimeout(pollTimer2); };
     }
-    const url = `${RELAY_URL}/api/shares/${code}/stream`;
+    const url = getShareEventStreamUrl(code);
     let es: EventSource | null = null;
     let pollTimer: ReturnType<typeof setTimeout> | null = null;
     // Reconnect backoff — caps at 30s so a sustained outage doesn't

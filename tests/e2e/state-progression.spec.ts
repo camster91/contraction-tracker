@@ -34,6 +34,7 @@ const RELAY = process.env.RELAY_URL ?? 'https://relay.ashbi.ca';
 const skip = (msg: string) => test.skip(SKIP_RATE_LIMITED, msg);
 
 let sharedCode: string | null = null;
+let sharedHostToken: string | null = null;
 
 test.beforeAll(async ({ request }) => {
   if (SKIP_RATE_LIMITED) return;
@@ -45,7 +46,9 @@ test.beforeAll(async ({ request }) => {
     console.log(`beforeAll: createShare got ${res.status()}, tests will skip`);
     return;
   }
-  sharedCode = (await res.json()).code;
+  const created = await res.json();
+  sharedCode = created.code;
+  sharedHostToken = created.hostToken;
   console.log(`Suite: created shared share ${sharedCode} in 'prenatal' state`);
 });
 
@@ -53,7 +56,7 @@ test('state auto-progress: relay accepts prenatal -> labor', async ({ request })
   if (SKIP_RATE_LIMITED) { skip('rate-limited; set SKIP_RATE_LIMITED_TESTS=0'); return; }
   expect(sharedCode).toBeTruthy();
   const progressRes = await request.patch(`${RELAY}/api/shares/${sharedCode}`, {
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sharedHostToken}` },
     data: { action: 'set-state', state: 'labor' },
   });
   expect(progressRes.ok(), `prenatal -> labor should succeed, got ${progressRes.status()}`).toBe(true);
@@ -69,7 +72,7 @@ test('state auto-progress: relay accepts labor -> postpartum', async ({ request 
   if (SKIP_RATE_LIMITED) { skip('rate-limited'); return; }
   expect(sharedCode).toBeTruthy();
   const res = await request.patch(`${RELAY}/api/shares/${sharedCode}`, {
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sharedHostToken}` },
     data: { action: 'set-state', state: 'postpartum' },
   });
   expect(res.ok(), `labor -> postpartum should succeed, got ${res.status()}`).toBe(true);
@@ -84,7 +87,7 @@ test('state auto-progress: relay accepts postpartum -> archived', async ({ reque
   if (SKIP_RATE_LIMITED) { skip('rate-limited'); return; }
   expect(sharedCode).toBeTruthy();
   const res = await request.patch(`${RELAY}/api/shares/${sharedCode}`, {
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sharedHostToken}` },
     data: { action: 'set-state', state: 'archived' },
   });
   expect(res.ok(), `postpartum -> archived should succeed, got ${res.status()}`).toBe(true);
@@ -106,10 +109,11 @@ test('state auto-progress: relay rejects invalid state values', async ({ request
     skip('createShare rate-limited; run again later');
     return;
   }
-  const code = (await createRes.json()).code;
+  const created = await createRes.json();
+  const code = created.code;
 
   const badRes = await request.patch(`${RELAY}/api/shares/${code}`, {
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${created.hostToken}` },
     data: { action: 'set-state', state: 'invalid-state-name' },
   });
   expect(badRes.status(), 'Relay should reject invalid state').toBeGreaterThanOrEqual(400);

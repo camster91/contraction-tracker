@@ -5,6 +5,9 @@ dist
 *.log
 .env
 .env.local
+android/app/keystore.properties
+android/app/*.keystore
+android/app/*.jks
 playwright-report/
 test-results/
 .hermes/

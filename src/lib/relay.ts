@@ -21,13 +21,39 @@ const configuredRelayUrl = import.meta.env.VITE_RELAY_URL?.trim();
 export const RELAY_URL: string =
   configuredRelayUrl || 'https://relay.ashbi.ca';
 
+const HOST_TOKEN_PREFIX = 'olive:share-host-token:';
+const ACCESS_TOKEN_PREFIX = 'olive:share-access-token:';
+
+function readToken(prefix: string, code: string): string | null {
+  try { return localStorage.getItem(prefix + code); } catch { return null; }
+}
+
+function storeToken(prefix: string, code: string, token: string): void {
+  try { localStorage.setItem(prefix + code, token); } catch { /* storage unavailable */ }
+}
+
+export function getShareCapability(code: string): string | null {
+  return readToken(HOST_TOKEN_PREFIX, code) || readToken(ACCESS_TOKEN_PREFIX, code);
+}
+
+export function getShareAuthorizationHeaders(code: string): Record<string, string> {
+  const token = getShareCapability(code);
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+export function getShareEventStreamUrl(code: string): string {
+  const token = getShareCapability(code);
+  const base = `${RELAY_URL}/api/shares/${code}/stream`;
+  return token ? `${base}?token=${encodeURIComponent(token)}` : base;
+}
+
 export async function createShareOnRelay(input: {
   sessionId: string;
   pin?: string;
   ttlHours?: number;
   mode?: string;
   state?: string;
-}): Promise<{ code: string; expiresAt: string; pin: string | null; state: string } | null> {
+}): Promise<{ code: string; expiresAt: string; hostToken: string; hasPin: boolean; state: string; mode: string } | null> {
   try {
     const res = await fetch(`${RELAY_URL}/api/shares`, {
       method: 'POST',
@@ -35,7 +61,10 @@ export async function createShareOnRelay(input: {
       body: JSON.stringify({ sessionId: input.sessionId, pin: input.pin, ttlHours: input.ttlHours, mode: input.mode, state: input.state }),
     });
     if (!res.ok) return null;
-    return await res.json();
+    const result = await res.json();
+    if (!result.hostToken || typeof result.hostToken !== 'string') return null;
+    storeToken(HOST_TOKEN_PREFIX, result.code, result.hostToken);
+    return result;
   } catch {
     return null;
   }
@@ -50,7 +79,7 @@ export async function pushContractionsToRelay(
     try {
       const res = await fetch(`${RELAY_URL}/api/shares/${code}/contractions`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getShareAuthorizationHeaders(code) },
         body: JSON.stringify({ contractions, current }),
       });
       if (res.ok) return true;
@@ -78,7 +107,7 @@ export type ShareStats = {
 
 export async function getShareStats(code: string): Promise<ShareStats | null> {
   try {
-    const res = await fetch(`${RELAY_URL}/api/shares/${code}/stats`);
+    const res = await fetch(`${RELAY_URL}/api/shares/${code}/stats`, { headers: getShareAuthorizationHeaders(code) });
     if (!res.ok) return null;
     return await res.json();
   } catch {
@@ -92,7 +121,7 @@ export async function pullContractionsFromRelay(code: string): Promise<{
   updatedAt: string | null;
 } | null> {
   try {
-    const res = await fetch(`${RELAY_URL}/api/shares/${code}/contractions`);
+    const res = await fetch(`${RELAY_URL}/api/shares/${code}/contractions`, { headers: getShareAuthorizationHeaders(code) });
     if (!res.ok) return null;
     return await res.json();
   } catch {
@@ -133,7 +162,7 @@ export async function postContractionEventToRelay(
     try {
       const res = await fetch(`${RELAY_URL}/api/shares/${code}/event`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getShareAuthorizationHeaders(code) },
         body: JSON.stringify({
           type: event.type,
           timestamp: event.timestamp ?? Date.now(),
@@ -164,7 +193,7 @@ export type ShareFromRelay = {
 
 export async function getShareFromRelay(code: string): Promise<ShareFromRelay | null> {
   try {
-    const res = await fetch(`${RELAY_URL}/api/shares/${code}`);
+    const res = await fetch(`${RELAY_URL}/api/shares/${code}`, { headers: getShareAuthorizationHeaders(code) });
     if (!res.ok) return null;
     return await res.json();
   } catch {
@@ -193,7 +222,12 @@ export async function validatePinOnRelay(code: string, pin: string): Promise<Pin
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'validate-pin', pin }),
     });
-    if (res.ok) return { ok: true };
+    if (res.ok) {
+      const data = await res.json();
+      if (!data.accessToken || typeof data.accessToken !== 'string') return { ok: false, reason: 'network' };
+      storeToken(ACCESS_TOKEN_PREFIX, code, data.accessToken);
+      return { ok: true };
+    }
     if (res.status === 401 || res.status === 403) return { ok: false, reason: 'pin' };
     return { ok: false, reason: 'network' };
   } catch {
@@ -223,7 +257,7 @@ export type ShareAudit = {
 
 export async function getShareAudit(code: string): Promise<ShareAudit | null> {
   try {
-    const res = await fetch(`${RELAY_URL}/api/shares/${code}/audit`);
+    const res = await fetch(`${RELAY_URL}/api/shares/${code}/audit`, { headers: getShareAuthorizationHeaders(code) });
     if (!res.ok) return null;
     return await res.json();
   } catch {
@@ -235,10 +269,17 @@ export async function revokeShareOnRelay(code: string, reason?: string, clientId
   try {
     const res = await fetch(`${RELAY_URL}/api/shares/${code}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...getShareAuthorizationHeaders(code) },
       body: JSON.stringify({ action: 'revoke', reason: reason || null, clientId: clientId || null }),
     });
-    return res.ok;
+    if (res.ok) {
+      try {
+        localStorage.removeItem(HOST_TOKEN_PREFIX + code);
+        localStorage.removeItem(ACCESS_TOKEN_PREFIX + code);
+      } catch { /* ignore */ }
+      return true;
+    }
+    return false;
   } catch {
     return false;
   }
@@ -248,7 +289,7 @@ export async function markShareOpenedOnRelay(code: string): Promise<boolean> {
   try {
     const res = await fetch(`${RELAY_URL}/api/shares/${code}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...getShareAuthorizationHeaders(code) },
       body: JSON.stringify({ action: 'opened' }),
     });
     return res.ok;
@@ -261,7 +302,7 @@ export async function setShareStateOnRelay(code: string, state: string): Promise
   try {
     const res = await fetch(`${RELAY_URL}/api/shares/${code}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...getShareAuthorizationHeaders(code) },
       body: JSON.stringify({ action: 'set-state', state }),
     });
     return res.ok;

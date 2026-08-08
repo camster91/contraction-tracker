@@ -6,7 +6,8 @@ import { useEffect, useRef, useState } from 'react';
 // the recorder UI was never wired up. Pause/Play are still used by the inline
 // voice-memo player when the relay returns a 'voice' message kind.
 import { Pause, Play } from 'lucide-react';
-import { RELAY_URL } from '../lib/relay';
+import { getShareEventStreamUrl } from '../lib/relay';
+import { getOrCreateClientId } from '../lib/identity';
 import { getMessages, postMessage, type Message } from '../lib/feed';
 
 type Props = {
@@ -137,7 +138,7 @@ export default function ActivityFeed({ code, shareState, viewerName, readOnly = 
   // never wired up after the relay added the 'voice' message kind. When this
   // comes back, hook a MediaRecorder + start/stop handlers here.
   // Lazy init so Math.random + Date.now() only run once, not per render.
-  const [clientId] = useState(() => Date.now().toString(36) + Math.random().toString(36).slice(2, 6));
+  const [clientId] = useState(() => getOrCreateClientId());
   const bottomRef = useRef<HTMLDivElement>(null);
 
   // Read the saved name only on the code change (and on mount). Not
@@ -182,7 +183,7 @@ export default function ActivityFeed({ code, shareState, viewerName, readOnly = 
 
   useEffect(() => {
     if (!effectiveName) return;
-    const url = `${RELAY_URL}/api/shares/${code}/stream`;
+    const url = getShareEventStreamUrl(code);
     let es: EventSource | null = null;
     // Reset dedupe set on code change — different share = different
     // conversation.

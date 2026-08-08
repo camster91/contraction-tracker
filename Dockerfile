@@ -27,4 +27,4 @@ EXPOSE 3000
 # and exit, leaving `serve` orphaned). Exec form directly invokes
 # `serve` as PID 1, so docker stop / docker-compose down / Kubernetes
 # pod termination all hit the right process. Graceful shutdown works.
-CMD ["serve", "dist", "-l", "3000", "--no-clipboard"]
+CMD ["serve", "dist", "-l", "3000", "--no-clipboard", "--config", "../serve.json"]
