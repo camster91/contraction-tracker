@@ -4,5 +4,11 @@ dist
 .gitignore
 .env*
 README.md
-
-ios/build/
+android
+ios
+docs
+tests
+playwright-report
+test-results
+screenshots
+*.md

@@ -135,26 +135,26 @@ test('storage: app reads/writes the documented localStorage keys without corrupt
 
   // After the app mounts, localStorage should have at least the seeded defaults
   const keys = await page.evaluate(() => {
-    const out: Record<string, unknown> = {};
+    const out: Record<string, string> = {};
     for (let i = 0; i < localStorage.length; i++) {
       const k = localStorage.key(i);
       if (!k) continue;
-      try {
-        const v = localStorage.getItem(k);
-        out[k] = v ? JSON.parse(v) : null;
-      } catch {
-        out[k] = 'INVALID_JSON';
-      }
+      const v = localStorage.getItem(k);
+      if (v !== null) out[k] = v;
     }
     return out;
   });
 
-  // Every key value should be valid JSON
-  for (const [k, v] of Object.entries(keys)) {
-    expect(v, `localStorage[${k}] is valid JSON`).not.toBe('INVALID_JSON');
-  }
-
   // The app should have at least one storage key (it uses IndexedDB too,
   // but localStorage is used for settings and current-state).
   expect(Object.keys(keys).length).toBeGreaterThan(0);
+
+  // Structured state is JSON, while documented identity and preference keys
+  // intentionally use plain strings. Validate each storage contract instead
+  // of incorrectly assuming every localStorage value is JSON.
+  const state = JSON.parse(keys['contraction-tracker:v1'] ?? '{}');
+  expect(Array.isArray(state.contractions)).toBe(true);
+
+  const clientId = keys['olive:client-id'];
+  if (clientId) expect(clientId).toMatch(/^[a-z0-9]{14,32}$/);
 });

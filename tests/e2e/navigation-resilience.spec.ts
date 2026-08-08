@@ -15,11 +15,12 @@ import { test, expect } from '@playwright/test';
 import * as helpers from './helpers';
 
 const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'https://contractions.ashbi.ca/';
+const RELAY_URL = process.env.RELAY_URL;
 
 test('share-view: survives a manual page reload', async ({ page }) => {
-  const testCode = 'reloads'; // 6 chars
+  test.skip(!RELAY_URL, 'Set RELAY_URL for relay integration tests');
   // Create a real share on the relay (rate-limited; uses a slot from budget)
-  const share = await page.request.post(`${BASE_URL.replace(/\/$/, '')}/api/shares` as any, {
+  const share = await page.request.post(`${RELAY_URL}/api/shares`, {
     headers: { 'Content-Type': 'application/json' },
     data: {
       sessionId: 'reload-test',

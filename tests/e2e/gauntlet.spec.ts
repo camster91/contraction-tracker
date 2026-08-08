@@ -13,8 +13,10 @@
 import { test, expect } from '@playwright/test';
 import * as helpers from './helpers';
 
+const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:8765/';
+
 test('gauntlet: app loads and renders the main timer screen', async ({ page }) => {
-  await page.goto('https://contractions.ashbi.ca/', { waitUntil: 'domcontentloaded' });
+  await page.goto(BASE_URL, { waitUntil: 'domcontentloaded' });
   await helpers.waitForApp(page);
   await helpers.skipOnboardingIfPresent(page);
 
@@ -42,7 +44,7 @@ test('gauntlet: app loads and renders the main timer screen', async ({ page }) =
 });
 
 test('gauntlet: invalid share link shows graceful error, not crash', async ({ page }) => {
-  await page.goto('https://contractions.ashbi.ca/?share=zzzzzz', {
+  await page.goto(`${BASE_URL}?share=zzzzzz`, {
     waitUntil: 'domcontentloaded',
   });
   await helpers.waitForApp(page);
@@ -57,7 +59,7 @@ test('gauntlet: invalid share link shows graceful error, not crash', async ({ pa
 });
 
 test('gauntlet: app survives offline / online flip', async ({ page }) => {
-  await page.goto('https://contractions.ashbi.ca/', { waitUntil: 'domcontentloaded' });
+  await page.goto(BASE_URL, { waitUntil: 'domcontentloaded' });
   await helpers.waitForApp(page);
 
   // Toggle network — the SW keeps the app shell, the page should stay alive
@@ -89,7 +91,7 @@ test('gauntlet: no uncaught errors in the main thread on fresh load', async ({ p
     }
   });
 
-  await page.goto('https://contractions.ashbi.ca/', { waitUntil: 'domcontentloaded' });
+  await page.goto(BASE_URL, { waitUntil: 'domcontentloaded' });
   await helpers.waitForApp(page);
   await helpers.skipOnboardingIfPresent(page);
   await page.waitForTimeout(2_000);

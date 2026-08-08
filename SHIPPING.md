@@ -1,6 +1,18 @@
-# Olive v1.0.0 — Ship-Ready Status
+# Olive v1.0.1 — Release Readiness
 
-Last updated: 2026-06-09. Status: **READY TO SUBMIT.**
+Last updated: 2026-08-07. Status: **LOCALLY RELEASE-CANDIDATE; NOT READY TO SUBMIT.**
+
+Verified on 2026-08-07: strict lint/typecheck/build passed; the local browser
+suite completed with 93 passed, 20 environment-gated skips, and 0 failures;
+14 additional app/relay integration tests passed against a local relay; and
+the relay's six security/retention regression tests passed. Production remains
+blocked by untrusted TLS certificates, deployment of the coordinated app and
+relay changes, store signing, iOS validation on macOS/Xcode, and a pricing
+decision.
+
+The `olive-release-candidate:1.0.1` Docker image also builds successfully with
+the production relay origin, and the focused WebKit compatibility run passed
+4/4 tests.
 
 ## PWA (Live at https://contractions.ashbi.ca)
 
@@ -48,19 +60,19 @@ All features verified by 76+ gauntlet tests (3.5 min CI). Zero TODOs, zero FIXME
 - Time-remaining countdown shown to both host ("X days left") and
   partner ("This link works for X more days")
 - Old expired shares auto-filtered from getShares()
-- Relay CORS: wildcard (*) for Capacitor WebView compatibility
+- Relay CORS: explicit production and Capacitor origins; untrusted web origins are rejected
 
 ### Privacy
 - Zero analytics, zero tracking, zero third-party SDKs
 - Privacy policy at /privacy (self-hosted, no external deps)
 - CSP: script-src 'self' only
-- Relay: stateless, encrypted session IDs only
+- Relay: stores optional shared-session data; expiry cleanup and sensitive-data purge on revocation are covered by automated tests
 
 ## Android
 
-- Signed AAB: 4.1MB, v2+v3 schemes
-- Keystore: 25-year RSA 2048, CN=Cameron Ashley/O=Ashbi Design/C=CA
-- Universal APK for testers: 4.4MB
+- Release AAB compiles successfully after Capacitor sync
+- The current local AAB uses the debug key because `android/app/keystore.properties` is absent; Google Play will reject it
+- A production keystore and signed-bundle verification are required
 - Sideload guide: docs/SIDELOAD-APK.md
 - Upload script: scripts/upload-play-store.py
 
@@ -68,31 +80,33 @@ All features verified by 76+ gauntlet tests (3.5 min CI). Zero TODOs, zero FIXME
 
 - Project structure: 10/10 verify-ios.sh passes
 - arm64 (was armv7 — fixed)
-- MARKETING_VERSION synced (1.0.0)
+- MARKETING_VERSION synced (1.0.1; build 2)
 - OliveLiveActivity removed for v1.0.0
-- PrivacyInfo.xcprivacy written (needs Xcode project addition)
+- PrivacyInfo.xcprivacy is wired into the App target and declares optional shared-session data
 - Build script: scripts/build-ios.sh
 - Upload script: scripts/upload-app-store.sh
 
-### BLOCKER: Xcode license not accepted (needs `sudo xcodebuild -license`)
+### BLOCKER: iOS archive/signing must be run and verified on macOS with Xcode and the Apple Developer team
 
 ## Store Metadata
 
 - App name: Olive — Contraction Timer
 - Bundle ID: com.ashbi.olive
-- Version: 1.0.0
+- Version: 1.0.1
 - Category: Health & Fitness (primary), Medical (secondary)
-- Price: $1.99 USD (one-time)
+- Price: decision required before listing creation (free or upfront paid; no v1.0.1 IAP)
 - Privacy URL: https://contractions.ashbi.ca/privacy
 - Support URL: https://contractions.ashbi.ca
 - Screenshots: 20 images at 4 device sizes (6.7", 6.1", 5.5", 12.9")
 - App icon: 22 sizes (12 iOS + 6 Android + 4 PWA)
 - Description + Keywords + Promotional Text: ready (see store-listing.md)
 
-## Remaining Human Work (~30 min)
+## Remaining approval-gated work
 
-1. Accept Xcode license: `sudo xcodebuild -license` (5 min)
-2. Add PrivacyInfo.xcprivacy to Xcode project (2 min)
-3. Build iOS: `./scripts/build-ios.sh` (5 min)
-4. Upload iOS: `./scripts/upload-app-store.sh` (10 min)
-5. Upload Android: `./scripts/upload-play-store.py` (10 min)
+1. Replace the self-signed certificates served for `contractions.ashbi.ca` and `relay.ashbi.ca` with publicly trusted certificates, then verify the full chain externally.
+2. Review, commit, and publish both the app and relay repositories; the relay repository is currently archived on GitHub and must be made writable first.
+3. Deploy the relay and app together, then run production smoke and privacy-policy checks.
+4. Choose free or upfront-paid pricing. v1.0.1 has no in-app purchase implementation.
+5. Provide/configure the Android release keystore and build a production-signed AAB.
+6. Archive and validate iOS on macOS/Xcode with the Apple Developer team.
+7. Review current App Store Connect and Google Play data declarations before manual submission.

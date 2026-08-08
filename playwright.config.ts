@@ -3,8 +3,8 @@ import { defineConfig, devices } from '@playwright/test';
 /**
  * Playwright config for the Olive Contraction Timer gauntlet.
  *
- * Targets the live PWA at contractions.ashbi.ca by default. Override with
- * PLAYWRIGHT_BASE_URL=http://localhost:5173 for local dev.
+ * Targets a local production build by default. Set PLAYWRIGHT_BASE_URL to
+ * the public URL only for an explicit post-deploy smoke run.
  *
  * The gauntlet runs scripted user paths across a persona matrix — see
  * tests/e2e/personas.ts for the matrix and tests/e2e/paths/ for the paths.
@@ -12,6 +12,13 @@ import { defineConfig, devices } from '@playwright/test';
  * Single project (chromium) by default. Add webkit/firefox once we have
  * the bugs ironed out — adding too many browsers in v1 produces noise.
  */
+const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:8765/';
+const relayURL = process.env.RELAY_URL;
+
+// Several legacy specs read PLAYWRIGHT_BASE_URL directly. Normalizing it here
+// keeps those specs and Playwright's baseURL on the same target.
+process.env.PLAYWRIGHT_BASE_URL = baseURL;
+
 export default defineConfig({
   testDir: './tests/e2e',
   fullyParallel: true,
@@ -24,7 +31,7 @@ export default defineConfig({
   outputDir: 'playwright-report/test-results',
 
   use: {
-    baseURL: process.env.PLAYWRIGHT_BASE_URL ?? 'https://contractions.ashbi.ca',
+    baseURL,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
@@ -66,6 +73,28 @@ export default defineConfig({
         ...devices['iPhone 14'],
       },
     },
+  ],
+
+  webServer: [
+    ...(baseURL.startsWith('http://127.0.0.1:8765') ? [{
+        command: 'node node_modules/serve/build/main.js dist -l 8765 --no-clipboard',
+        url: baseURL,
+        reuseExistingServer: !process.env.CI,
+        timeout: 120_000,
+      }] : []),
+    ...(relayURL?.startsWith('http://127.0.0.1:') ? [{
+      command: 'node server.js',
+      cwd: '../luna-relay',
+      url: `${relayURL}/api/health`,
+      reuseExistingServer: false,
+      timeout: 120_000,
+      env: {
+        PORT: new URL(relayURL).port,
+        DATA_DIR: '../contraction-tracker/playwright-report/relay-data',
+        ALLOWED_ORIGINS: 'http://127.0.0.1:8765,http://localhost,capacitor://localhost,https://contractions.ashbi.ca',
+        RELAY_CLEANUP_INTERVAL_MS: '1000',
+      },
+    }] : []),
   ],
 
   // Output dirs are gitignored — Playwright writes to playwright-report/ and

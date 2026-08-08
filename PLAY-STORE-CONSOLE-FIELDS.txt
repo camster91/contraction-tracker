@@ -1,4 +1,4 @@
-# Google Play Console — pre-filled fields for Olive v1.0.0
+# Google Play Console — pre-filled fields for Olive v1.0.1
 # Copy/paste from here into Play Console. Each section is exactly
 # what the field expects.
 
@@ -8,7 +8,7 @@ APP DETAILS
 App name: Olive
 Default language: English (United States)
 
-Convert app to free: YES (free to download, $1.99 one-time in-app)
+Pricing: DECISION REQUIRED (free or upfront paid; v1.0.1 has no IAP)
 
 In-app products: None
 Contains ads: No
@@ -48,8 +48,8 @@ DESIGNED FOR REAL LABOR
 • Reliable on real devices — wake lock keeps the screen on for 3+ hours
 • Self-hosted fonts, instant load, dark mode first
 
-YOUR DATA STAYS ON YOUR PHONE
-Olive stores your contraction data on your device only. We do not collect, transmit, or sell any personal information. When you share a link with your partner, the only data sent to our server is an anonymous session identifier for the duration of the share.
+PRIVATE BY DEFAULT
+Olive stores your session on your device. If you choose to create a share link, the contraction session and optional activity-feed content are sent through the Olive relay so people with the link can follow along. Shared data expires automatically and can be revoked by the host.
 
 Zero analytics. Zero tracking. Zero third-party SDKs. See https://contractions.ashbi.ca/privacy for the full policy.
 
@@ -98,21 +98,9 @@ For tablet: ~/.hermes/cache/indie-ship/APPS/olive-contractions/screenshots/12.9_
 ════════════════════════════════════════════════════════════════════════════
 PRICING
 ════════════════════════════════════════════════════════════════════════════
-Free to install, then $1.99 one-time purchase (no IAP, no subscription)
-
-To set this up in Play Console:
-1. Go to Monetize > Products > In-app products
-2. Click "Create product"
-3. Product ID: olive_premium
-4. Name: "Olive Premium (one-time)"
-5. Description: "Unlock all features — $1.99 one-time, no subscription."
-6. Price: $1.99 USD
-
-OR (simpler for first release):
-1. Make the app completely free
-2. Add IAP later in a v1.1 release
-3. The first 1000 installs of an indie contraction timer is what
-   really matters; monetization comes later.
+RELEASE DECISION REQUIRED: choose either free or an upfront paid app.
+The current build does not implement in-app purchases, so do not configure
+or advertise an IAP for v1.0.1.
 
 
 ════════════════════════════════════════════════════════════════════════════
@@ -126,20 +114,31 @@ https://contractions.ashbi.ca/privacy
 
 APP ACCESS
 ────────────────────────────────────────────────────────────────────────
-All functionality is available without special access.
-No login. No account. No server-side state.
+All functionality is available without a login or account. The optional
+sharing feature stores short-lived session data on the Olive relay.
 
 
 DATA SAFETY (the new 2024 form)
 ────────────────────────────────────────────────────────────────────────
 Q: Does your app collect or share any of the required user data types?
-A: No, this app does not collect or share any user data.
+A: Yes. The optional sharing feature collects data on the Olive relay.
+
+Declare these collected data types for App functionality:
+- Health info: contraction timestamps, durations, intensity, notes, tags,
+  pain-location markers, stage, and timer state
+- Personal info, Messages, Photos and videos, and other user-generated content:
+  optional display names, text, reactions, and images posted to a shared session
+- User IDs: random share/session and browser client identifiers
+
+Collection is optional because it occurs only when the user creates or joins
+a shared session. The app does not sell data or use it for advertising.
 
 Q: Is all of the user data collected by your app encrypted in transit?
-A: Not applicable (no data collected).
+A: Yes. Shared-session traffic uses HTTPS.
 
 Q: Do you provide a way for users to request that their data is deleted?
-A: Not applicable (no data collected).
+A: Yes. Hosts can revoke a share in the app, shares auto-delete after expiry,
+and the privacy policy provides a support channel for deletion help.
 
 Q: Is your app designed for children?
 A: No, the app is for expecting parents (18+).
@@ -148,7 +147,7 @@ Q: Does your app contain ads?
 A: No.
 
 Q: Does your app have in-app purchases?
-A: No (we may add $1.99 one-time in a future update).
+A: No. The v1.0.1 build has no in-app purchase implementation.
 
 Q: Does your app use any data for tracking?
 A: No, the app does not track users.
@@ -211,7 +210,7 @@ INTERNAL TESTING TRACK (recommended for first release)
 ────────────────────────────────────────────────────────────────────────
 1. Production > Create new release
 2. Upload AAB: android/app/build/outputs/bundle/release/app-release.aab (4.1MB)
-3. Release name: 1.0.0 (1)
+3. Release name: 1.0.1 (2)
 4. Release notes (paste from play-store-release-notes.txt):
 
    First public release of Olive, the contraction timer for

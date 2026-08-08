@@ -73,6 +73,9 @@ test('relay-push: only the active session contractions are pushed, not all', asy
 });
 
 test('relay-push: contract with relay — only session-specific data is sent', async ({ page, request }) => {
+  const relayUrl = process.env.RELAY_URL;
+  test.skip(!relayUrl, 'Set RELAY_URL for relay integration tests');
+
   // Hit the relay directly. After the host sets up a session, we
   // verify the GET /api/shares/:code/contractions returns only that
   // session's contractions, not all of them.
@@ -81,7 +84,7 @@ test('relay-push: contract with relay — only session-specific data is sent', a
   const code = 'sesstest' + Date.now().toString(36).slice(-6);
 
   // Create a share via the relay API directly
-  const createRes = await request.post('https://relay.ashbi.ca/api/shares', {
+  const createRes = await request.post(`${relayUrl}/api/shares`, {
     data: { sessionId: 'contract-test', ttlHours: 1, state: 'prenatal' },
   });
   if (!createRes.ok()) {
@@ -106,12 +109,12 @@ test('relay-push: contract with relay — only session-specific data is sent', a
     },
   ];
 
-  await request.post(`https://relay.ashbi.ca/api/shares/${realCode}/contractions`, {
+  await request.post(`${relayUrl}/api/shares/${realCode}/contractions`, {
     data: { contractions, current: null },
   });
 
   // Pull back
-  const getRes = await request.get(`https://relay.ashbi.ca/api/shares/${realCode}/contractions`);
+  const getRes = await request.get(`${relayUrl}/api/shares/${realCode}/contractions`);
   expect(getRes.status(), 'Relay should return 200').toBe(200);
   const payload = await getRes.json();
   expect(payload.contractions, 'Contractions array should be present').toBeDefined();

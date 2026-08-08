@@ -1,4 +1,4 @@
-# App Store Connect — pre-filled fields for Olive v1.0.0
+# App Store Connect — pre-filled fields for Olive v1.0.1
 # Copy/paste from here into App Store Connect. Each section is exactly
 # what the field expects, with no extra formatting.
 
@@ -32,7 +32,7 @@ olive-contract-timer-v1
 USER ACCESS (for App Review)
 ────────────────────────────────────────────────────────────────────────
 All functionality is available without special access.
-No login, no account, no server-side state.
+No login or account. Sharing uses short-lived server-side session state.
 
 
 ────────────────────────────────────────────────────────────────────────
@@ -115,8 +115,8 @@ DESIGNED FOR REAL LABOR
 • Reliable on real devices — wake lock keeps the screen on for 3+ hours
 • Self-hosted fonts, instant load, dark mode first
 
-YOUR DATA STAYS ON YOUR PHONE
-Olive stores your contraction data on your device only. We do not collect, transmit, or sell any personal information. When you share a link with your partner, the only data sent to our server is an anonymous session identifier for the duration of the share.
+PRIVATE BY DEFAULT
+Olive stores your session on your device. If you choose to create a share link, the contraction session and optional activity-feed content are sent through the Olive relay so people with the link can follow along. Shared data expires automatically and can be revoked by the host.
 
 Zero analytics. Zero tracking. Zero third-party SDKs. See https://contractions.ashbi.ca/privacy for the full policy.
 
@@ -132,26 +132,23 @@ contraction,timer,labor,contractions,pregnancy,midwife,partner,birthing,breathin
 ────────────────────────────────────────────────────────────────────────
 APP PRIVACY (Data Types section)
 ────────────────────────────────────────────────────────────────────────
-For each question, answer "No, we do not collect this data":
+Do not select "Data Not Collected." The optional sharing feature sends
+data off-device and stores it on the Olive relay.
 
-- Contact Info: No
-- Health & Fitness: No
-- Financial Info: No
-- Location: No
-- Sensitive Info: No
-- Contacts: No
-- User Content: No
-- Browsing History: No
-- Search History: No
-- Identifiers: No
-- Usage Data: No
-- Purchases: No
-- Diagnostics: No
-- Health (specific medical data): No
-- Financial (specific): No
+Declare these data types as collected, not used for tracking, and used
+for App Functionality:
 
-After all "No": the privacy summary will say "Data Not Collected"
-which is exactly what you want for this app.
+- Name: optional activity-feed display name
+- Health & Fitness and Sensitive Info: contraction timestamps, durations,
+  intensity, notes, tags, pain-location markers, stage, and timer state
+- User Content and Photos or Videos: optional messages, reactions, and images
+- Identifiers: random share/session and browser client identifiers
+
+The data can be associated within a shared session, so use the conservative
+"Linked to User" answer for these categories. Confirm all answers against the
+current App Store Connect definitions before submission.
+
+All other listed data types: No, unless a later build changes the data flow.
 
 
 ────────────────────────────────────────────────────────────────────────
@@ -208,7 +205,7 @@ To test the 5-1-1 alert:
   2. The app will show a banner: "Time to call your provider"
 
 Notes for reviewer:
-  - This is a privacy-respecting app. No personal data is collected or transmitted.
+  - Sharing is optional. If enabled, contraction/session data and optional activity-feed content are transmitted to the Olive relay as disclosed in the privacy policy.
   - The single network call is to our relay server (relay.ashbi.ca), used
     only for the partner-sharing feature. The main app works fully offline.
   - All code is original, no third-party SDKs.

@@ -12,9 +12,10 @@ import { test, expect } from '@playwright/test';
 
 const EXPECTED_START_WORDS = ['start', 'begin', 'go', 'now'];
 const EXPECTED_STOP_WORDS = ['stop', 'done', 'end', 'over', 'finished'];
+const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:8765/';
 
 test('voice: starts the SpeechRecognition API if available', async ({ page }) => {
-  await page.goto('https://contractions.ashbi.ca/', { waitUntil: 'domcontentloaded' });
+  await page.goto(BASE_URL, { waitUntil: 'domcontentloaded' });
   // We just verify the page exposes SpeechRecognition / webkitSpeechRecognition
   // — this is what voice.ts checks before binding handlers. The page itself
   // does the capability check; the test verifies the API is at least

@@ -11,7 +11,7 @@ ENV VITE_RELAY_URL=$VITE_RELAY_URL
 RUN npm run build
 ENV NODE_ENV=production
 ENV PORT=3000
-RUN npm install -g serve
+RUN npm install -g serve@14.2.6
 EXPOSE 3000
 # `serve -s dist` would rewrite every 404 to index.html (SPA mode), which
 # hides the privacy page at /privacy/. The app has no client-side routes

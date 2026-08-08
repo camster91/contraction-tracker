@@ -12,25 +12,30 @@ const pkg = JSON.parse(
   readFileSync(fileURLToPath(new URL('./package.json', import.meta.url)), 'utf8'),
 )
 const APP_VERSION = JSON.stringify(pkg.version)
+const configuredRelayUrl = process.env.VITE_RELAY_URL?.trim()
+const relayUrl = configuredRelayUrl || 'https://relay.ashbi.ca'
+const relayOrigin = new URL(relayUrl).origin
 
 export default defineConfig({
-  plugins: [tailwindcss(), react()],
+  plugins: [
+    tailwindcss(),
+    react(),
+    {
+      name: 'olive-relay-csp',
+      transformIndexHtml(html) {
+        return html.replace(
+          "connect-src 'self' https://relay.ashbi.ca",
+          `connect-src 'self' ${relayOrigin}`,
+        )
+      },
+    },
+  ],
   base: '/',
   build: {
     // Source maps for production debugging. ~2-3x bundle size but only
     // fetched when DevTools is open (modern browsers gate source map fetches
     // on the DevTools toggle, not on the bundle itself).
     sourcemap: true,
-  },
-  server: { port: 5173, host: true },
-  define: {
-    // Inlined into the bundle as a string literal. Use `import.meta.env.VITE_APP_VERSION`
-    // in source code (typed by vite/client) to read it. Reading package.json directly
-    // from src/ would require a Vite JSON import + tsconfig allowJsonImports; this
-    // is simpler and works in every environment.
-    'import.meta.env.VITE_APP_VERSION': APP_VERSION,
-  },
-  build: {
     // Split pdf-lib into its own chunk so the ShareView's memory-book
     // download doesn't bloat the entrypoint for the 90% of users who
     // never open a share link. Entry ~428KB → ~30KB after this.
@@ -44,5 +49,13 @@ export default defineConfig({
         },
       },
     },
+  },
+  server: { port: 5173, host: true },
+  define: {
+    // Inlined into the bundle as a string literal. Use `import.meta.env.VITE_APP_VERSION`
+    // in source code (typed by vite/client) to read it. Reading package.json directly
+    // from src/ would require a Vite JSON import + tsconfig allowJsonImports; this
+    // is simpler and works in every environment.
+    'import.meta.env.VITE_APP_VERSION': APP_VERSION,
   },
 })

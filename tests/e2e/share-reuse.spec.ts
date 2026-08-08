@@ -44,7 +44,7 @@ test('share: one share per session — second create returns the same code', asy
     await page.waitForTimeout(300);
   }
   // Open the share sheet
-  const shareCard = page.locator('button, [role="button"]').filter({ hasText: /1 contraction|Share/ }).first();
+  const shareCard = page.getByRole('button', { name: /^Share:/i }).first();
   if ((await shareCard.count()) === 0 || !(await shareCard.isVisible().catch(() => false))) {
     test.skip(true, 'Share card not visible');
     return;
@@ -115,7 +115,7 @@ test('share: 7-day default TTL (168 hours), not 30 days', async ({ page }) => {
   expect(result.within30d, 'Should NOT be 30 days').toBe(false);
 });
 
-test('share: mode update reuses the same code, not a new one', async ({ page }) => {
+test('share: active session reuses the same code, not a new one', async ({ page }) => {
   await page.goto(BASE_URL, { waitUntil: 'domcontentloaded' });
   await helpers.waitForApp(page);
   await page.waitForTimeout(1_000);
@@ -153,7 +153,7 @@ test('share: mode update reuses the same code, not a new one', async ({ page }) 
     await notNow.click({ force: true });
     await page.waitForTimeout(300);
   }
-  const shareCard = page.locator('button, [role="button"]').filter({ hasText: /1 contraction|Share/ }).first();
+  const shareCard = page.getByRole('button', { name: /^Share:/i }).first();
   if ((await shareCard.count()) === 0 || !(await shareCard.isVisible().catch(() => false))) {
     test.skip(true, 'Share card not visible');
     return;
@@ -161,15 +161,9 @@ test('share: mode update reuses the same code, not a new one', async ({ page }) 
   await shareCard.click({ force: true });
   await page.waitForTimeout(1_500);
 
-  const body = (await page.locator('body').textContent()) || '';
-  // With an active share, the button should read "Share is live — sending a new copy…"
-  // NOT "Create another link" (old label)
-  const hasOldLabel = /Create another link/i.test(body);
-  const hasNewLabel = /Share is live/i.test(body);
-  expect(hasOldLabel, 'Should not show the old "Create another link" label').toBe(false);
-  // Either the new label or the active share card should be visible
-  const hasActiveShare = /tc8dwj|mode-test|Active links/i.test(body);
-  expect(hasActiveShare || hasNewLabel, 'Active share should be visible in sheet').toBe(true);
+  await expect(page.getByText('Link is live', { exact: true })).toBeVisible();
+  await expect(page.locator('input[readonly]')).toHaveValue(/share=mode-test/);
+  await expect(page.getByText('Create another link', { exact: true })).toHaveCount(0);
 });
 
 test('share: expired shares are filtered out of getShares()', async ({ page }) => {
@@ -254,14 +248,14 @@ test('share: UI shows time-remaining in active link card', async ({ page }) => {
   }
 
   // Open share sheet
-  const shareCard = page.locator('button, [role="button"]').filter({ hasText: /1 contraction|Share/ }).first();
+  const shareCard = page.getByRole('button', { name: /^Share:/i }).first();
   if ((await shareCard.count()) > 0 && await shareCard.isVisible().catch(() => false)) {
     await shareCard.click({ force: true });
     await page.waitForTimeout(1500);
 
     // The active link card should show "X days left"
     const body = (await page.locator('body').textContent()) || '';
-    const hasCountdown = /\d+ days? left|expires tomorrow|expires today/i.test(body);
+    const hasCountdown = /expires in \d+ days?|expires tomorrow|expires today/i.test(body);
     expect(hasCountdown, 'Active share should show time-remaining countdown').toBe(true);
   } else {
     test.skip(true, 'Share card not visible');

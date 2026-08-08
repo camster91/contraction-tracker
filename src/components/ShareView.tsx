@@ -92,7 +92,9 @@ export default function ShareView({ code }: { code: string }) {
       // alphabet (lowercase a-z minus ambiguous + digits 2-9). Reject anything
       // else so a malformed URL doesn't waste a relay call and so we can show
       // a precise "This doesn't look like an Olive share link" error.
-      const codePattern = /^[a-z2-9]{6}$/;
+      // Six-character codes remain valid for existing links. New relay links
+      // use 12 characters to make capability guessing impractical.
+      const codePattern = /^(?:[a-z2-9]{6}|[a-z2-9]{12})$/;
       if (!code || !codePattern.test(code)) {
         if (mounted) {
           setError('This doesn\u2019t look like an Olive share link. Check the URL and try again.');

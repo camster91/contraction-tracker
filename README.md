@@ -2,7 +2,7 @@
 
 A mobile-first contraction timer built as a PWA + Capacitor iOS/Android app. Tap when a contraction starts, tap when it ends, and Olive tracks duration, interval, and the 5-1-1 pattern automatically. Your partner's device stays in sync in real time.
 
-**Live:** [contractions.ashbi.ca](https://contractions.ashbi.ca) (PWA) · [relay.ashbi.ca](https://relay.ashbi.ca) (backend) · **Price:** $1.99 USD one-time purchase.
+**Live:** [contractions.ashbi.ca](https://contractions.ashbi.ca) (PWA) · [relay.ashbi.ca](https://relay.ashbi.ca) (backend) · **Release pricing:** decision required (free or upfront paid).
 
 ---
 
@@ -41,7 +41,7 @@ A mobile-first contraction timer built as a PWA + Capacitor iOS/Android app. Tap
 ## Privacy
 
 - **No ads, no analytics, no third-party SDKs.**
-- Session data stays on your devices. The relay server (relay.ashbi.ca) receives only encrypted sync tokens — no health data, no contraction timestamps, no names.
+- Session data stays on your device unless you create a share link. Shared contraction data and optional activity-feed content are sent over HTTPS to the Olive relay, expire automatically, and can be revoked by the host.
 - Voice control runs entirely on-device; no voice recordings are transmitted.
 - Full privacy policy hosted at the app's support page.
 

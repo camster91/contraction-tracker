@@ -15,6 +15,8 @@
  */
 import { test, expect } from '@playwright/test';
 import * as helpers from './helpers';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 
 const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'https://contractions.ashbi.ca/';
 
@@ -203,7 +205,8 @@ test('settings: settings sheet opens with all controls', async ({ page }) => {
   const body = (await page.locator('body').textContent()) || '';
   expect(body.length, 'Settings should render').toBeGreaterThan(50);
   // Should contain version info
-  expect(body, 'Settings should show app version').toContain('1.0.0');
+  const { version } = JSON.parse(readFileSync(resolve(process.cwd(), 'package.json'), 'utf8'));
+  expect(body, 'Settings should show app version').toContain(`Olive v${version}`);
   // Should have theme / time format toggle text
   expect(body, 'Settings should have time format or theme options').toMatch(/format|theme|dark|24.?h/i);
 });

@@ -22,7 +22,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
 
       - name: Install dependencies
@@ -34,8 +34,11 @@ jobs:
       - name: Typecheck e2e tests
         run: ./node_modules/.bin/tsc -p tests/tsconfig.json
 
+      - name: Build production bundle
+        run: npm run build
+
       - name: Run gauntlet
-        run: npx playwright test --project='iPhone 14 (chromium)' --reporter=github,html --reporter=github,line
+        run: npx playwright test --project='iPhone 14 (chromium)' --reporter=github,html,line
 
       - name: Upload HTML report
         if: always()

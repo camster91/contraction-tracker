@@ -142,13 +142,13 @@
 
   <h1><span class="brand">Olive</span><br />Privacy Policy</h1>
   <p class="meta">
-    <span><span class="label">Effective</span> June 2026</span>
-    <span><span class="label">App version</span> 1.0.0</span>
+    <span><span class="label">Effective</span> August 7, 2026</span>
+    <span><span class="label">App version</span> 1.0.1</span>
     <span><span class="label">Contact</span> contractions.ashbi.ca</span>
   </p>
 
   <h2>Overview</h2>
-  <p>Olive is a contraction timer app designed for expecting couples. It tracks labor contractions in real time and syncs data between partners' devices. This policy explains what data is collected, how it is handled, and your rights regarding that data.</p>
+  <p>Olive is a contraction timer for expecting parents and their support people. It can store information on your device and, only when you turn on sharing, send selected session information through the Olive relay so another device can view or contribute to the session. This policy explains what data is handled and why.</p>
   <p>Olive is built on a fundamental principle: <strong>your health data belongs to you.</strong></p>
 
   <h2>Data we collect</h2>
@@ -164,56 +164,57 @@
     <li>People you choose to add to your care team (name, phone, email — entered by you)</li>
     <li>Hospital info (name, address, doctor, etc. — entered by you)</li>
   </ul>
-  <p><strong>This data never leaves your device unless you explicitly share it with your partner.</strong></p>
+  <p>Care-team contacts and hospital details stay on your device. Contraction and session data stays on your device unless you explicitly create a shared session.</p>
 
   <h3>Multi-device sync data</h3>
-  <p>When you choose to share your session with your partner using the share function, Olive generates a short-lived, encrypted session token. This token is passed through our relay server (<a href="https://relay.ashbi.ca">relay.ashbi.ca</a>) to deliver real-time updates to your partner's device.</p>
-  <p><strong>What the relay sees:</strong></p>
+  <p>When you create a share link, Olive sends data to our relay server (<a href="https://relay.ashbi.ca">relay.ashbi.ca</a>) so people with the share code can receive updates. Sharing is optional and is initiated by you.</p>
+  <p><strong>Data stored for a shared session may include:</strong></p>
   <ul>
-    <li>An encrypted token containing only a session ID and connection metadata</li>
-    <li>No health data, no contraction data, no names or identifying information</li>
+    <li>A random share code, session identifier, sharing mode, current stage, creation/expiry times, and limited audit events</li>
+    <li>Contraction start/end timestamps, durations, intensity, notes, tags, pain-location markers, and current timer state</li>
+    <li>Optional activity-feed content, including display names, text, reactions, and images you choose to post</li>
+    <li>A random browser client identifier used to keep activity-feed names consistent</li>
   </ul>
-  <p><strong>What the relay does NOT see or store:</strong></p>
+  <p><strong>Data not uploaded by the sharing feature:</strong></p>
   <ul>
-    <li>Contraction timestamps or durations</li>
-    <li>Any health information</li>
-    <li>Your name or device identifiers</li>
-    <li>Your labor stage or pattern detection results</li>
+    <li>Your phone contacts or address book</li>
+    <li>Your hospital and care-team details</li>
+    <li>Your exported JSON or PDF files</li>
   </ul>
-  <p>The relay is stateless. It passes tokens and closes. It logs nothing meaningful and retains nothing beyond the active session.</p>
+  <p>The relay application does not store IP addresses in its session database. Network infrastructure necessarily processes IP addresses and request metadata to deliver and protect the service.</p>
 
   <h3>Voice control data</h3>
-  <p>If you use the voice control feature, audio is processed <strong>on-device</strong> using the Web Speech API. No voice recordings are transmitted to any server. No audio leaves your phone.</p>
+  <p>If you enable voice control, Olive uses the speech-recognition service supplied by your browser or operating system. Processing may occur on-device or through that platform's speech service, depending on the device and settings. Olive does not record, retain, or send voice audio to the Olive relay.</p>
 
   <h3>No analytics, no tracking</h3>
   <p>Olive contains <strong>zero analytics SDKs, zero tracking pixels, zero third-party data collectors.</strong> We do not know how many people use the app, what features you use, or when you use it.</p>
 
   <h3>No ads</h3>
-  <p>Olive contains no advertising, no sponsored content, and no in-app purchases beyond the initial purchase price of $1.99.</p>
+  <p>Olive contains no advertising or sponsored content.</p>
 
   <h2>How we use data</h2>
   <p><strong>What we use:</strong></p>
   <ul>
-    <li><strong>Sync tokens</strong> — to deliver real-time updates between partners' devices during an active shared session</li>
+    <li><strong>Shared-session data</strong> — to create the link, synchronize updates, show the activity feed, limit abuse, and let you revoke the share</li>
     <li><strong>Local session data</strong> — to display contraction history and pattern detection within the app on your device</li>
   </ul>
   <p><strong>What we don't use:</strong></p>
   <ul>
     <li>We do not use your data to build profiles.</li>
-    <li>We do not sell, license, or share your data with any third party.</li>
+    <li>We do not sell or license your data.</li>
     <li>We do not use your data for research, marketing, or product improvement in any form that identifies you.</li>
   </ul>
 
   <h2>Data retention</h2>
   <ul>
     <li><strong>Local data</strong> is stored on your device only. You can delete it at any time by uninstalling the app or clearing the app's local storage.</li>
-    <li><strong>Sync tokens</strong> are short-lived and expire when the session ends. The relay server retains no session data after disconnection.</li>
+    <li><strong>Shared-session data</strong> is deleted automatically after the share expires. The default share period is seven days.</li>
+    <li><strong>Revoking a share</strong> immediately removes its contraction data, activity-feed content, and client-name bindings from the relay. Minimal revocation metadata may remain until the share expires so the relay can continue rejecting the revoked code.</li>
     <li><strong>No cloud backup</strong> of session data is performed by Olive. If you back up your device via iCloud, Google Drive, or any other platform, your Olive session data may be included in that backup. That is a function of your device settings, not Olive.</li>
   </ul>
 
   <h2>Data sharing with third parties</h2>
-  <p>Olive shares <strong>nothing</strong> with any third party. There are no third-party SDKs embedded in this app, no analytics services, no crash reporters, no ad networks.</p>
-  <p>The only external communication the app makes is to <strong>our own relay server (relay.ashbi.ca)</strong> — which receives and delivers encrypted sync tokens during active shared sessions only.</p>
+  <p>Olive does not send data to advertising, analytics, or crash-reporting services. Shared-session data is sent only to <strong>our Olive relay (relay.ashbi.ca)</strong> and to people who have the share link. Your device's speech-recognition provider may process voice input when you enable voice control.</p>
 
   <h2>Children's privacy</h2>
   <p>Olive is not designed for use by children under 13. We do not collect data from children.</p>
@@ -222,27 +223,26 @@
   <p>You own your data. At any time, you can:</p>
   <ul>
     <li><strong>Delete all local data</strong> by uninstalling the app or clearing app storage from your device settings.</li>
-    <li><strong>End a shared session</strong> at any time, which invalidates the sync token immediately.</li>
+    <li><strong>Revoke a shared session</strong> at any time, which blocks the code and purges sensitive shared-session content from the relay.</li>
     <li><strong>Export your data</strong> as a JSON backup file at any time.</li>
-    <li><strong>Request deletion</strong> of any data we might theoretically hold (sync tokens are already stateless; contact us for edge cases).</li>
+    <li><strong>Request help with deletion</strong> through the support channel listed below.</li>
   </ul>
   <p>To exercise any rights, contact us at the support URL above.</p>
 
   <h2>Security</h2>
   <ul>
-    <li>Sync tokens are encrypted in transit via HTTPS / TLS 1.2+.</li>
+    <li>Shared-session data is encrypted in transit using HTTPS.</li>
     <li>The relay server accepts connections only over HTTPS.</li>
-    <li>Session tokens are short-lived and invalidated when the session ends.</li>
-    <li>No health data is stored on the relay server at any time.</li>
+    <li>Share codes are random, expire automatically, and can be revoked by the host.</li>
     <li>Local data is stored in the browser's IndexedDB / Capacitor Preferences, which is sandboxed per-app on the device.</li>
-    <li>Voice audio is processed on-device and never leaves the phone.</li>
+    <li>Olive does not retain voice recordings.</li>
   </ul>
+
+  <h2>Health and safety</h2>
+  <p>Olive is an informational timing and communication tool, not a medical device. It does not diagnose labor or replace professional medical advice. Pattern notices, including the 5-1-1 pattern, are informational only. Follow the instructions of your healthcare professional, contact them before making medical decisions, and use local emergency services when urgent help is needed.</p>
 
   <h2>Changes to this policy</h2>
   <p>If this policy changes, the updated policy will be posted at the same location with a new effective date. Significant changes will be communicated within the app.</p>
-
-  <h2>Governing law</h2>
-  <p>This privacy policy is governed by applicable privacy laws in the jurisdiction in which Olive operates, including but not limited to GDPR (EU), CCPA (California), PIPEDA (Canada), and the Australian Privacy Principles.</p>
 
   <h2>Contact</h2>
   <p>For questions, concerns, or data deletion requests:</p>
@@ -252,7 +252,7 @@
     <li><strong>Developer:</strong> Available via the app's support channel</li>
   </ul>
 
-  <p class="footer">Last updated: June 2026 · <a href="/">← back to Olive</a></p>
+  <p class="footer">Last updated: August 7, 2026 · <a href="/">← back to Olive</a></p>
 </main>
 </body>
 </html>

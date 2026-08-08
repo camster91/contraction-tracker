@@ -19,9 +19,13 @@
 import { test, expect } from '@playwright/test';
 
 const SKIP_RATE_LIMITED = process.env.SKIP_RATE_LIMITED_TESTS !== '0';
-const RELAY = process.env.RELAY_URL ?? 'https://relay.ashbi.ca';
+const RELAY = process.env.RELAY_URL ?? 'http://127.0.0.1:3000';
 const skipRateLimited = (msg = 'rate-limited; set SKIP_RATE_LIMITED_TESTS=0') =>
   test.skip(SKIP_RATE_LIMITED, msg);
+
+test.beforeEach(() => {
+  test.skip(!process.env.RELAY_URL, 'Set RELAY_URL for relay integration tests');
+});
 
 test('share flow: relay accepts createShare, viewer fetchShare, all good', async ({ request }) => {
   skipRateLimited();
@@ -41,7 +45,7 @@ test('share flow: relay accepts createShare, viewer fetchShare, all good', async
 
   const createBody = await createRes.json();
   expect(createBody).toBeTruthy();
-  expect(createBody.code).toMatch(/^[a-z2-9]{6}$/);
+  expect(createBody.code).toMatch(/^(?:[a-z2-9]{6}|[a-z2-9]{12})$/);
   const code = createBody.code;
   console.log(`Created share: ${code}`);
 
@@ -131,7 +135,7 @@ test('share flow: non-existent code returns 404, not crash', async ({ request })
 });
 
 test('share flow: malformed code (wrong length) returns 400 or 404', async ({ request }) => {
-  // Share codes are 6 chars from [a-z2-9]. Test a 30-char string.
+  // Current share codes are 12 chars (legacy links are 6). Test a 30-char string.
   const res = await request.get(`${RELAY}/api/shares/thisistoooolongtobeavalidcode`);
   expect([400, 404]).toContain(res.status());
 });

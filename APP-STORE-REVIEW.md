@@ -1,8 +1,8 @@
 # App Store Review — what Apple's reviewers will check
 
 Olive is a Health & Fitness app that uses no special permissions.
-Below is the audit checklist I ran against Apple's App Store
-Review Guidelines. Every ✅ is a guarantee.
+Below is a release-readiness checklist against Apple's App Store Review
+Guidelines. Passing a local check does not guarantee App Review approval.
 
 ## Privacy
 
@@ -10,10 +10,10 @@ Review Guidelines. Every ✅ is a guarantee.
 |-------------|-------|-------|
 | Privacy policy URL | ✅ `https://contractions.ashbi.ca/privacy` | Live, branded page |
 | App Store Privacy Policy field | ✅ Set to above URL | In `submission-checklist.md` |
-| App Privacy Details (App Store Connect) | ⚠️ Manual step | You'll fill in "Data Not Collected" + "Data Not Linked to You" |
+| App Privacy Details (App Store Connect) | ⚠️ Manual step | Declare optional relay data; use `APP-STORE-CONNECT-FIELDS.txt` |
 | PrivacyInfo.xcprivacy | ✅ Present | Mandatory since May 2024 |
-| Permission strings | ✅ None requested | No camera, mic, location, contacts |
-| Data sold to third parties | ✅ No | "We do not sell, license, or share your data" |
+| Permission strings | ⚠️ Verify natively | Voice control can require microphone permission on the target platform |
+| Data sold to third parties | ✅ No | Privacy policy states that data is not sold or licensed |
 | Data used for tracking | ✅ No | "Zero analytics, zero tracking, zero third-party data collectors" |
 | Children under 13 | ✅ Compliant | Privacy policy explicitly states not for children under 13 |
 
@@ -23,7 +23,7 @@ Review Guidelines. Every ✅ is a guarantee.
 |-------------|-------|-------|
 | App does what its description says | ✅ | Contraction timer for expecting couples, exactly as described |
 | All buttons/links functional | ✅ | Gauntlet tested every interactive element |
-| No placeholder content | ✅ | "Real" features in v1.0.0, no "coming soon" pages |
+| No placeholder content | ✅ | v1.0.1 has no "coming soon" pages |
 | Stable performance | ✅ | 96 gauntlet tests, 0 flakes in last 3 CI runs |
 | No crashes on launch | ✅ | Verified across chromium + webkit |
 | Memory leaks | ⚠️ | Cannot fully verify headless; user testing recommended |
@@ -50,9 +50,9 @@ Review Guidelines. Every ✅ is a guarantee.
 | Export compliance | ✅ | App uses HTTPS only, no encryption beyond standard |
 | Trademarks clear | ✅ | "Olive" cleared via search (no major conflicts in health/fitness) |
 | Bundle ID preserved | ✅ | `com.ashbi.olive` (was Luna) — used for rebrand, not user-visible |
-| Versioning clear | ✅ | 1.0.0 (semver), 1.0 build |
+| Versioning clear | ✅ | 1.0.1 marketing version, build 2 |
 | Third-party content licensed | ✅ | PWA is original, no third-party assets |
-| Music/audio | ✅ | None used in v1.0.0 |
+| Music/audio | ✅ | No bundled music or audio content |
 
 ## Build / Signing
 
@@ -69,13 +69,13 @@ Review Guidelines. Every ✅ is a guarantee.
 2. **Privacy policy** — they will click the URL. Make sure it resolves. ✓
 3. **All advertised features** — they will check the description against the app. (Contraction timer, sharing, hospital bag, privacy all live.)
 4. **No misleading claims** — they will check the description for medical claims. Olive says "We are not a medical device" type language is in the privacy policy.
-5. **Data collection** — they will check the App Privacy Details. Mark "Data Not Collected" + "Data Not Linked to You" — you, manually.
+5. **Data collection** — they will compare the optional relay data flow with the App Privacy Details. Declare the Health & Fitness, User Content, and Identifiers categories described in `APP-STORE-CONNECT-FIELDS.txt`.
 
 ## Likely questions from reviewers (if any)
 
 - **"Why is this Health & Fitness, not Medical?"** — Because it doesn't diagnose, treat, or monitor a specific medical condition. It just times contractions and shares them. The 5-1-1 pattern alert is informational, not diagnostic.
-- **"Do you collect any health data on your server?"** — No. The relay only sees an encrypted session ID during active shares. (Documented in privacy policy.)
-- **"Is the voice control HIPAA compliant?"** — Voice audio is processed on-device via the Web Speech API. Never leaves the phone. No server-side processing.
+- **"Do you collect any health data on your server?"** — Only when a user creates a share: the relay stores contraction and session data until expiry or revocation. Sharing is optional and documented in the privacy policy.
+- **"How is voice input processed?"** — Olive uses the browser or operating system's speech-recognition service. Processing can be local or provider-hosted; Olive does not store the audio or send it to the Olive relay.
 
 ## What to do when Apple rejects
 

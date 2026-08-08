@@ -75,31 +75,12 @@ test('privacy: passes the App Store / Play Store link-click smoke test', async (
 });
 
 test('privacy: privacy-policy.md is the source of the privacy page', async () => {
-  // The privacy-page HTML in public/privacy/index.html is generated
-  // from privacy-policy.md (in the indie-ship cache). This test
-  // verifies the source markdown exists in CI-friendly locations.
-  // Skip in CI environments where the indie-ship cache is not
-  // available (e.g., GitHub Actions runners).
-  if (process.env.CI) {
-    test.skip(true, 'indie-ship cache not available in CI');
-    return;
-  }
   const fs = await import('fs');
   const path = await import('path');
-  const candidates = [
-    path.resolve(process.env.HOME || '/Users/biancabienaime',
-      '.hermes/cache/indie-ship/APPS/olive-contractions/privacy-policy.md'),
-    path.resolve(process.cwd(), '../luna-relay/privacy-policy.md'), // legacy path
-  ];
-  let found = false;
-  for (const candidate of candidates) {
-    if (fs.existsSync(candidate)) {
-      const content = fs.readFileSync(candidate, 'utf-8');
-      expect(content).toContain('Privacy Policy');
-      expect(content).toContain('Olive');
-      found = true;
-      break;
-    }
-  }
-  expect(found, 'privacy-policy.md not found in any known location').toBe(true);
+  const policyPath = path.resolve(process.cwd(), 'docs/privacy-policy.md');
+  expect(fs.existsSync(policyPath), 'docs/privacy-policy.md must be version controlled').toBe(true);
+  const content = fs.readFileSync(policyPath, 'utf-8');
+  expect(content.toLowerCase()).toContain('privacy policy');
+  expect(content).toContain('Olive');
+  expect(content).toContain('shared-session data');
 });

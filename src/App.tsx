@@ -2398,6 +2398,7 @@ function FeatureCard({ icon, label, sub, onClick, accent }: {
   return (
     <button
       onClick={onClick}
+      aria-label={`${label}: ${sub}`}
       className={`flex-shrink-0 rounded-2xl border bg-ink-100/5 px-4 py-3 flex flex-col items-center gap-1.5 min-w-[100px] active:scale-95 transition-all ${accentBg}`}
     >
       <span className={accentText}>{icon}</span>

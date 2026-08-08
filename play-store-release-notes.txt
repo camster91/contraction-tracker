@@ -17,7 +17,7 @@ Olive is a contraction timer for expecting couples. Track contractions in real t
 - Zero analytics, zero tracking, zero third-party SDKs
 
 ## Privacy
-Olive stores your contraction data on your device only. We do not collect, transmit, or sell any personal information. When you share a link with your partner, the only data sent to our server is an anonymous session identifier for the duration of the share. See https://contractions.ashbi.ca/privacy for the full policy.
+Olive stores sessions on your device by default. If you create a share link, shared contraction data and optional activity-feed content are sent through the Olive relay, expire automatically, and can be revoked by the host. See https://contractions.ashbi.ca/privacy for the full policy.
 
 ## Designed for real labor
 - Quiet interface — no flashing colors, no alarmist messaging
