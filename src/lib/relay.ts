@@ -17,8 +17,9 @@
 // `import.meta.env` is typed by vite/client (see tsconfig.app.json
 // `types: ["vite/client"]`). The `??` keeps the build happy when
 // the env var is unset (Vite types it as `string | undefined`).
+const configuredRelayUrl = import.meta.env.VITE_RELAY_URL?.trim();
 export const RELAY_URL: string =
-  import.meta.env.VITE_RELAY_URL ?? 'https://relay.ashbi.ca';
+  configuredRelayUrl || 'https://relay.ashbi.ca';
 
 export async function createShareOnRelay(input: {
   sessionId: string;

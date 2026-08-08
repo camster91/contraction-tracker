@@ -94,7 +94,10 @@ test('end-to-end: partner sees only active session data, not cross-session', asy
     const shares = JSON.parse(raw);
     return shares[0]?.id;
   });
-  expect(shareCode, 'Share should be created').toBeTruthy();
+  expect(
+    shareCode,
+    `Share should be created; ${relayDiagnostics.join(' | ')}`,
+  ).toBeTruthy();
   if (!shareCode) return;
 
   // Wait for the relay to receive the data — poll up to 10s
