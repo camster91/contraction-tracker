@@ -1,14 +1,16 @@
 # Olive v1.0.1 — Release Readiness
 
-Last updated: 2026-08-07. Status: **LOCALLY RELEASE-CANDIDATE; NOT READY TO SUBMIT.**
+Last updated: 2026-08-07. Status: **WEB RELEASED; STORE SUBMISSION BLOCKED.**
 
 Verified on 2026-08-07: strict lint/typecheck/build passed; the local browser
 suite completed with 93 passed, 20 environment-gated skips, and 0 failures;
 14 additional app/relay integration tests passed against a local relay; and
-the relay's six security/retention regression tests passed. Production remains
-blocked by untrusted TLS certificates, deployment of the coordinated app and
-relay changes, store signing, iOS validation on macOS/Xcode, and a pricing
-decision.
+the relay's six security/retention regression tests passed. The coordinated app
+and relay releases are live behind publicly trusted Let's Encrypt certificates.
+The post-deploy production suite passed 11/11 tests, including share creation,
+PIN validation, SSE, cross-session isolation, privacy, and 12-character links.
+Store submission remains blocked by signing, iOS validation on macOS/Xcode, and
+a pricing decision.
 
 The `olive-release-candidate:1.0.1` Docker image also builds successfully with
 the production relay origin, and the focused WebKit compatibility run passed
@@ -101,12 +103,10 @@ All features verified by 76+ gauntlet tests (3.5 min CI). Zero TODOs, zero FIXME
 - App icon: 22 sizes (12 iOS + 6 Android + 4 PWA)
 - Description + Keywords + Promotional Text: ready (see store-listing.md)
 
-## Remaining approval-gated work
+## Remaining store-release work
 
-1. Replace the self-signed certificates served for `contractions.ashbi.ca` and `relay.ashbi.ca` with publicly trusted certificates, then verify the full chain externally.
-2. Review, commit, and publish both the app and relay repositories; the relay repository is currently archived on GitHub and must be made writable first.
-3. Deploy the relay and app together, then run production smoke and privacy-policy checks.
-4. Choose free or upfront-paid pricing. v1.0.1 has no in-app purchase implementation.
-5. Provide/configure the Android release keystore and build a production-signed AAB.
-6. Archive and validate iOS on macOS/Xcode with the Apple Developer team.
-7. Review current App Store Connect and Google Play data declarations before manual submission.
+1. Choose free or upfront-paid pricing. v1.0.1 has no in-app purchase implementation.
+2. Provide/configure the Olive Android release keystore and build a production-signed AAB. No Olive keystore was found on this Windows machine.
+3. Archive and validate iOS on macOS/Xcode with the Apple Developer team; Xcode is not available on this machine.
+4. Review current App Store Connect and Google Play data declarations before manual submission.
+5. Resolve the GitHub account billing/spending-limit error so hosted Actions can start again. Production was deployed manually from verified Git archives because GitHub rejected all runner jobs before their first step.
