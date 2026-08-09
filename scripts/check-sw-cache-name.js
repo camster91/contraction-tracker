@@ -52,7 +52,9 @@ const swNow = readFileSync(new URL('../public/sw.js', import.meta.url), 'utf8')
 const pkgNow = readFileSync(new URL('../package.json', import.meta.url), 'utf8')
 const swHead = readAt('HEAD', 'public/sw.js')
 const pkgHead = readAt('HEAD', 'package.json')
-const hasWorktreeReleaseChange = swNow !== swHead || pkgNow !== pkgHead
+const normalizeLineEndings = (content) => content?.replace(/\r\n/g, '\n') ?? null
+const hasWorktreeReleaseChange = normalizeLineEndings(swNow) !== normalizeLineEndings(swHead)
+  || normalizeLineEndings(pkgNow) !== normalizeLineEndings(pkgHead)
 const baselineRef = hasWorktreeReleaseChange ? 'HEAD' : 'HEAD~1'
 const swPrev = readAt(baselineRef, 'public/sw.js')
 const pkgPrev = readAt(baselineRef, 'package.json')
