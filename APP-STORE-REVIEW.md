@@ -23,9 +23,9 @@ Guidelines. Passing a local check does not guarantee App Review approval.
 |-------------|-------|-------|
 | App does what its description says | ✅ | Contraction timer for expecting couples, exactly as described |
 | All buttons/links functional | ✅ | Gauntlet tested every interactive element |
-| No placeholder content | ✅ | v1.1.0 has no "coming soon" pages |
-| Stable performance | ✅ | Local release suite: 95 passed, 23 optional/environment skips, 0 failed |
-| No crashes on launch | ✅ | Verified locally and on production across Chromium + WebKit |
+| No placeholder content | ✅ | v1.2.0 has no "coming soon" pages |
+| Stable performance | ✅ | Local release suite: 110 passed, 23 optional/environment skips, 0 failed |
+| No crashes on launch | ✅ | v1.2.0 verified locally across Chromium and focused WebKit paths; production remains on the prior release |
 | Memory leaks | ⚠️ | Cannot fully verify headless; user testing recommended |
 | Battery usage | ⚠️ | Wake Lock API is requested but not held indefinitely |
 
@@ -50,7 +50,7 @@ Guidelines. Passing a local check does not guarantee App Review approval.
 | Export compliance | ✅ | App uses HTTPS only, no encryption beyond standard |
 | Trademarks clear | ✅ | "Olive" cleared via search (no major conflicts in health/fitness) |
 | Bundle ID preserved | ✅ | `com.ashbi.olive` (was Luna) — used for rebrand, not user-visible |
-| Versioning clear | ✅ | 1.1.0 marketing version, build 3 |
+| Versioning clear | ✅ | 1.2.0 marketing version, build 4 |
 | Third-party content licensed | ✅ | PWA is original, no third-party assets |
 | Music/audio | ✅ | No bundled music or audio content |
 

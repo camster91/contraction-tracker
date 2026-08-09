@@ -1,13 +1,13 @@
-# Olive v1.1.0 — What's New
+# Olive v1.2.0 — What's New
 
-This release keeps Olive focused during labor and makes care-team handoff clearer.
+Olive now supports the wider birth journey while keeping the labor timer fast and calm.
 
-- Save the contraction timing instructions provided by your care team.
-- Add your provider or care-team name and phone number for a direct call action.
-- Share an objective timing summary with recent averages, entries, and notes.
-- Pattern notices now describe the recorded timing without diagnosing labor.
-- Partner sharing stays on the main screen; preparation tools are organized under More tools.
-- Shared session status changes are always controlled by you.
-- Offline reopening, secure sharing, and accessibility improvements from v1.0.1 remain included.
+- Keep a private care card with the facts you choose to record.
+- Save questions for your provider without automated medical answers.
+- Assign practical responsibilities and explicitly review which ones you share with a partner.
+- Record appointments, support, reminders, recovery notes, and personal milestones through the first 12 weeks postpartum.
+- Back up and restore journey information alongside contraction history.
+- Move between preparing, labor, postpartum, and archived phases only when you choose.
+- Continue using the core timer offline, including after reopening the installed app.
 
 Olive is an informational timing and communication tool, not a medical device. Follow the instructions from your healthcare professional and use local emergency services when urgent help is needed.

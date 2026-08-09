@@ -40,7 +40,7 @@ fi
 
 # 2. Marketing version
 MV=$(grep -E 'MARKETING_VERSION = [^;]+;' ios/App/App.xcodeproj/project.pbxproj | head -1 | sed -E 's/.*= ([^;]+);.*/\1/' | tr -d ' ')
-APP_V=$(grep -E "const APP_VERSION = '[^']+'" src/App.tsx | head -1 | sed -E "s/.*'([^']+)'.*/\1/")
+APP_V=$(node -p "require('./package.json').version")
 if [ "$MV" = "$APP_V" ]; then
   ok "Marketing version: $MV (matches APP_VERSION in src/App.tsx)"
 else
@@ -71,7 +71,7 @@ else
   fail "App icons: only $ICON_COUNT/12 sizes present (need: 20@2x, 20@3x, 29@2x, 29@3x, 40@2x, 40@3x, 60@2x, 60@3x, 76, 76@2x, 83.5@2x, 1024)"
 fi
 
-if [ -f ios/App/PrivacyInfo.xcprivacy ]; then
+if [ -f ios/App/App/PrivacyInfo.xcprivacy ]; then
   ok "PrivacyInfo.xcprivacy present (App Store requirement since May 2024)"
   if grep -q "PrivacyInfo.xcprivacy in Resources" ios/App/App.xcodeproj/project.pbxproj; then
     ok "PrivacyInfo.xcprivacy is wired into the App target Resources build phase"

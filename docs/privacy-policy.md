@@ -1,12 +1,12 @@
 # Olive privacy policy
 
-Effective August 8, 2026. App version 1.1.0.
+Effective August 8, 2026. App version 1.2.0.
 
-Olive is a contraction timer for expecting parents and their support people. The app stores contraction sessions, optional notes and tags, care-team contacts, and hospital details locally on the user's device.
+Olive is a birth-journey companion and contraction timer for expecting parents and their support people. The app stores journey details, contraction sessions, optional notes and tags, care-team contacts, and hospital details locally on the user's device.
 
-Sharing is optional. When a user creates a share link, Olive sends shared-session data to the Olive relay at `relay.ashbi.ca`. The relay may store a random share code and client identifier, session and expiry metadata, current stage, contraction timestamps and details, timer state, limited audit events, and optional activity-feed display names, messages, reactions, or images. Care-team contacts, hospital details, and exported files are not uploaded by the sharing feature.
+Sharing is optional. When a user creates a share link, Olive sends shared-session data to the Olive relay at `relay.ashbi.ca`. The relay may store a random share code and client identifier, session and expiry metadata, current stage, contraction timestamps and details, timer state, limited audit events, optional activity-feed display names, messages, reactions, or images, and only the responsibility fields the owner explicitly reviewed for that invite. Care-card details, provider questions, private responsibilities, journey notes, care-team contacts, hospital details, and exported files are not uploaded by the sharing feature.
 
-Shared-session data is used only to synchronize the session, provide the activity feed, limit abuse, and support revocation. It is encrypted in transit using HTTPS. It is deleted automatically after expiry; the default share period is seven days. Revocation immediately removes contractions, messages, and client-name bindings. Minimal revocation metadata may remain until expiry so the revoked code stays blocked.
+Shared-session data is used only to synchronize the session, provide the activity feed and reviewed responsibilities, limit abuse, and support revocation. It is encrypted in transit using HTTPS. It is deleted automatically after expiry; the default share period is seven days. Revocation immediately removes contractions, messages, reviewed responsibility snapshots, and client-name bindings. Minimal revocation metadata may remain until expiry so the revoked code stays blocked.
 
 Olive contains no advertising, analytics SDK, or crash-reporting service, and does not sell or license user data. The relay application does not persist IP addresses in its session database, although network infrastructure processes IP addresses and request metadata to deliver and protect the service. People who receive a share link can access the data permitted by that link.
 

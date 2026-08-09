@@ -12,7 +12,7 @@
 // Pattern: 'olive-v<NUM>' where NUM is monotonically increasing per
 // release. Don't reset it across releases — users with old service
 // workers will get a clean migration via the activate handler.
-const CACHE_NAME = 'olive-v22';
+const CACHE_NAME = 'olive-v23';
 const APP_SHELL = [
   '/',
   '/index.html',

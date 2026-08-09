@@ -60,8 +60,8 @@ A calm, private coordination companion for the final weeks of pregnancy, birth d
 | Native | Capacitor 8 (iOS + Android wrappers around the PWA) |
 | Backend | olive-relay (Node.js + Express + sql.js WASM, deployed at relay.ashbi.ca) |
 | Sync | Server-Sent Events (SSE) |
-| PWA | Versioned offline app shell (`olive-v22`) |
-| Version | 1.1.0 |
+| PWA | Versioned offline app shell (`olive-v23`) |
+| Version | 1.2.0 |
 
 ---
 
@@ -129,7 +129,7 @@ npm start
 
 The frontend is a PWA + Capacitor app — deploy the `dist/` build to your CDN / static host (currently contractions.ashbi.ca, hosted on Coolify). The relay backend should be deployed separately (currently relay.ashbi.ca, also on Coolify) and its URL configured in the frontend.
 
-The repository includes a GitHub Actions deployment workflow for normal releases. Olive v1.1.0 was intentionally pushed with `[skip ci]` and released through the verified manual SSH/docker-compose path.
+The repository includes a GitHub Actions deployment workflow, but the v1.2.0 release candidate is intentionally prepared and validated locally without invoking it or deploying production.
 
 ---
 
@@ -138,6 +138,7 @@ The repository includes a GitHub Actions deployment workflow for normal releases
 | Version | Notes |
 |---|---|
 | 1.1.0 | Provider-specific care-plan reminders, objective care summary, non-diagnostic pattern language, user-controlled status, and focused labor-mode hierarchy |
+| 1.2.0 | Local-first birth journey, care card, provider questions, partner responsibilities, postpartum timeline, backup migration, and reviewed category-scoped sharing |
 | 1.0.1 | Secure capability-based sharing, offline reload recovery, accessibility release fixes, and production security headers |
 | 1.0.0 | First Olive release with SSE live sync, voice control, multi-device sharing, and memory book PDF |
 | 2.0.4 | Last version under the old name — SSE reconnect backoff, voice de-dup, state auto-progress |

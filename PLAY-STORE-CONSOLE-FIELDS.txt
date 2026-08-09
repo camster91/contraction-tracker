@@ -1,4 +1,4 @@
-# Google Play Console — pre-filled fields for Olive v1.1.0
+# Google Play Console — pre-filled fields for Olive v1.2.0
 # Copy/paste from here into Play Console. Each section is exactly
 # what the field expects.
 
@@ -8,7 +8,7 @@ APP DETAILS
 App name: Olive
 Default language: English (United States)
 
-Pricing: Free (v1.1.0 has no IAP)
+Pricing: Free (v1.2.0 has no IAP)
 
 In-app products: None
 Contains ads: No
@@ -20,14 +20,16 @@ STORE LISTING (English)
 
 SHORT DESCRIPTION (max 80 chars)
 ────────────────────────────────────────────────────────────────────────
-The contraction timer you open at 3am when nothing else feels calm.
+Private birth journey, calm labor timer, and reviewed partner support.
 
 
 FULL DESCRIPTION (max 4000 chars)
 ────────────────────────────────────────────────────────────────────────
-Olive is the contraction timer you open at 3am when nothing else feels calm. One tap starts the timer. The screen stays awake so you can see the numbers. When the contraction ends, tap again. The app remembers everything.
+Olive is a private birth-journey companion with the contraction timer you open at 3am when nothing else feels calm. One tap starts the timer. The screen stays awake so you can see the numbers. When the contraction ends, tap again. The app remembers everything.
 
 Real labor is hard to time. You're focused on breathing, your partner is timing on their phone, and neither of you is sure when the last one started. Olive is designed for that moment.
+
+Before and after labor, Olive keeps a private care card, provider questions, practical responsibilities, and a factual first-12-weeks postpartum timeline. You choose the phase, and only reviewed responsibilities can be included in a partner link.
 
 WHAT IT DOES
 • One-tap Start/Stop timer — no menus, no settings, just a big button
@@ -51,7 +53,7 @@ DESIGNED FOR REAL LABOR
 PRIVATE BY DEFAULT
 Olive stores your session on your device. If you choose to create a share link, the contraction session and optional activity-feed content are sent through the Olive relay so people with the link can follow along. Shared data expires automatically and can be revoked by the host.
 
-Zero analytics. Zero tracking. Zero third-party SDKs. See https://contractions.ashbi.ca/privacy for the full policy.
+Care-card details, provider questions, private responsibilities, and journey notes stay off the relay. Zero analytics. Zero tracking. Zero third-party SDKs. See https://contractions.ashbi.ca/privacy for the full policy.
 
 Built by a dad for his wife. Now for you.
 
@@ -100,7 +102,7 @@ PRICING
 ════════════════════════════════════════════════════════════════════════════
 RELEASE DECISION: Free.
 The current build does not implement in-app purchases, so do not configure
-or advertise an IAP for v1.1.0.
+or advertise an IAP for v1.2.0.
 
 
 ════════════════════════════════════════════════════════════════════════════
@@ -147,7 +149,7 @@ Q: Does your app contain ads?
 A: No.
 
 Q: Does your app have in-app purchases?
-A: No. The v1.1.0 build has no in-app purchase implementation.
+A: No. The v1.2.0 build has no in-app purchase implementation.
 
 Q: Does your app use any data for tracking?
 A: No, the app does not track users.
@@ -209,7 +211,7 @@ INTERNAL TESTING TRACK (recommended for first release)
 ────────────────────────────────────────────────────────────────────────
 1. Production > Create new release
 2. Upload the signed AAB: android/app/build/outputs/bundle/release/app-release.aab
-3. Release name: 1.1.0 (3)
+3. Release name: 1.2.0 (4)
 4. Release notes (paste from play-store-release-notes.txt):
 
    First public release of Olive, the contraction timer for

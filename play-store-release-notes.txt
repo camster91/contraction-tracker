@@ -1,14 +1,13 @@
-# Olive v1.1.0 — Play Store release notes
+# Olive v1.2.0 — Play Store release notes
 
-Olive is a private, offline-first contraction timer with optional real-time partner sharing.
+Olive now supports the wider birth journey while keeping the contraction timer fast, calm, and offline-first.
 
 What's new:
-- Save timing instructions from your care team.
-- Add a provider name and phone number for a direct call action.
-- Share an objective care summary with recent timing, averages, notes, and intensity.
-- Timing notices now report observations without diagnosing labor.
-- Partner sharing remains prominent while preparation tools are organized under More tools.
-- Shared session status is always controlled by the user.
-- Includes secure sharing, offline reopening, accessibility, and security improvements.
+- Keep a private care card and provider-question list.
+- Assign practical responsibilities and explicitly choose which ones a partner may view and complete.
+- Record appointments, support, reminders, recovery notes, and milestones through the first 12 weeks postpartum.
+- Back up journey information with contraction history.
+- Change preparation, labor, postpartum, and archived phases only when you choose.
+- Continue timing offline, including after reopening the installed app.
 
 Olive is an informational timing and communication tool, not a medical device. Follow the instructions from your healthcare professional and use local emergency services when urgent help is needed.

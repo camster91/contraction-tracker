@@ -1,5 +1,16 @@
 # Olive — Changelog
 
+## v1.2.0 (August 2026) — Birth journey release
+
+- Expanded Olive into a local-first companion spanning preparation, labor, and the first 12 weeks postpartum.
+- Added a unified care card, private provider-question list, practical partner responsibilities, and a factual postpartum timeline.
+- Added explicit phase controls; Olive never infers or diagnoses a journey phase.
+- Added versioned journey recovery, IndexedDB mirroring, and backup v2 while retaining valid v1.1 imports.
+- Added reviewed responsibility sharing. Private responsibilities, care details, provider questions, and notes remain excluded unless the owner explicitly changes their local privacy choice.
+- Added category-scoped relay permissions and identity-proven, idempotent partner completion.
+- Preserved the labor timer as the dominant action, offline reload, mobile accessibility, and 320px layouts.
+- Advanced the offline app cache to `olive-v23` and native builds to version 1.2.0 (build 4).
+
 ## v1.1.0 (August 2026) — Care-team handoff release
 
 - Added a provider-configurable timing reminder: interval, duration, sustained window, care-team name, and phone number.
