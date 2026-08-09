@@ -1,6 +1,6 @@
 # Olive v1.2.0 — Release Readiness
 
-Last updated: 2026-08-08. Status: **LOCAL RELEASE CANDIDATE; PRODUCTION AND STORE SUBMISSION NOT PERFORMED.**
+Last updated: 2026-08-09. Status: **LOCAL RELEASE CANDIDATE; PRODUCTION AND STORE SUBMISSION NOT PERFORMED.**
 
 The production site remains on the previously verified release. v1.2.0 is prepared locally without GitHub Actions, a forced deployment, production mutation, or delegated QA-team run.
 
@@ -13,6 +13,7 @@ The production site remains on the previously verified release. v1.2.0 is prepar
 - Backup schema v2 with valid v1.1 migration and IndexedDB recovery mirror
 - Reviewed partner sharing limited to normalized responsibilities
 - Category-scoped relay capability enforcement and proven idempotent partner completion
+- Host reconciliation preserves a partner's reviewed-task completion across reload, focus, and reconnect without synchronizing private tasks
 - Service-worker cache `olive-v23`
 
 The contraction timer remains the primary labor action. Olive does not infer a medical state, score recovery, diagnose symptoms, or provide medication advice.
@@ -24,6 +25,7 @@ The contraction timer remains the primary labor action. Olive does not infer a m
 - Focused journey Chromium suite: 15 passed, 0 failed.
 - Focused journey WebKit suite: 3 passed, 0 failed.
 - Relay security suite: 17 passed, 0 failed.
+- Shared-responsibility reconciliation: 11 unit checks and a local app-plus-relay browser regression passed.
 - App and relay production dependency audits: 0 known vulnerabilities.
 - `git diff --check`: clean apart from informational Windows line-ending notices.
 
@@ -32,10 +34,10 @@ The contraction timer remains the primary labor action. Olive does not infer a m
 - Version: `1.2.0` (`versionCode 4`)
 - Release command: `.\android\gradlew.bat -p android bundleRelease assembleRelease`
 - Signed AAB: `android/app/build/outputs/bundle/release/app-release.aab`
-  - SHA-256: `124CB4CBBFDF6911BD04F4444EDC673C0098B4A1F250D9330845F94A8036217F`
+  - SHA-256: `D3BBEAB3916B79C819E7C532538A00E6FCC9E3052CE27488EE6CB4AB6BA70A03`
   - JAR signature verified; the upload certificate is self-signed and expires 2053-12-23.
 - Signed APK: `android/app/build/outputs/apk/release/app-release.apk`
-  - SHA-256: `F792E6BF319BFF3DD55F8070D413EDE14D33C2CC14879F8869E5657BB83B5CF6`
+  - SHA-256: `B44C0A7F0710DA0265CBC18D1109C9A1863D0EC279F09D80E152CF9632740E99`
   - Android APK Signature Scheme v2 verified with one signer.
 - Gradle `clean bundleRelease assembleRelease` completed successfully.
 

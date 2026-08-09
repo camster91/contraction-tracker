@@ -113,7 +113,7 @@ import {
 import { getChecklist, packedCount, saveChecklist, type ChecklistItem } from './lib/checklist';
 import { getExams, type CervicalExam } from './lib/hospital';
 import { postMessage, PostMessageError } from './lib/feed';
-import { pushContractionsToRelay, pushJourneyToRelay, postContractionEventToRelay, RELAY_URL, getShareAuthorizationHeaders } from './lib/relay';
+import { pullJourneyFromRelay, pushContractionsToRelay, pushJourneyToRelay, postContractionEventToRelay, RELAY_URL, getShareAuthorizationHeaders } from './lib/relay';
 import { getOrCreateClientId } from './lib/identity';
 import Onboarding from './components/Onboarding';
 import BabyIsHereMount from './components/BabyIsHereMount';
@@ -124,6 +124,7 @@ import JourneySheet from './components/JourneySheet';
 import {
   getJourney,
   mergeJourney,
+  reconcileSharedResponsibilityCompletions,
   saveJourney,
   updateJourneyPhase,
   type JourneyDocument,
@@ -187,6 +188,7 @@ export default function App() {
   const [muteSchedule, setMuteScheduleState] = useState<MuteSchedule>(() => getMuteSchedule());
   const [carePlan, setCarePlanState] = useState<CarePlan>(() => getCarePlan());
   const [journey, setJourney] = useState<JourneyDocument>(() => getJourney());
+  const [journeySharingReady, setJourneySharingReady] = useState(false);
   const [tagFilter, setTagFilter] = useState<string | null>(null);
   const [tagsDraft, setTagsDraft] = useState<string[]>([]);
   const [showSettings, setShowSettings] = useState(false);
@@ -477,6 +479,42 @@ export default function App() {
   useEffect(() => {
     saveJourney(journey);
     autoBackupJourney(journey).catch(() => {});
+  }, [journey]);
+
+  // Pull the owner-visible, category-scoped responsibility state before the
+  // first automatic push. This prevents a reload from overwriting a partner's
+  // completed item with a stale local copy. Focus/online recovery uses the
+  // same merge path so the owner sees partner changes without a new account.
+  useEffect(() => {
+    let mounted = true;
+    const refreshSharedResponsibilities = async () => {
+      const shares = getShares().filter((share) => share.journeyPermissions?.includes('responsibilities:read'));
+      const snapshots = await Promise.all(shares.map((share) => pullJourneyFromRelay(share.id)));
+      if (!mounted) return;
+      setJourney((currentJourney) => snapshots.reduce((nextJourney, snapshot) => (
+        snapshot
+          ? reconcileSharedResponsibilityCompletions(nextJourney, snapshot.responsibilities)
+          : nextJourney
+      ), currentJourney));
+      setJourneySharingReady(true);
+    };
+    void refreshSharedResponsibilities();
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') void refreshSharedResponsibilities();
+    };
+    window.addEventListener('focus', onVisible);
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('online', onVisible);
+    return () => {
+      mounted = false;
+      window.removeEventListener('focus', onVisible);
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('online', onVisible);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!journeySharingReady) return;
     try {
       const peopleById = new Map(getPeople().map((person) => [person.id, person]));
       const sharedResponsibilities = journey.responsibilities
@@ -494,7 +532,7 @@ export default function App() {
         }
       }
     } catch { /* journey sharing remains best-effort and never blocks local persistence */ }
-  }, [journey]);
+  }, [journey, journeySharingReady]);
   useEffect(() => {
     save(SESSION_KEY, current);
     autoBackup(contractions, current).then((ok) => {

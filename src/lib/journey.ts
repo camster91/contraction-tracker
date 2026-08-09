@@ -395,6 +395,43 @@ export function deleteResponsibility(
   }, now, journey.profile.id);
 }
 
+/**
+ * Applies the relay's category-scoped completion state to responsibilities
+ * that the owner deliberately made shareable. The relay is never allowed to
+ * mutate private work or any other journey category.
+ */
+export function reconcileSharedResponsibilityCompletions(
+  journey: JourneyDocument,
+  remote: Array<{ id: string; completedAt: string | null }>,
+  now = new Date().toISOString(),
+): JourneyDocument {
+  const remoteById = new Map<string, string | null>();
+  for (const item of remote) {
+    const itemId = id(item?.id);
+    if (!itemId) continue;
+    if (item.completedAt === null) remoteById.set(itemId, null);
+    else {
+      const completedAt = date(item.completedAt);
+      if (completedAt) remoteById.set(itemId, completedAt);
+    }
+  }
+
+  let changed = false;
+  const responsibilities = journey.responsibilities.map((item) => {
+    if (item.private || !remoteById.has(item.id)) return item;
+    const completedAt = remoteById.get(item.id) ?? undefined;
+    if (item.completedAt === completedAt) return item;
+    changed = true;
+    return { ...item, completedAt, updatedAt: now };
+  });
+  if (!changed) return journey;
+  return normalizeJourney({
+    ...journey,
+    profile: { ...journey.profile, updatedAt: now },
+    responsibilities,
+  }, now, journey.profile.id);
+}
+
 export function addJourneyEntry(
   journey: JourneyDocument,
   input: { kind: JourneyEntryKind; title: string; note?: string; occursAt: string },

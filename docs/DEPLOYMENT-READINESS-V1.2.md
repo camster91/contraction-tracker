@@ -1,6 +1,6 @@
 # Deployment readiness report: Olive v1.2.0
 
-Date: 2026-08-08  
+Date: 2026-08-09
 Stack: React/Vite PWA, Capacitor Android/iOS shell, Node/Express/sql.js relay  
 Target: local signed release candidate; production deployment explicitly excluded
 
@@ -34,6 +34,7 @@ Production release still requires separate authorization, deployment of relay be
 - Pass: backup v2 preserves journey records and valid v1.1 backups remain importable.
 - Pass: phase changes require an explicit owner action.
 - Pass: reviewed responsibilities are opt-in and partner completion is idempotent.
+- Pass: host reload, focus, and reconnect reconcile a partner's reviewed-task completion before automatic sync; private tasks remain local-only.
 - Pass: installed-app offline reopening remains covered by the full regression suite.
 
 ## Native packaging
