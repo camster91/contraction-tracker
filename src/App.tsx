@@ -31,6 +31,7 @@ import {
   type Contraction,
   COMMON_TAGS,
   allTags,
+  buildCareSummary,
   buildSummary,
   durationSeconds,
   formatClock,
@@ -39,7 +40,7 @@ import {
   formatRelative,
   getTags,
   intervalSeconds,
-  isFiveOneOne,
+  isCarePlanPattern,
   isHour12Preferred,
   secondsSinceLastFinish,
   setHour12Preferred,
@@ -68,10 +69,14 @@ import {
 import { disableWakeLock, enableWakeLock, installWakeLockVisibilityHandler, isWakeLockHeld } from './lib/wakelock';
 import {
   getMuteSchedule,
+  getCarePlan,
+  normalizeCarePlan,
   isBigText,
   isInQuietHours,
   setBigText,
   setMuteSchedule,
+  setCarePlan,
+  type CarePlan,
   type MuteSchedule,
 } from './lib/settings';
 import { useUndo } from './lib/undo';
@@ -107,7 +112,7 @@ import {
 import { getChecklist, packedCount, saveChecklist, type ChecklistItem } from './lib/checklist';
 import { getExams, type CervicalExam } from './lib/hospital';
 import { postMessage, PostMessageError } from './lib/feed';
-import { getShareFromRelay, pushContractionsToRelay, setShareStateOnRelay, postContractionEventToRelay, RELAY_URL, getShareAuthorizationHeaders } from './lib/relay';
+import { pushContractionsToRelay, postContractionEventToRelay, RELAY_URL, getShareAuthorizationHeaders } from './lib/relay';
 import { getOrCreateClientId } from './lib/identity';
 import Onboarding from './components/Onboarding';
 import BabyIsHereMount from './components/BabyIsHereMount';
@@ -169,6 +174,7 @@ export default function App() {
   const [muted, setMutedState] = useState<boolean>(() => load<boolean>(MUTED_KEY, false));
   const [bigText, setBigTextState] = useState<boolean>(() => isBigText());
   const [muteSchedule, setMuteScheduleState] = useState<MuteSchedule>(() => getMuteSchedule());
+  const [carePlan, setCarePlanState] = useState<CarePlan>(() => getCarePlan());
   const [tagFilter, setTagFilter] = useState<string | null>(null);
   const [tagsDraft, setTagsDraft] = useState<string[]>([]);
   const [showSettings, setShowSettings] = useState(false);
@@ -187,6 +193,7 @@ export default function App() {
 
   // Hospital sheet (cervical exams)
   const [showHospital, setShowHospital] = useState(false);
+  const [showMoreTools, setShowMoreTools] = useState(false);
 
   // Pain location draft (edit panel)
   const [painLocationsDraft, setPainLocationsDraft] = useState<string[]>([]);
@@ -288,75 +295,6 @@ export default function App() {
     const timer = setTimeout(() => setStateToast(null), 4000);
     return () => clearTimeout(timer);
   }, [stateToast]);
-
-  // Auto-progress share state for any active shares of this session.
-  // prenatal → labor: 3+ contractions within 10 minutes (5-1-1 precursor)
-  // labor → postpartum: 24 hours with no contractions
-  // We do this client-side because the host is the only thing that knows
-  // the contraction history. The relay just stores whatever we tell it.
-  useEffect(() => {
-    if (!contractions.length) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const activeShares = getShares().filter(
-          (s) => !s.revoked && s.sessionId === activeSessionId,
-        );
-        if (activeShares.length === 0) return;
-        const now = Date.now();
-        // prenatal → labor: 3+ contractions in last 10 min
-        const tenMinAgo = now - 10 * 60 * 1000;
-        const recentCount = contractions.filter(
-          (c) => new Date(c.start).getTime() >= tenMinAgo,
-        ).length;
-        const shouldProgress = recentCount >= 3;
-        if (!shouldProgress) return;
-        for (const s of activeShares) {
-          // Fetch current state from relay (not local — local doesn't track state).
-          const remote = await getShareFromRelay(s.id);
-          if (cancelled || !remote) continue;
-          if (remote.state === 'prenatal' || !remote.state) {
-            const ok = await setShareStateOnRelay(s.id, 'labor');
-            if (ok && !cancelled) {
-              setStateToast('Auto-progressed to active labor (3+ contractions in 10 min)');
-            }
-          }
-        }
-      } catch { /* best-effort */ }
-    })();
-    return () => { cancelled = true; };
-  }, [contractions, activeSessionId]);
-
-  // labor → postpartum: 24h since last contraction. Runs hourly on a timer
-  // (not on every render) since it's a slow-moving check.
-  useEffect(() => {
-    const checkPostpartum = async () => {
-      try {
-        const activeShares = getShares().filter(
-          (s) => !s.revoked && s.sessionId === activeSessionId,
-        );
-        if (activeShares.length === 0) return;
-        const finished = contractions.filter((c) => c.end);
-        if (finished.length === 0) return;
-        const last = finished.reduce((a, b) =>
-          new Date(a.start).getTime() > new Date(b.start).getTime() ? a : b,
-        );
-        const hoursSince = (Date.now() - new Date(last.start).getTime()) / 3_600_000;
-        if (hoursSince < 24) return;
-        for (const s of activeShares) {
-          const remote = await getShareFromRelay(s.id);
-          if (!remote) continue;
-          if (remote.state === 'labor') {
-            const ok = await setShareStateOnRelay(s.id, 'postpartum');
-            if (ok) setStateToast('Auto-progressed to postpartum (24h since last contraction)');
-          }
-        }
-      } catch { /* best-effort */ }
-    };
-    checkPostpartum();
-    const id = setInterval(checkPostpartum, 60 * 60 * 1000); // hourly
-    return () => clearInterval(id);
-  }, [contractions, activeSessionId]);
 
   // T5: Poll the relay for the in-progress timer of the active share.
   // Adaptive cadence — 1s when a partner is timing (so the host's display
@@ -709,24 +647,24 @@ export default function App() {
       // Display adapts to the current state so the window is never blank:
       //   - Active contraction: huge MM:SS countdown, rose tint
       //   - Between contractions: "since last" gap (the most important number)
-      //   - 5-1-1 alert: amber background, ALERT text
+      //   - Saved care-plan reminder: amber background, reminder text
       const draw = () => {
         if (!ctx) return;
         const inProgress = current && !current.end;
-        const fiveOneOne = isFiveOneOne(contractions, Date.now());
-        // Background — amber when 5-1-1, otherwise dark plum
-        ctx.fillStyle = fiveOneOne ? '#3a2410' : '#120c10';
+        const carePlanMatch = isCarePlanPattern(contractions, carePlan, Date.now());
+        // Background — amber when the saved reminder matches, otherwise dark plum
+        ctx.fillStyle = carePlanMatch ? '#3a2410' : '#120c10';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         // Top status row
-        ctx.fillStyle = fiveOneOne ? '#fbbf24' : '#e8957a';
+        ctx.fillStyle = carePlanMatch ? '#fbbf24' : '#e8957a';
         ctx.font = '500 14px Inter, system-ui, sans-serif';
         ctx.textAlign = 'left';
         ctx.fillText(
-          fiveOneOne ? '5-1-1 ALERT' : (inProgress ? 'CONTRACTION' : 'SINCE LAST'),
+          carePlanMatch ? 'CARE-PLAN REMINDER' : (inProgress ? 'CONTRACTION' : 'SINCE LAST'),
           20, 28,
         );
         // Big number — different per state
-        ctx.fillStyle = fiveOneOne ? '#fef3c7' : '#faf6f4';
+        ctx.fillStyle = carePlanMatch ? '#fef3c7' : '#faf6f4';
         ctx.font = '64px Fraunces, Georgia, serif';
         ctx.textAlign = 'center';
         let bigText = '0:00';
@@ -738,7 +676,7 @@ export default function App() {
         }
         ctx.fillText(bigText, canvas.width / 2, 84);
         // Subtitle for the since-last case
-        if (!inProgress && !fiveOneOne) {
+        if (!inProgress && !carePlanMatch) {
           const finished = contractions.filter((c) => c.end);
           if (finished.length > 0) {
             ctx.fillStyle = '#8a6f64';
@@ -891,11 +829,11 @@ export default function App() {
   };
 
   const handleShare = async () => {
-    const text = buildSummary(contractions);
-    const file = new File([text], `contractions-${new Date().toISOString().split('T')[0]}.txt`, { type: 'text/plain' });
+    const text = buildCareSummary(contractions, carePlan, now);
+    const file = new File([text], `olive-care-summary-${new Date().toISOString().split('T')[0]}.txt`, { type: 'text/plain' });
     if (navigator.canShare?.({ files: [file] })) {
       try {
-        await navigator.share({ files: [file], title: 'Contraction log', text });
+        await navigator.share({ files: [file], title: 'Olive care summary', text });
         return;
       } catch {
         /* user cancelled */
@@ -903,7 +841,7 @@ export default function App() {
     }
     if (navigator.share) {
       try {
-        await navigator.share({ title: 'Contraction log', text });
+        await navigator.share({ title: 'Olive care summary', text });
         return;
       } catch {
         /* cancelled */
@@ -1195,16 +1133,16 @@ export default function App() {
     : 0;
   const gaps = finished.slice(1).map((c, i) => intervalSeconds(finished[i], c));
   const avgGap = gaps.length ? Math.round(gaps.reduce((a, b) => a + b, 0) / gaps.length) : null;
-  const showAlert = isFiveOneOne(contractions, now);
+  const showAlert = isCarePlanPattern(contractions, carePlan, now);
 
-  // 5-1-1 progress: count how many recent contractions match the pattern
+  // Care-plan progress: count recent contractions near the saved duration.
   const onTrackCount = useMemo(() => {
     const finished = contractions.filter((c) => c.end).sort((a, b) => a.start.localeCompare(b.start));
-    const oneHourAgo = now - 60 * 60 * 1000;
-    const recent = finished.filter((c) => new Date(c.start).getTime() >= oneHourAgo);
+    const windowStart = now - carePlan.windowMinutes * 60 * 1000;
+    const recent = finished.filter((c) => new Date(c.start).getTime() >= windowStart);
     if (recent.length < 3) return null;
-    return recent.filter((c) => durationSeconds(c, now) >= 45).length;
-  }, [contractions, now]);
+    return recent.filter((c) => durationSeconds(c, now) >= carePlan.durationSeconds * 0.75).length;
+  }, [contractions, now, carePlan.durationSeconds, carePlan.windowMinutes]);
   const showOnTrack = !showAlert && onTrackCount !== null && onTrackCount >= 3;
   const currentElapsed = current && !current.end ? durationSeconds(current, now) : 0;
   const secondsSinceFinish = secondsSinceLastFinish(contractions, now);
@@ -1240,10 +1178,9 @@ export default function App() {
     if (elapsedMin > 1) {
       speak(`5 1 1 still active, ${elapsedMin} minutes since the last alert.`, { force: true });
     } else {
-      // force=true bypasses quiet hours — the 5-1-1 alert is a medical signal
-      speak('This looks like the 5 1 1 pattern. Consider calling your provider.', { force: true });
+      speak(`Your saved ${carePlan.intervalMinutes} ${Math.round(carePlan.durationSeconds / 60)} ${carePlan.windowMinutes} reminder pattern is showing. Follow the plan from your care team.`, { force: true });
     }
-  }, [showAlert, snoozedUntil]);
+  }, [showAlert, snoozedUntil, carePlan]);
 
   // Periodic "X minutes in" voice readouts while a contraction is running.
   // Only on whole minutes; rate-limited to once per minute.
@@ -1432,6 +1369,12 @@ export default function App() {
           setBigTextState={setBigTextState}
           muteSchedule={muteSchedule}
           setMuteScheduleState={setMuteScheduleState}
+          carePlan={carePlan}
+          onCarePlanChange={(value) => {
+            const normalized = normalizeCarePlan(value);
+            setCarePlanState(normalized);
+            setCarePlan(normalized);
+          }}
           themeVariant={themeVariant}
           setThemeVariant={(v) => {
             setThemeVariant(v);
@@ -1646,10 +1589,18 @@ export default function App() {
             <AlertTriangle className="w-4 h-4 text-rose-300" strokeWidth={2} />
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-sm font-semibold text-rose-200 font-display">5-1-1 pattern</div>
+            <div className="text-sm font-semibold text-rose-200 font-display">Saved care-plan reminder</div>
             <div className="text-xs text-ink-300 mt-0.5 leading-relaxed">
-              ~1 min long, ~5 min apart, for ~1 hour. Time to call your provider.
+              The timing now matches your saved reminder: every {carePlan.intervalMinutes} minutes, lasting at least {carePlan.durationSeconds} seconds, for {carePlan.windowMinutes} minutes. This is not a diagnosis. Follow the plan from {carePlan.providerName || 'your care team'}.
             </div>
+            {carePlan.providerPhone && (
+              <a
+                href={`tel:${carePlan.providerPhone.replace(/[^+\d]/g, '')}`}
+                className="mt-2 inline-flex min-h-11 items-center rounded-xl bg-rose-300 px-4 py-2 text-xs font-semibold text-plum-950"
+              >
+                Call {carePlan.providerName || 'care provider'}
+              </a>
+            )}
             {/* Stop reminding — snooze for 24 hours */}
             <button
               onClick={() => setSnoozedUntil(Date.now() + 24 * 60 * 60 * 1000)}
@@ -1661,19 +1612,17 @@ export default function App() {
         </div>
       )}
 
-      {/* 5-1-1 "on track" indicator — shown when 3+ contractions match the
-          pattern (≥45s) but the full 5-1-1 hasn't triggered yet. Helps users
-          know they're approaching hospital-go time without alarmism. */}
+      {/* Objective early-pattern indicator. It reports only recorded timing
+          and leaves all care decisions with the user and their care team. */}
       {showOnTrack && (
         <div className="flex-shrink-0 mx-5 mb-3 rounded-2xl border border-sage-300/40 bg-sage-300/10 px-4 py-3 flex items-start gap-3 animate-fade-in">
           <div className="w-8 h-8 rounded-full bg-sage-300/15 flex items-center justify-center flex-shrink-0">
             <Shield className="w-4 h-4 text-sage-300" strokeWidth={2} />
           </div>
           <div>
-            <div className="text-sm font-semibold text-sage-200 font-display">Getting close</div>
+            <div className="text-sm font-semibold text-sage-200 font-display">Pattern building</div>
             <div className="text-xs text-ink-300 mt-0.5 leading-relaxed">
-              {onTrackCount} of {finished.filter((c) => new Date(c.start).getTime() >= now - 60*60*1000).length} contractions in the last hour are 45s or longer.
-              Keep tracking — the 5-1-1 alert will fire when the pattern is clear.
+              {onTrackCount} of {finished.filter((c) => new Date(c.start).getTime() >= now - carePlan.windowMinutes*60*1000).length} contractions in the last {carePlan.windowMinutes} minutes lasted near your saved {carePlan.durationSeconds}-second reminder. Keep tracking; Olive will notify you if the full saved timing pattern appears.
             </div>
           </div>
         </div>
@@ -1889,7 +1838,7 @@ export default function App() {
             </div>
             <div className="text-[10px] text-ink-500 mt-1.5">
               {finished.length === 1
-                ? 'First one recorded. Real labor contractions usually come every 3-5 minutes and get stronger.'
+                ? 'First one recorded. Keep tracking and follow the instructions from your care team.'
                 : `${pluralContraction(finished.length)} logged · started ${formatElapsed(totalLogElapsedSec)} ago`}
             </div>
           </div>
@@ -1974,70 +1923,69 @@ export default function App() {
           </div>
         )}
 
-        {/* Feature carousel — swipeable cards for quick access to every feature.
-            Tapping a card opens the corresponding overlay sheet. Replaces the old
-            individual inline pills + header icon clutter. */}
-        <div className="mb-4 -mx-5 px-5 overflow-x-auto scrollbar-none">
-          <div className="flex gap-2 pb-1">
-            {/* Share */}
+        {/* Keep the labor surface focused. Partner sharing is primary; planning,
+            records, and keepsakes stay one deliberate tap away. */}
+        <div className="mb-4 space-y-2">
+          <div className="grid grid-cols-2 gap-2">
             <FeatureCard
               icon={<Share2 className="w-4 h-4" />}
               label="Share"
-              sub={finished.length > 0 ? `${finished.length} contraction${finished.length===1?'':'s'}` : 'Invite partner'}
+              sub={activeShare ? 'Partner connected' : 'Invite partner'}
               onClick={() => setShowShare(activeSessionId)}
               accent="rose"
             />
-            {/* Hospital bag */}
-            <HospitalBagCard
-              sessionId={activeSessionId}
-              onClick={() => setShowChecklist(true)}
-            />
-            {/* Cervical exams */}
-            <CervicalExamCard
-              sessionId={activeSessionId}
-              onClick={() => setShowHospital(true)}
-            />
-            {/* Trusted people */}
-            <PeopleCard
-              onClick={() => setShowPeople(true)}
-            />
-            {/* New session */}
-            <FeatureCard
-              icon={<Plus className="w-4 h-4" />}
-              label="New session"
-              sub="Start fresh"
-              onClick={() => {
-                const name = prompt('Name this session (e.g. Day 2):');
-                if (name) {
-                  const sess = createSession(name);
-                  setActiveId(sess.id);
-                  setSessions(getSessions());
-                }
-              }}
-              accent="sage"
-            />
-            {/* Backup */}
-            <FeatureCard
-              icon={<Download className="w-4 h-4" />}
-              label="Backup"
-              sub="Export & restore"
-              onClick={() => setShowBackupInfo(true)}
-              accent="sage"
-            />
-            {/* Memory book — only when an archived share exists */}
-            {getShares().some((s) => !s.revoked && s.state === 'archived' && s.sessionId === activeSessionId) && (
-              <FeatureCard
-                icon={<BookOpen className="w-4 h-4" />}
-                label="Memory book"
-                sub="View keepsake"
-                onClick={() => {
-                  const share = getShares().find((s) => !s.revoked && s.state === 'archived' && s.sessionId === activeSessionId);
-                  if (share) window.open(`/?share=${share.id}`, '_blank');
-                }}
-                accent="rose"
-              />
-            )}
+            <button
+              type="button"
+              onClick={() => setShowMoreTools((visible) => !visible)}
+              aria-expanded={showMoreTools}
+              aria-controls="olive-more-tools"
+              aria-label={showMoreTools ? 'Hide more tools' : 'More tools'}
+              className="rounded-2xl border border-ink-200/30 bg-ink-100/5 px-4 py-3 flex items-center justify-center gap-2 min-h-[76px] text-ink-300 active:bg-ink-100/10 transition-colors"
+            >
+              <Plus className={`w-4 h-4 transition-transform ${showMoreTools ? 'rotate-45' : ''}`} />
+              <span className="text-[11px] font-medium">{showMoreTools ? 'Fewer tools' : 'More tools'}</span>
+            </button>
           </div>
+          {showMoreTools && (
+            <div id="olive-more-tools" className="grid grid-cols-2 gap-2 animate-fade-in">
+              <HospitalBagCard sessionId={activeSessionId} onClick={() => setShowChecklist(true)} />
+              <CervicalExamCard sessionId={activeSessionId} onClick={() => setShowHospital(true)} />
+              <PeopleCard onClick={() => setShowPeople(true)} />
+              <FeatureCard
+                icon={<Plus className="w-4 h-4" />}
+                label="New session"
+                sub="Start fresh"
+                onClick={() => {
+                  const name = prompt('Name this session (e.g. Day 2):');
+                  if (name) {
+                    const session = createSession(name);
+                    setActiveId(session.id);
+                    setSessions(getSessions());
+                  }
+                }}
+                accent="sage"
+              />
+              <FeatureCard
+                icon={<Download className="w-4 h-4" />}
+                label="Backup"
+                sub="Export & restore"
+                onClick={() => setShowBackupInfo(true)}
+                accent="sage"
+              />
+              {getShares().some((share) => !share.revoked && share.state === 'archived' && share.sessionId === activeSessionId) && (
+                <FeatureCard
+                  icon={<BookOpen className="w-4 h-4" />}
+                  label="Memory book"
+                  sub="View keepsake"
+                  onClick={() => {
+                    const share = getShares().find((item) => !item.revoked && item.state === 'archived' && item.sessionId === activeSessionId);
+                    if (share) window.open(`/?share=${share.id}`, '_blank');
+                  }}
+                  accent="rose"
+                />
+              )}
+            </div>
+          )}
         </div>
 
         {/* Friends banner — reduced; now handled by carousel */}

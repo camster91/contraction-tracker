@@ -45,6 +45,9 @@ test('bottom sheets expose modal semantics and keep keyboard focus inside', asyn
 
   for (const sheet of sheets) {
     await resetApp(page);
+    if (/Hospital bag|Exams|People/.test(String(sheet.button))) {
+      await page.getByRole('button', { name: 'More tools' }).click();
+    }
     await page.getByRole('button', { name: sheet.button, exact: true }).click();
     await expectModalDialog(page, sheet.dialog);
   }

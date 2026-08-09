@@ -1,6 +1,6 @@
 # Olive — Contraction Timer
 
-A mobile-first contraction timer built as a PWA + Capacitor iOS/Android app. Tap when a contraction starts, tap when it ends, and Olive tracks duration, interval, and the 5-1-1 pattern automatically. Your partner's device stays in sync in real time.
+A private, offline-first contraction timer built as a PWA + Capacitor iOS/Android app. Tap when a contraction starts, tap when it ends, and Olive records the timing while keeping a chosen partner in sync. No account is required.
 
 **Live:** [contractions.ashbi.ca](https://contractions.ashbi.ca) (PWA) · [relay.ashbi.ca](https://relay.ashbi.ca) (backend) · **Release pricing:** free.
 
@@ -11,8 +11,9 @@ A mobile-first contraction timer built as a PWA + Capacitor iOS/Android app. Tap
 ### Core Tracking
 - One-tap start/stop for each contraction
 - Duration and interval tracking per contraction
-- Automatic 5-1-1 pattern detection — the signal to head to the hospital
+- Provider-configurable timing reminders, with non-diagnostic language
 - Full contraction history with timestamps
+- One-tap objective care summary for calls, messages, or email
 
 ### Real-Time Multi-Device Sync (SSE)
 - Both partners see the same live session — no refreshing, no lag
@@ -23,14 +24,16 @@ A mobile-first contraction timer built as a PWA + Capacitor iOS/Android app. Tap
 - Start and stop timers by speaking — hands-free when you can't reach your phone
 - Audio processed on-device via Web Speech API; no voice data leaves your device
 
-### State Auto-Progress
-- Automatically tracks which labor stage you're in based on contraction patterns
-- Clear visual indicators of where you are in the labor timeline
+### User-Controlled Care Plan
+- Save the interval, duration, and sustained-window instructions from your care team
+- Store a care-team name and phone number for a direct call action when the saved pattern appears
+- Timing patterns never automatically diagnose labor or change the shared session's status
 
 ### Designed for the Moment
 - Large, high-contrast timer visible across the room
-- Works fully offline once the session is active
+- Core timer and history work offline, including reopening the installed PWA
 - No account required — open and start
+- Preparation and record-keeping tools stay behind a single disclosure during labor
 
 ### Memory Book PDF
 - When labor is over, export a beautiful PDF of your contraction timeline
@@ -55,9 +58,8 @@ A mobile-first contraction timer built as a PWA + Capacitor iOS/Android app. Tap
 | Native | Capacitor 8 (iOS + Android wrappers around the PWA) |
 | Backend | olive-relay (Node.js + Express + sql.js WASM, deployed at relay.ashbi.ca) |
 | Sync | Server-Sent Events (SSE) |
-| Live Activity | iOS Widget Extension (iOS 16.1+) |
-| Bundle | olive-v1 (PWA cache version) |
-| Version | 1.0.0 |
+| PWA | Versioned offline app shell (`olive-v22`) |
+| Version | 1.1.0 |
 
 ---
 
@@ -133,7 +135,9 @@ CI/CD: GitHub Actions auto-deploys to Coolify on push to `main`. The deploy work
 
 | Version | Notes |
 |---|---|
-| 1.0.0 | Rebrand from "Olive" to "Olive." SSE live sync, voice control, multi-device share, state auto-progress, memory book PDF |
+| 1.1.0 | Provider-specific care-plan reminders, objective care summary, non-diagnostic pattern language, user-controlled status, and focused labor-mode hierarchy |
+| 1.0.1 | Secure capability-based sharing, offline reload recovery, accessibility release fixes, and production security headers |
+| 1.0.0 | First Olive release with SSE live sync, voice control, multi-device sharing, and memory book PDF |
 | 2.0.4 | Last version under the old name — SSE reconnect backoff, voice de-dup, state auto-progress |
 | 2.0.0 | Initial Capacitor iOS + Android native app setup |
 

@@ -133,23 +133,55 @@ export function formatElapsed(totalSeconds: number): string {
 /** The 5-1-1 rule: contractions ~1 minute long, ~5 minutes apart, for ~1 hour.
  *  Returns true if the most recent hour of contractions roughly matches. */
 export function isFiveOneOne(contractions: Contraction[], now: number = Date.now()): boolean {
-  if (contractions.length < 3) return false;
-  // Only finished contractions count
-  const finished = contractions.filter((c) => c.end).sort((a, b) => a.start.localeCompare(b.start));
-  if (finished.length < 3) return false;
+  return isCarePlanPattern(contractions, {
+    providerName: '',
+    providerPhone: '',
+    intervalMinutes: 5,
+    durationSeconds: 60,
+    windowMinutes: 60,
+  }, now);
+}
 
-  const oneHourAgo = now - 60 * 60 * 1000;
-  const recent = finished.filter((c) => new Date(c.start).getTime() >= oneHourAgo);
-  if (recent.length < 3) return false;
+export type ContractionReminderPlan = {
+  providerName: string;
+  providerPhone: string;
+  intervalMinutes: number;
+  durationSeconds: number;
+  windowMinutes: number;
+};
 
-  // Average duration across recent: each >= 45s is a good signal
-  const avgDuration = recent.reduce((acc, c) => acc + durationSeconds(c, now), 0) / recent.length;
-  // Average gap between starts
-  const gaps: number[] = [];
-  for (let i = 1; i < recent.length; i++) gaps.push(intervalSeconds(recent[i - 1], recent[i]));
-  const avgGap = gaps.reduce((a, b) => a + b, 0) / gaps.length;
+/**
+ * Detect an observed pattern against instructions saved by the user.
+ * This intentionally requires the pattern to span most of the configured
+ * window; a short cluster must never be presented as a sustained pattern.
+ */
+export function isCarePlanPattern(
+  contractions: Contraction[],
+  plan: ContractionReminderPlan,
+  now: number = Date.now(),
+): boolean {
+  const finished = contractions
+    .filter((c) => c.end)
+    .sort((a, b) => a.start.localeCompare(b.start));
+  const windowMs = plan.windowMinutes * 60_000;
+  const recent = finished.filter((c) => new Date(c.start).getTime() >= now - windowMs);
+  const expectedCount = Math.max(3, Math.ceil(plan.windowMinutes / plan.intervalMinutes));
+  const minimumCount = Math.max(3, expectedCount - 1);
+  if (recent.length < minimumCount) return false;
 
-  return avgDuration >= 45 && avgGap <= 5 * 60 + 30; // ~5 min
+  const spanMinutes = (
+    new Date(recent[recent.length - 1].start).getTime() - new Date(recent[0].start).getTime()
+  ) / 60_000;
+  if (spanMinutes < plan.windowMinutes * 0.75) return false;
+
+  const qualifyingDurations = recent.filter(
+    (c) => durationSeconds(c, now) >= plan.durationSeconds * 0.75,
+  ).length;
+  if (qualifyingDurations / recent.length < 0.75) return false;
+
+  const gaps = recent.slice(1).map((c, index) => intervalSeconds(recent[index], c));
+  const averageGap = gaps.reduce((sum, gap) => sum + gap, 0) / gaps.length;
+  return averageGap <= plan.intervalMinutes * 60 + 30;
 }
 
 /** Seconds since the last finished contraction. Null if no finished contractions. */
@@ -210,5 +242,54 @@ export function buildSummary(contractions: Contraction[], now: number = Date.now
     lines.push(`  ${formatClock(c.start)}  ${formatDuration(dur)}${intensity}${note}${tagStr}`);
   }
 
+  return lines.join('\n');
+}
+
+/** Build a short, objective handoff that can be read aloud or shared with a care team. */
+export function buildCareSummary(
+  contractions: Contraction[],
+  plan: ContractionReminderPlan,
+  now: number = Date.now(),
+): string {
+  const finished = contractions
+    .filter((c) => c.end)
+    .sort((a, b) => a.start.localeCompare(b.start));
+  if (finished.length === 0) return 'Olive care summary\nNo contractions recorded yet.';
+
+  const recentCutoff = now - plan.windowMinutes * 60_000;
+  const recent = finished.filter((c) => new Date(c.start).getTime() >= recentCutoff);
+  const sample = recent.length > 0 ? recent : finished.slice(-6);
+  const durations = sample.map((c) => durationSeconds(c, now));
+  const averageDuration = Math.round(durations.reduce((sum, value) => sum + value, 0) / durations.length);
+  const gaps = sample.slice(1).map((c, index) => intervalSeconds(sample[index], c));
+  const averageGap = gaps.length
+    ? Math.round(gaps.reduce((sum, value) => sum + value, 0) / gaps.length)
+    : null;
+  const last = finished[finished.length - 1];
+
+  const lines = [
+    `Olive care summary — ${new Date(now).toLocaleString()}`,
+    'This is an observed timing summary and does not diagnose labor.',
+  ];
+  if (plan.providerName) lines.push(`Care provider/team: ${plan.providerName}`);
+  if (plan.providerPhone) lines.push(`Care provider phone: ${plan.providerPhone}`);
+  lines.push('');
+  lines.push(`Recent pattern (${plan.windowMinutes}-minute window):`);
+  lines.push(`• ${recent.length} completed contraction${recent.length === 1 ? '' : 's'}`);
+  lines.push(`• Average duration: ${formatDuration(averageDuration)}`);
+  lines.push(`• Average interval: ${averageGap === null ? 'not available' : formatDuration(averageGap)}`);
+  lines.push(`• Last contraction ended: ${formatRelative(new Date(last.end || last.start), now)}`);
+  lines.push('');
+  lines.push(`Saved reminder: every ${plan.intervalMinutes} min, lasting ${plan.durationSeconds}s, for ${plan.windowMinutes} min`);
+  lines.push('');
+  lines.push('Most recent entries:');
+  for (const contraction of finished.slice(-6).reverse()) {
+    const details = [
+      `${formatClock(contraction.start)} — ${formatDuration(durationSeconds(contraction, now))}`,
+      contraction.intensity ? `intensity ${contraction.intensity}/10` : '',
+      contraction.note?.trim() || '',
+    ].filter(Boolean);
+    lines.push(`• ${details.join(' · ')}`);
+  }
   return lines.join('\n');
 }

@@ -23,7 +23,7 @@ Guidelines. Passing a local check does not guarantee App Review approval.
 |-------------|-------|-------|
 | App does what its description says | ✅ | Contraction timer for expecting couples, exactly as described |
 | All buttons/links functional | ✅ | Gauntlet tested every interactive element |
-| No placeholder content | ✅ | v1.0.1 has no "coming soon" pages |
+| No placeholder content | ✅ | v1.1.0 has no "coming soon" pages |
 | Stable performance | ✅ | 96 gauntlet tests, 0 flakes in last 3 CI runs |
 | No crashes on launch | ✅ | Verified across chromium + webkit |
 | Memory leaks | ⚠️ | Cannot fully verify headless; user testing recommended |
@@ -50,7 +50,7 @@ Guidelines. Passing a local check does not guarantee App Review approval.
 | Export compliance | ✅ | App uses HTTPS only, no encryption beyond standard |
 | Trademarks clear | ✅ | "Olive" cleared via search (no major conflicts in health/fitness) |
 | Bundle ID preserved | ✅ | `com.ashbi.olive` (was Luna) — used for rebrand, not user-visible |
-| Versioning clear | ✅ | 1.0.1 marketing version, build 2 |
+| Versioning clear | ✅ | 1.1.0 marketing version, build 3 |
 | Third-party content licensed | ✅ | PWA is original, no third-party assets |
 | Music/audio | ✅ | No bundled music or audio content |
 
@@ -73,7 +73,7 @@ Guidelines. Passing a local check does not guarantee App Review approval.
 
 ## Likely questions from reviewers (if any)
 
-- **"Why is this Health & Fitness, not Medical?"** — Because it doesn't diagnose, treat, or monitor a specific medical condition. It just times contractions and shares them. The 5-1-1 pattern alert is informational, not diagnostic.
+- **"Why is this Health & Fitness, not Medical?"** — Olive records user-entered timing and shares it only when requested. Saved timing reminders report observations, do not diagnose labor, and leave decisions with the user and their care team.
 - **"Do you collect any health data on your server?"** — Only when a user creates a share: the relay stores contraction and session data until expiry or revocation. Sharing is optional and documented in the privacy policy.
 - **"How is voice input processed?"** — Olive uses the browser or operating system's speech-recognition service. Processing can be local or provider-hosted; Olive does not store the audio or send it to the Olive relay.
 

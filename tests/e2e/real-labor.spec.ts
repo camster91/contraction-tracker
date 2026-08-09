@@ -29,7 +29,7 @@ import * as helpers from './helpers';
 
 const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'https://contractions.ashbi.ca/';
 
-test('real-labor: 3-hour active labor pattern — 5-1-1 triggers + storage + UI', async ({ page }) => {
+test('real-labor: a sustained timing pattern triggers the saved reminder', async ({ page }) => {
   await page.goto(BASE_URL, { waitUntil: 'domcontentloaded' });
   await helpers.waitForApp(page);
   await page.evaluate(() => {
@@ -45,14 +45,10 @@ test('real-labor: 3-hour active labor pattern — 5-1-1 triggers + storage + UI'
   // 5 contractions: 60s, 65s, 70s, 75s, 80s with 4-min gaps = 20 min total.
   await page.evaluate(() => {
     const now = Date.now();
-    // 5 contractions over 20 minutes: 4 min gap between starts, ~70s each
-    const pattern = [
-      { agoMin: 20, duration: 60 },
-      { agoMin: 16, duration: 65 },
-      { agoMin: 12, duration: 70 },
-      { agoMin: 8, duration: 75 },
-      { agoMin: 4, duration: 80 },
-    ];
+    const pattern = Array.from({ length: 11 }, (_, index) => ({
+      agoMin: 55 - index * 5,
+      duration: 60 + index * 2,
+    }));
 
     const contractions = pattern.map((c, i) => {
       const start = new Date(now - c.agoMin * 60_000);
@@ -63,8 +59,8 @@ test('real-labor: 3-hour active labor pattern — 5-1-1 triggers + storage + UI'
         start: start.toISOString(),
         end: end.toISOString(),
         durationMs: c.duration * 1000,
-        intensity: ['mild', 'medium', 'medium', 'strong', 'strong'][i],
-        note: `contraction ${i + 1} of 5`,
+        intensity: i < 4 ? 'mild' : i < 8 ? 'medium' : 'strong',
+        note: `contraction ${i + 1} of 11`,
         tags: [],
         painLocations: [],
       };
@@ -83,13 +79,12 @@ test('real-labor: 3-hour active labor pattern — 5-1-1 triggers + storage + UI'
     if (!stored) return { count: 0 };
     return { count: JSON.parse(stored).contractions?.length || 0 };
   });
-  expect(storage.count, 'All 5 contractions should be in storage').toBe(5);
+  expect(storage.count, 'All 11 contractions should be in storage').toBe(11);
 
-  // Verify 5-1-1 alert appears
+  // Verify the user-configured reminder appears without diagnosing labor.
   const body = (await page.locator('body').textContent()) || '';
-  const has511 = /5[- ]?1[- ]?1|active labor|call (your )?(provider|midwife|doctor|hospital)|on track/i.test(body);
-  console.log('5-1-1 body excerpt:', body.substring(0, 400));
-  expect(has511, '5-1-1 alert should appear with 5 contractions in active labor pattern (5-1-1 in last hour)').toBe(true);
+  expect(body).toContain('Saved care-plan reminder');
+  expect(body).toContain('This is not a diagnosis');
 
   // No console errors
   const consoleErrors: string[] = [];

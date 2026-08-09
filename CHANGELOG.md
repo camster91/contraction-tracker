@@ -1,5 +1,15 @@
 # Olive — Changelog
 
+## v1.1.0 (August 2026) — Care-team handoff release
+
+- Added a provider-configurable timing reminder: interval, duration, sustained window, care-team name, and phone number.
+- Reworked timing notices to report observations without diagnosing a stage of labor.
+- Removed automatic labor/postpartum state changes; shared status remains under the user's control.
+- Added a concise, objective care summary through the native share sheet or clipboard fallback.
+- Kept partner sharing primary while moving preparation and record-keeping tools behind “More tools.”
+- Tightened sustained-pattern detection so a short contraction cluster cannot trigger a long-window reminder.
+- Advanced the offline app cache to `olive-v22` and native builds to version 1.1.0 (build 3).
+
 ## v1.0.0 (June 2026) — First public release
 
 Olive is a contraction timer for expecting couples. It tracks labor

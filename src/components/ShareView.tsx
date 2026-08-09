@@ -327,7 +327,7 @@ export default function ShareView({ code }: { code: string }) {
     ? Math.round((now - new Date(firstFinished.start).getTime()) / 1000)
     : 0;
   const sinceFinish = secondsSinceLastFinish(contractions, now);
-  const showAlert = isFiveOneOne(contractions, now);
+  const showTimingPattern = isFiveOneOne(contractions, now);
   // ---- Memory book PDF (archived shares) ----
   // Generates a single-page PDF in the browser. Loads pdf-lib on first use
   // (see loadPdfLib above) so the read-only viewer doesn't carry the lib
@@ -660,7 +660,7 @@ export default function ShareView({ code }: { code: string }) {
             {stats.fiveOneOne && (
               <div style={{ borderRadius: 12, border: `1px solid ${rose}55`, background: `${rose}1a`, padding: 10, display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
                 <AlertTriangle size={14} color={rose} />
-                <div style={{ fontSize: 12, color: rose, fontWeight: 600 }}>5-1-1 pattern detected</div>
+                <div style={{ fontSize: 12, color: rose, fontWeight: 600 }}>A sustained timing pattern was recorded</div>
               </div>
             )}
             <div style={{ fontSize: 10, color: textMuted, lineHeight: 1.5, borderTop: `1px solid ${borderColor}`, paddingTop: 12 }}>
@@ -669,13 +669,13 @@ export default function ShareView({ code }: { code: string }) {
           </div>
         )}
 
-        {/* 5-1-1 alert */}
-        {showAlert && (
+        {/* Objective timing notice for viewers; care decisions remain with the host. */}
+        {showTimingPattern && (
           <div style={{ borderRadius: 16, border: `1px solid ${rose}44`, background: `${rose}15`, padding: 12, display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 16 }}>
             <AlertTriangle size={16} color={rose} />
             <div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: rose, fontFamily: 'Fraunces, Georgia, serif' }}>5-1-1 pattern</div>
-              <div style={{ fontSize: 12, color: textMuted, marginTop: 2 }}>It might be time to go to the hospital.</div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: rose, fontFamily: 'Fraunces, Georgia, serif' }}>Sustained timing pattern</div>
+              <div style={{ fontSize: 12, color: textMuted, marginTop: 2 }}>Check in with the person sharing this session and follow their care plan. Olive does not diagnose labor.</div>
             </div>
           </div>
         )}

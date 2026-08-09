@@ -1,6 +1,5 @@
-// Smart "is this active labor?" detection banner.
-// Shows a soft informational indicator when the user has 3+ contractions
-// in the last 10 minutes. Not alarmist — just informational.
+// Objective frequency banner. This deliberately describes only the timing
+// data and never infers a stage of labor.
 
 import { Activity } from 'lucide-react';
 
@@ -27,10 +26,10 @@ export default function ActiveLaborBanner({ contractions, now = Date.now() }: Pr
       </div>
       <div>
         <div className="text-sm font-semibold text-sage-200 font-display">
-          Possible active labor
+          Frequent contractions
         </div>
         <div className="text-xs text-ink-300 mt-0.5 leading-relaxed">
-          {recent.length} contractions in the last 10 minutes. Consider calling your provider if you haven&apos;t already.
+          {recent.length} started in the last 10 minutes. Keep following the plan from your care team, or contact them if you are unsure.
         </div>
       </div>
     </div>

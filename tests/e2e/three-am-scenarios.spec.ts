@@ -158,7 +158,7 @@ test('3am: stale active contraction in storage (end === null) on app boot — gr
   expect(hasErrorBoundary, 'App should not show error boundary for stale active contraction').toBe(false);
 });
 
-test('3am: 5-1-1 trigger — active labor banner appears at threshold', async ({ page }) => {
+test('3am: a short cluster stays observational and does not diagnose labor', async ({ page }) => {
   await page.goto(BASE_URL, { waitUntil: 'domcontentloaded' });
   await helpers.waitForApp(page);
 
@@ -188,19 +188,11 @@ test('3am: 5-1-1 trigger — active labor banner appears at threshold', async ({
   await helpers.waitForApp(page);
   await page.waitForTimeout(3_000);
 
-  // Look for any indication of 5-1-1 / active labor
+  // A short cluster should be visible as timing data, not a sustained reminder.
   const bodyText = (await page.locator('body').textContent()) || '';
-  const lower = bodyText.toLowerCase();
-  const has511Signal = (
-    /5[- ]?1[- ]?1|active labor|on track|call (your )?(midwife|doctor|hospital)/i.test(bodyText) ||
-    /time to go|head to the hospital|labor is active/i.test(bodyText)
-  );
-
-  // We don't know the exact wording the app uses, so log for visibility
-  console.log('5-1-1 body excerpt:', bodyText.substring(0, 200));
-  console.log('5-1-1 signal detected:', has511Signal);
-  // Soft assertion — this is informational. The real test is in logic.spec.ts.
-  expect(bodyText.length).toBeGreaterThan(50);
+  expect(bodyText).toMatch(/Frequent contractions|Pattern building/);
+  expect(bodyText).not.toContain('Saved care-plan reminder');
+  expect(bodyText).not.toMatch(/active labor|time to call|head to the hospital/i);
 });
 
 test('3am: app loads offline after first visit (SW cache works)', async ({ page, context }) => {

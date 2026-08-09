@@ -24,9 +24,11 @@ export default function HistoryHeader({ onReadSummary, onShare, onDownload }: Pr
         <button
           onClick={onShare}
           className="text-ink-300 active:text-rose-300 active:bg-ink-100/10 px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 text-xs transition-colors"
+          aria-label="Share care summary"
+          title="Share an objective timing summary with your care team"
         >
           <Share2 className="w-3.5 h-3.5" />
-          <span>Share</span>
+          <span>Care summary</span>
         </button>
         <button
           onClick={onDownload}

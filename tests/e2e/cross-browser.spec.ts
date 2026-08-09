@@ -51,11 +51,12 @@ test('cross-browser: main app loads without errors', async ({ page }) => {
   expect(fatal, `No fatal console errors, got: ${fatal.join(' | ')}`).toHaveLength(0);
 });
 
-test('cross-browser: 5-1-1 alert appears at threshold', async ({ page }) => {
+test('cross-browser: short clusters stay observational in every engine', async ({ page }) => {
   await page.goto(BASE_URL, { waitUntil: 'domcontentloaded' });
   await helpers.waitForApp(page);
 
-  // Seed the 5-1-1 threshold
+  // Seed a short cluster. It should be described, but must not be treated as
+  // a sustained care-plan reminder.
   await page.evaluate(() => {
     const now = Date.now();
     const contractions = [
@@ -81,8 +82,9 @@ test('cross-browser: 5-1-1 alert appears at threshold', async ({ page }) => {
   await page.waitForTimeout(3_000);
 
   const body = (await page.locator('body').textContent()) || '';
-  const has511 = /5[- ]?1[- ]?1|active labor|on track|time to call|provider/i.test(body);
-  expect(has511, '5-1-1 alert should appear in this engine too').toBe(true);
+  expect(body).toMatch(/Frequent contractions|Pattern building/);
+  expect(body).not.toContain('Saved care-plan reminder');
+  expect(body).not.toMatch(/active labor|time to call/i);
 });
 
 test('cross-browser: privacy page renders without CSP errors', async ({ page }) => {

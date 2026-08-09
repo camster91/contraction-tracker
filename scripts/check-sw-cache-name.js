@@ -48,10 +48,14 @@ function extractVersion(pkgContent) {
   }
 }
 
-const swNow = readAt('HEAD', 'public/sw.js')
-const pkgNow = readAt('HEAD', 'package.json')
-const swPrev = readAt('HEAD~1', 'public/sw.js')
-const pkgPrev = readAt('HEAD~1', 'package.json')
+const swNow = readFileSync(new URL('../public/sw.js', import.meta.url), 'utf8')
+const pkgNow = readFileSync(new URL('../package.json', import.meta.url), 'utf8')
+const swHead = readAt('HEAD', 'public/sw.js')
+const pkgHead = readAt('HEAD', 'package.json')
+const hasWorktreeReleaseChange = swNow !== swHead || pkgNow !== pkgHead
+const baselineRef = hasWorktreeReleaseChange ? 'HEAD' : 'HEAD~1'
+const swPrev = readAt(baselineRef, 'public/sw.js')
+const pkgPrev = readAt(baselineRef, 'package.json')
 
 const cacheNow = extractCacheName(swNow)
 const cachePrev = extractCacheName(swPrev)

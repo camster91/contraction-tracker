@@ -11,13 +11,13 @@ import { test, expect } from '@playwright/test';
 import * as fs from 'fs';
 import * as path from 'path';
 
-test('whats-new: CHANGELOG.md exists and has v1.0.0 entry', async () => {
+test('whats-new: CHANGELOG.md includes the current release and privacy URL', async () => {
   const fs = await import('fs');
   const path = await import('path');
   const sourcePath = path.resolve(process.cwd(), 'CHANGELOG.md');
   expect(fs.existsSync(sourcePath), 'CHANGELOG.md should exist at project root').toBe(true);
   const content = fs.readFileSync(sourcePath, 'utf-8');
-  expect(content, 'CHANGELOG.md should mention v1.0.0').toContain('v1.0.0');
+  expect(content, 'CHANGELOG.md should mention v1.1.0').toContain('v1.1.0');
   // Must have the App Store privacy URL
   expect(content, 'CHANGELOG.md should reference the privacy URL').toContain('contractions.ashbi.ca/privacy');
 });
@@ -29,11 +29,11 @@ test('whats-new: WHATS-NEW.txt exists with the App Store release notes', async (
   expect(fs.existsSync(sourcePath), 'WHATS-NEW.txt should exist at project root').toBe(true);
   const content = fs.readFileSync(sourcePath, 'utf-8');
   // Should mention the key features
-  expect(content, 'WHATS-NEW should mention 5-1-1').toContain('5-1-1');
-  expect(content, 'WHATS-NEW should mention sharing').toContain('share');
-  expect(content, 'WHATS-NEW should mention privacy').toContain('Privacy');
+  expect(content, 'WHATS-NEW should mention care-team instructions').toContain('care team');
+  expect(content, 'WHATS-NEW should mention sharing').toMatch(/share/i);
+  expect(content, 'WHATS-NEW should state the medical limitation').toContain('not a medical device');
   // Should reference the privacy URL
-  expect(content, 'WHATS-NEW should reference the privacy URL').toContain('contractions.ashbi.ca/privacy');
+  expect(content, 'WHATS-NEW should identify Olive').toContain('Olive');
 });
 
 test('whats-new: indie-ship store-listing.md has the v1.0.0 release notes', async () => {

@@ -1,7 +1,7 @@
 // Settings sheet — bottom overlay with theme, time format, quiet hours, backup, and version
 import { useEffect, useState, type Dispatch, type SetStateAction } from 'react';
 import { Cog, Moon, Download, Share2, Upload } from 'lucide-react';
-import { type MuteSchedule, isInQuietHours } from '../lib/settings';
+import { type CarePlan, type MuteSchedule, isInQuietHours } from '../lib/settings';
 import { getHostName, setHostName } from '../lib/sessions';
 import { useModalDialog } from '../hooks/useModalDialog';
 
@@ -10,6 +10,8 @@ interface SettingsSheetProps {
   setBigTextState: Dispatch<SetStateAction<boolean>>;
   muteSchedule: MuteSchedule;
   setMuteScheduleState: Dispatch<SetStateAction<MuteSchedule>>;
+  carePlan: CarePlan;
+  onCarePlanChange: (value: CarePlan) => void;
   themeVariant: 'calm' | 'cool';
   setThemeVariant: (v: 'calm' | 'cool') => void;
   hour12: boolean;
@@ -27,6 +29,8 @@ export default function SettingsSheet({
   setBigTextState,
   muteSchedule,
   setMuteScheduleState,
+  carePlan,
+  onCarePlanChange,
   themeVariant,
   setThemeVariant,
   hour12,
@@ -76,6 +80,69 @@ export default function SettingsSheet({
           <div className="flex items-center gap-2 mb-3">
             <Cog className="w-4 h-4 text-ink-300" strokeWidth={1.75} />
             <div className="text-sm font-semibold text-ink-50 font-display">Settings</div>
+          </div>
+
+          <div className="border-t border-ink-200/20 mt-3 pt-3">
+            <div className="text-[10px] uppercase tracking-[0.15em] text-ink-400 font-semibold mb-1.5">
+              Care-plan reminder
+            </div>
+            <p className="text-[10px] text-ink-500 leading-relaxed mb-3">
+              Save the timing instructions given by your care team. Olive reports observed timing only and does not diagnose labor.
+            </p>
+            <label htmlFor="care-provider-input" className="block text-[11px] text-ink-300 mb-1">
+              Care provider or team
+            </label>
+            <input
+              id="care-provider-input"
+              type="text"
+              value={carePlan.providerName}
+              onChange={(event) => onCarePlanChange({ ...carePlan, providerName: event.target.value })}
+              placeholder="e.g. North Star Midwives"
+              maxLength={80}
+              className="w-full bg-ink-100/5 border border-ink-200/30 rounded-xl px-3 py-2 text-sm text-ink-50 placeholder:text-ink-500 focus:outline-none focus:border-rose-300/50"
+            />
+            <label htmlFor="care-provider-phone" className="block text-[11px] text-ink-300 mb-1 mt-3">
+              Care provider phone
+            </label>
+            <input
+              id="care-provider-phone"
+              type="tel"
+              inputMode="tel"
+              value={carePlan.providerPhone}
+              onChange={(event) => onCarePlanChange({ ...carePlan, providerPhone: event.target.value })}
+              placeholder="e.g. +1 416 555 0142"
+              maxLength={30}
+              className="w-full bg-ink-100/5 border border-ink-200/30 rounded-xl px-3 py-2 text-base text-ink-50 placeholder:text-ink-500 focus:outline-none focus:border-rose-300/50"
+            />
+            <div className="grid grid-cols-3 gap-2 mt-3">
+              <CarePlanNumberField
+                id="care-plan-interval"
+                label="Contractions every (minutes)"
+                value={carePlan.intervalMinutes}
+                min={2}
+                max={15}
+                onChange={(value) => onCarePlanChange({ ...carePlan, intervalMinutes: value })}
+              />
+              <CarePlanNumberField
+                id="care-plan-duration"
+                label="Lasting at least (seconds)"
+                value={carePlan.durationSeconds}
+                min={30}
+                max={180}
+                onChange={(value) => onCarePlanChange({ ...carePlan, durationSeconds: value })}
+              />
+              <CarePlanNumberField
+                id="care-plan-window"
+                label="For at least (minutes)"
+                value={carePlan.windowMinutes}
+                min={15}
+                max={180}
+                onChange={(value) => onCarePlanChange({ ...carePlan, windowMinutes: value })}
+              />
+            </div>
+            <div className="mt-2 text-[10px] text-sage-300">
+              Every {carePlan.intervalMinutes} min · lasting {carePlan.durationSeconds} sec · for {carePlan.windowMinutes} min
+            </div>
           </div>
 
           {/* Host display name. The host's posts (status updates,
@@ -168,7 +235,7 @@ export default function SettingsSheet({
             )}
             {muteSchedule.enabled && isInQuietHours(muteSchedule) && (
               <div className="text-[10px] text-amber-300 mt-2">
-                Quiet hours are active now. Only the 5-1-1 alert will play.
+                Quiet hours are active now. Only your saved care-plan reminder will play.
               </div>
             )}
           </div>
@@ -273,5 +340,30 @@ export default function SettingsSheet({
         </div>
       </div>
     </>
+  );
+}
+
+function CarePlanNumberField({ id, label, value, min, max, onChange }: {
+  id: string;
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  onChange: (value: number) => void;
+}) {
+  return (
+    <label htmlFor={id} className="text-[10px] text-ink-400 leading-tight">
+      <span className="block min-h-9">{label}</span>
+      <input
+        id={id}
+        type="number"
+        inputMode="numeric"
+        min={min}
+        max={max}
+        value={value}
+        onChange={(event) => onChange(Number(event.target.value))}
+        className="mt-1 w-full min-h-11 bg-ink-100/5 border border-ink-200/30 rounded-lg px-2 py-2 text-base text-ink-50 focus:outline-none focus:border-rose-300/50"
+      />
+    </label>
   );
 }

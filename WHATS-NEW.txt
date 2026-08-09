@@ -1,34 +1,13 @@
-# Olive v1.0.0 — What's New
+# Olive v1.1.0 — What's New
 
-Welcome to Olive. This is the first public release.
+This release keeps Olive focused during labor and makes care-team handoff clearer.
 
-**Contraction timer**
-- One-tap Start/Stop
-- 5-1-1 pattern detection — the app tells you when to call your provider
-- History with frequency chart
-- Notes, intensity, tags, pain locations per contraction
+- Save the contraction timing instructions provided by your care team.
+- Add your provider or care-team name and phone number for a direct call action.
+- Share an objective timing summary with recent averages, entries, and notes.
+- Pattern notices now describe the recorded timing without diagnosing labor.
+- Partner sharing stays on the main screen; preparation tools are organized under More tools.
+- Shared session status changes are always controlled by you.
+- Offline reopening, secure sharing, and accessibility improvements from v1.0.1 remain included.
 
-**Share with your partner**
-- Send a 6-character code via text
-- They open https://contractions.ashbi.ca, enter the code, see your contractions in real-time
-- No app install required for your partner
-
-**Hospital bag checklist**
-- Pre-loaded list
-- Check off as you pack
-- Persists between sessions
-
-**Privacy**
-- Your data lives on your device
-- Zero analytics, zero tracking
-- The relay only sees an encrypted session ID during active shares
-- Voice audio is processed on-device
-
-**On-device**
-- Screen stays awake while timing
-- Voice control: "start" / "stop" hands-free
-- Works offline
-
-Read the full privacy policy: https://contractions.ashbi.ca/privacy
-
-Built by a dad for his wife — now for you.
+Olive is an informational timing and communication tool, not a medical device. Follow the instructions from your healthcare professional and use local emergency services when urgent help is needed.

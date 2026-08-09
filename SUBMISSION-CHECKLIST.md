@@ -1,4 +1,4 @@
-# Olive v1.0.1 — Submission Checklist
+# Olive v1.1.0 — Submission Checklist
 
 **Prepared August 7, 2026. Store review timing is controlled by Apple and Google.**
 
@@ -67,7 +67,7 @@ Go to https://play.google.com/console
 2. App name: Olive
 3. Default language: English (United States)
 4. App or game: App
-5. Free or paid: **Free.** The v1.0.1 build has no IAP.
+5. Free or paid: **Free.** The v1.1.0 build has no IAP.
 6. Accept declarations, click "Create app"
 
 ### Step 2: Set up store listing (20 min)
@@ -101,7 +101,7 @@ Go to Policy > App content > Data safety
 Go to Testing > Internal testing
 - Click "Create new release"
 - Upload the signed AAB: `android/app/build/outputs/bundle/release/app-release.aab`
-- Release name: 1.0.1
+- Release name: 1.1.0 (3)
 - Release notes: paste from `play-store-release-notes.txt`
 - Click "Review release" then "Start rollout to Internal testing"
 
@@ -121,7 +121,7 @@ Send the recruitment message from `docs/USER-TESTING.md` to:
 5. **Midwife or OB nurse** — catches 5-1-1 medical accuracy
 
 For Android testers, send the universal APK at
-`~/.hermes/cache/indie-ship/APPS/olive-contractions/dist/Olive-universal-v1.0.1.apk`
+`android/app/build/outputs/apk/release/app-release.apk`
 (4.4MB, sideloadable to any Android 7.0+ device)
 
 For iOS testers, use the TestFlight build once Apple processes it.
@@ -131,7 +131,7 @@ TestFlight is at the top of App Store Connect (My Apps > Olive > TestFlight tab)
 - Open the app, time a fake contraction (Start, wait, Stop)
 - Mark intensity, add a note
 - Share with someone via text/WhatsApp
-- Verify the 5-1-1 alert fires correctly with 3+ contractions
+- Save a care-team reminder, verify that a short cluster does not trigger it, then verify a sustained matching pattern and call action
 - Check the memory book PDF export
 
 ---
@@ -173,7 +173,7 @@ TestFlight is at the top of App Store Connect (My Apps > Olive > TestFlight tab)
 | Play Console pre-filled text | `PLAY-STORE-CONSOLE-FIELDS.txt` (this repo) |
 | iOS screenshots (4 sizes × 5 states) | `~/.hermes/cache/indie-ship/APPS/olive-contractions/screenshots/` |
 | Android AAB (signed) | `android/app/build/outputs/bundle/release/app-release.aab` |
-| Android universal APK (for testers) | `~/.hermes/cache/indie-ship/APPS/olive-contractions/dist/Olive-universal-v1.0.1.apk` |
+| Android release APK (for testers) | `android/app/build/outputs/apk/release/app-release.apk` |
 | iOS archive build (after running script) | `ios/build/Runner.xcarchive` |
 | App icon master | `~/.hermes/cache/indie-ship/APPS/olive-contractions/app-icon-master.png` |
 | Play Store feature graphic | `~/.hermes/cache/indie-ship/APPS/olive-contractions/play-feature-graphic-1024x500.png` |

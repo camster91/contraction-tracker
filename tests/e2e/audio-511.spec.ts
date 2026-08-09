@@ -15,7 +15,7 @@ import * as helpers from './helpers';
 
 const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'https://contractions.ashbi.ca/';
 
-test('audio: chimeAlert is called when 5-1-1 triggers', async ({ page }) => {
+test('audio: chimeAlert is called when the sustained saved reminder triggers', async ({ page }) => {
   await page.goto(BASE_URL, { waitUntil: 'domcontentloaded' });
   await helpers.waitForApp(page);
 
@@ -29,10 +29,10 @@ test('audio: chimeAlert is called when 5-1-1 triggers', async ({ page }) => {
     // was fired (modulo snooze/mute conditions).
   });
 
-  // Seed 5 contractions in the last hour (5-1-1 trigger pattern)
+  // Seed a sustained 55-minute pattern. A short cluster must not trigger.
   await page.evaluate(() => {
     const now = Date.now();
-    const contractions = [0, 4, 8, 12, 16].map((min, i) => ({
+    const contractions = Array.from({ length: 11 }, (_, i) => 55 - i * 5).map((min, i) => ({
       id: `audio-${i}`,
       sessionId: 'audio-test',
       start: new Date(now - min * 60_000).toISOString(),
@@ -51,10 +51,10 @@ test('audio: chimeAlert is called when 5-1-1 triggers', async ({ page }) => {
   await helpers.waitForApp(page);
   await page.waitForTimeout(3_000);
 
-  // Verify the 5-1-1 alert banner is visible
+  // Verify the saved care-plan reminder is visible.
   const body = (await page.locator('body').textContent()) || '';
-  const has511Alert = /5[- ]?1[- ]?1 pattern|call your provider|Time to call/i.test(body);
-  expect(has511Alert, '5-1-1 alert banner should be visible — if banner shows, chimeAlert was called').toBe(true);
+  const hasReminder = /Saved care-plan reminder/i.test(body);
+  expect(hasReminder, 'The sustained reminder banner should be visible — if it shows, chimeAlert was called').toBe(true);
 
   console.log('5-1-1 alert body:', body.substring(0, 300));
 });
