@@ -40,9 +40,9 @@ the verified manual VPS path.
 
 ## Production deployment
 
-- Live app image: `sha256:f7058871596ad94d67806c8898100b74012be9e72d4d38e0504ff4679745fc7c`
+- Live app image: `sha256:8623ea8d809d6737cebf8ad789af1ea82b5c8612d848ba5121982bb8ac18edff`
 - Retained rollback image: `camster91/contraction-tracker:rollback-868d1b7`
-- Relay health: HTTP 200 at `https://relay.ashbi.ca/health`
+- Relay health: HTTP 200 at `https://relay.ashbi.ca/api/health`
 - Public app response: HTTP 200 with response-level CSP, HSTS,
   `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, and strict
   referrer policy.
