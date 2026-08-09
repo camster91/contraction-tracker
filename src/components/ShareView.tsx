@@ -46,8 +46,11 @@ import {
   validatePinOnRelay,
   type ShareStats,
   getShareEventStreamUrl,
+  pullJourneyFromRelay,
+  updateSharedResponsibilityOnRelay,
+  type SharedJourney,
 } from '../lib/relay';
-import { getOrCreateClientId } from '../lib/identity';
+import { getOrCreateClientId, getOrCreateClientSecret, getStoredName, storeName } from '../lib/identity';
 import { toast } from '../lib/toast';
 import ActivityFeed from './ActivityFeed';
 
@@ -66,6 +69,10 @@ export default function ShareView({ code }: { code: string }) {
   const [now, setNow] = useState(Date.now());
   const [checked, setChecked] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sharedJourney, setSharedJourney] = useState<SharedJourney | null>(null);
+  const [journeyUpdateError, setJourneyUpdateError] = useState<string | null>(null);
+  const [journeyUpdatingId, setJourneyUpdatingId] = useState<string | null>(null);
+  const [responsibilityName, setResponsibilityName] = useState(() => getStoredName(code) || '');
   // T4: The viewer can author start/stop events on the relay when:
   //   - shareMode is 'full' or 'track' (not 'stats' — friends are read-only)
   //   - the viewer is not the original creator of the share
@@ -131,6 +138,7 @@ export default function ShareView({ code }: { code: string }) {
             pin: relayShare.hasPin ? '••••' : undefined,
             lastOpenedAt: relayShare.lastOpenedAt,
             mode: relayShare.mode || 'full',
+            journeyPermissions: relayShare.journeyPermissions || [],
           });
           const mode = relayShare.mode || 'full';
           setShareMode(mode);
@@ -245,6 +253,10 @@ export default function ShareView({ code }: { code: string }) {
           if (latest) {
             setCurrentContraction(latest.current || null);
           }
+          if (share?.journeyPermissions?.includes('responsibilities:read')) {
+            const latestJourney = await pullJourneyFromRelay(code);
+            if (latestJourney) setSharedJourney(latestJourney);
+          }
         } catch { /* ignore */ }
         // Adaptive: 1s while a contraction is in progress, 15s otherwise
         const next = latest && latest.current ? 1000 : 15000;
@@ -277,6 +289,9 @@ export default function ShareView({ code }: { code: string }) {
                 if (fresh?.contractions) setContractions(fresh.contractions);
                 if (fresh) setCurrentContraction(fresh.current || null);
               } catch { /* ignore */ }
+            } else if (payload.type === 'journey') {
+              const latestJourney = await pullJourneyFromRelay(code);
+              if (latestJourney) setSharedJourney(latestJourney);
             } else if (payload.type === 'revoked') {
               setShare((s: any) => s ? { ...s, revoked: true } : s);
             }
@@ -314,6 +329,13 @@ export default function ShareView({ code }: { code: string }) {
     // and the stats-only polling loop when the host upgrades the share.
     // The cleanup above closes the EventSource before the next run.
   }, [unlocked, share, code, shareMode]);
+
+  useEffect(() => {
+    if (!unlocked || !share) return;
+    let active = true;
+    pullJourneyFromRelay(code).then((value) => { if (active) setSharedJourney(value); });
+    return () => { active = false; };
+  }, [unlocked, share, code]);
 
   // ---- Derived ----
   const shareState = share?.state || 'prenatal';
@@ -459,6 +481,31 @@ export default function ShareView({ code }: { code: string }) {
     ? Date.now() - new Date(stateChangedAt).getTime()
     : 0;
   const isReadOnly = shareState === 'archived' || (shareState === 'postpartum' && postpartumAgeMs > 24 * 60 * 60 * 1000);
+
+  const handleResponsibilityUpdate = async (id: string, completed: boolean) => {
+    const authorName = responsibilityName.trim();
+    if (!authorName) {
+      setJourneyUpdateError('Add your name before updating a shared responsibility.');
+      return;
+    }
+    storeName(code, authorName);
+    setJourneyUpdatingId(id);
+    setJourneyUpdateError(null);
+    const updated = await updateSharedResponsibilityOnRelay(code, id, completed, {
+      clientId: getOrCreateClientId(),
+      clientSecret: getOrCreateClientSecret(),
+      authorName,
+    });
+    setJourneyUpdatingId(null);
+    if (!updated) {
+      setJourneyUpdateError('Could not update this responsibility. Check the connection and try again.');
+      return;
+    }
+    setSharedJourney((current) => current ? {
+      ...current,
+      responsibilities: current.responsibilities.map((item) => item.id === updated.id ? updated : item),
+    } : current);
+  };
 
   // ---- Inline styles (no Tailwind, guaranteed to work) ----
   const pageBg = '#120c10';
@@ -820,6 +867,38 @@ export default function ShareView({ code }: { code: string }) {
         )}
 
         {/* Activity feed — always shown after contractions display */}
+        {sharedJourney && sharedJourney.responsibilities.length > 0 && (
+          <section aria-labelledby="shared-responsibilities-title" style={{ borderRadius: 20, border: `1px solid ${borderColor}`, background: cardBg, padding: 18, marginBottom: 20 }}>
+            <div id="shared-responsibilities-title" style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 2, color: textMuted, fontWeight: 600, marginBottom: 4 }}>
+              Shared responsibilities
+            </div>
+            <p style={{ margin: '0 0 14px', color: textMuted, fontSize: 12, lineHeight: 1.5 }}>
+              Only responsibilities reviewed for this link are shown.
+            </p>
+            {sharedJourney.permissions.includes('responsibilities:complete') && !isReadOnly && (
+              <label style={{ display: 'block', color: textMuted, fontSize: 11, marginBottom: 12 }}>
+                Your name
+                <input value={responsibilityName} onChange={(event) => setResponsibilityName(event.target.value)} maxLength={40}
+                  style={{ display: 'block', boxSizing: 'border-box', width: '100%', minHeight: 44, marginTop: 5, borderRadius: 10, border: `1px solid ${borderColor}`, background: 'rgba(255,255,255,0.04)', color: textMain, padding: '8px 10px', fontSize: 16 }} />
+              </label>
+            )}
+            {sharedJourney.responsibilities.map((item) => (
+              <div key={item.id} style={{ padding: '12px 0', borderTop: `1px solid ${borderColor}` }}>
+                <div style={{ color: item.completedAt ? textMuted : textMain, fontSize: 14, textDecoration: item.completedAt ? 'line-through' : 'none' }}>{item.title}</div>
+                {item.assigneeName && <div style={{ color: textMuted, fontSize: 11, marginTop: 3 }}>Assigned to {item.assigneeName}</div>}
+                {sharedJourney.permissions.includes('responsibilities:complete') && !isReadOnly && (
+                  <button type="button" disabled={journeyUpdatingId === item.id}
+                    onClick={() => handleResponsibilityUpdate(item.id, !item.completedAt)}
+                    style={{ minHeight: 44, marginTop: 8, borderRadius: 10, border: `1px solid ${borderColor}`, background: 'transparent', color: textMain, padding: '8px 12px', fontSize: 12 }}>
+                    {journeyUpdatingId === item.id ? 'Updating…' : item.completedAt ? 'Reopen' : 'Mark complete'}
+                  </button>
+                )}
+              </div>
+            ))}
+            {journeyUpdateError && <div role="alert" style={{ color: rose, fontSize: 12, marginTop: 8 }}>{journeyUpdateError}</div>}
+          </section>
+        )}
+
         {(shareState === 'prenatal' || shareState === 'postpartum' || shareState === 'archived' || finished.length > 0) && (
           <div style={{ marginTop: 24 }}>
             <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 2, color: textMuted, fontWeight: 600, marginBottom: 14, paddingLeft: 4 }}>Activity</div>

@@ -68,7 +68,7 @@ export default function ResponsibilitiesPanel({ journey, onChange }: {
                 <div className="min-w-0 flex-1">
                   <div className={`text-sm ${item.completedAt ? 'text-ink-400 line-through' : 'text-ink-100'}`}>{item.title}</div>
                   <div className="flex gap-2 mt-1.5 text-[10px] uppercase tracking-wide text-ink-500">
-                    <span>{assignee?.name ?? 'Unassigned'}</span><span>Private</span>
+                    <span>{assignee?.name ?? 'Unassigned'}</span><span>{item.private ? 'Private' : 'Ready to share'}</span>
                   </div>
                 </div>
                 <button type="button" onClick={() => onChange(deleteResponsibility(journey, item.id))}
@@ -81,6 +81,11 @@ export default function ResponsibilitiesPanel({ journey, onChange }: {
                 className="mt-3 min-h-[36px] rounded-lg border border-ink-200/25 px-3 py-1.5 text-xs text-ink-300 flex items-center gap-1.5">
                 {item.completedAt ? <RotateCcw className="w-3.5 h-3.5" /> : <Check className="w-3.5 h-3.5" />}
                 {item.completedAt ? 'Reopen responsibility' : 'Mark complete'}
+              </button>
+              <button type="button"
+                onClick={() => onChange(updateResponsibility(journey, item.id, { private: !item.private }))}
+                className="mt-2 min-h-[44px] rounded-lg border border-ink-200/25 px-3 py-1.5 text-xs text-ink-300">
+                {item.private ? 'Include in a reviewed partner share' : 'Keep private'}
               </button>
             </article>
           );

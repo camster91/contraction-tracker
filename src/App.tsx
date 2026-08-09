@@ -113,7 +113,7 @@ import {
 import { getChecklist, packedCount, saveChecklist, type ChecklistItem } from './lib/checklist';
 import { getExams, type CervicalExam } from './lib/hospital';
 import { postMessage, PostMessageError } from './lib/feed';
-import { pushContractionsToRelay, postContractionEventToRelay, RELAY_URL, getShareAuthorizationHeaders } from './lib/relay';
+import { pushContractionsToRelay, pushJourneyToRelay, postContractionEventToRelay, RELAY_URL, getShareAuthorizationHeaders } from './lib/relay';
 import { getOrCreateClientId } from './lib/identity';
 import Onboarding from './components/Onboarding';
 import BabyIsHereMount from './components/BabyIsHereMount';
@@ -477,6 +477,23 @@ export default function App() {
   useEffect(() => {
     saveJourney(journey);
     autoBackupJourney(journey).catch(() => {});
+    try {
+      const peopleById = new Map(getPeople().map((person) => [person.id, person]));
+      const sharedResponsibilities = journey.responsibilities
+        .filter((item) => !item.private)
+        .map((item) => ({
+          id: item.id,
+          title: item.title,
+          assigneeName: item.assigneePersonId ? peopleById.get(item.assigneePersonId)?.name : undefined,
+          phase: item.phase,
+          completedAt: item.completedAt ?? null,
+        }));
+      for (const share of getShares()) {
+        if (share.journeyPermissions?.includes('responsibilities:read')) {
+          pushJourneyToRelay(share.id, sharedResponsibilities).catch(() => {});
+        }
+      }
+    } catch { /* journey sharing remains best-effort and never blocks local persistence */ }
   }, [journey]);
   useEffect(() => {
     save(SESSION_KEY, current);
@@ -1481,6 +1498,7 @@ export default function App() {
           />
           <ShareSheet
             sessionId={showShare}
+            journey={journey}
             onClose={() => {
               setShowShare(null);
               setSessions(getSessions());

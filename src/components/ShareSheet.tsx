@@ -42,18 +42,20 @@ import {
   isShareValid,
   revokeShare,
 } from '../lib/sessions';
-import { createShareOnRelay, getShareCapability, pushContractionsToRelay, revokeShareOnRelay } from '../lib/relay';
+import { createShareOnRelay, getShareCapability, pushContractionsToRelay, pushJourneyToRelay, revokeShareOnRelay } from '../lib/relay';
 import type { Person } from '../lib/sessions';
+import type { JourneyDocument } from '../lib/journey';
 import { useModalDialog } from '../hooks/useModalDialog';
 
 type Props = {
   sessionId: string;
   onClose: () => void;
+  journey: JourneyDocument;
 };
 
 const DEFAULT_TTL_HOURS = 168; // 7 days
 
-export default function ShareSheet({ sessionId, onClose }: Props) {
+export default function ShareSheet({ sessionId, onClose, journey }: Props) {
   const dialogRef = useModalDialog(onClose);
   const [relayError, setRelayError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
@@ -67,6 +69,9 @@ export default function ShareSheet({ sessionId, onClose }: Props) {
   // link to), not the PERMISSION surface.
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [ttlHours, setTtlHours] = useState<number>(DEFAULT_TTL_HOURS);
+  const [shareResponsibilities, setShareResponsibilities] = useState(false);
+  const shareableResponsibilities = journey.responsibilities.filter((item) => !item.private);
+  const peopleById = new Map(people.map((person) => [person.id, person]));
 
   // Resolve the session's display name from the sessions list
   const sessions = JSON.parse(localStorage.getItem('contraction-tracker:sessions') || '[]');
@@ -112,6 +117,9 @@ export default function ShareSheet({ sessionId, onClose }: Props) {
       ttlHours,
       mode: 'full',
       state: 'prenatal',
+      journeyPermissions: shareResponsibilities
+        ? ['responsibilities:read', 'responsibilities:complete']
+        : [],
     });
     if (!relayResult) {
       setRelayError(
@@ -120,7 +128,14 @@ export default function ShareSheet({ sessionId, onClose }: Props) {
       setCreating(false);
       return;
     }
-    createShare({ sessionId, id: relayResult.code, ttlHours, pin: undefined, mode: 'full' });
+    createShare({
+      sessionId,
+      id: relayResult.code,
+      ttlHours,
+      pin: undefined,
+      mode: 'full',
+      journeyPermissions: relayResult.journeyPermissions,
+    });
     setShares(getShares());
     try {
       localStorage.setItem(`olive:share-owner:${relayResult.code}`, '1');
@@ -129,6 +144,18 @@ export default function ShareSheet({ sessionId, onClose }: Props) {
       const all = JSON.parse(localStorage.getItem('contraction-tracker:v1') || '{"contractions":[]}').contractions;
       const sessionContractions = all.filter((c: { sessionId?: string }) => (c.sessionId || 'primary') === sessionId);
       await pushContractionsToRelay(relayResult.code, sessionContractions, null);
+      if (shareResponsibilities) {
+        const journeySynced = await pushJourneyToRelay(relayResult.code, shareableResponsibilities.map((item) => ({
+          id: item.id,
+          title: item.title,
+          assigneeName: item.assigneePersonId ? peopleById.get(item.assigneePersonId)?.name : undefined,
+          phase: item.phase,
+          completedAt: item.completedAt ?? null,
+        })));
+        if (!journeySynced) {
+          setRelayError('The link was created, but responsibilities did not sync. Keep the link private and retry with a new share.');
+        }
+      }
     } catch {
       setRelayError('Share created, but initial sync to viewers failed. They may see no data until your next contraction is saved.');
     }
@@ -234,6 +261,25 @@ export default function ShareSheet({ sessionId, onClose }: Props) {
                 Tap to text them the link. (If no one is added below, the share still works for whoever gets the link.)
               </div>
             </div>
+          )}
+
+          {activeShares.length === 0 && shareableResponsibilities.length > 0 && (
+            <label className="mb-4 flex items-start gap-3 rounded-2xl border border-ink-200/25 bg-ink-100/5 p-3 text-sm text-ink-200">
+              <input
+                type="checkbox"
+                checked={shareResponsibilities}
+                onChange={(event) => setShareResponsibilities(event.target.checked)}
+                className="mt-1 h-5 w-5 accent-rose-300"
+              />
+              <span>
+                <span className="block font-semibold">
+                  Share {shareableResponsibilities.length} reviewed {shareableResponsibilities.length === 1 ? 'responsibility' : 'responsibilities'}
+                </span>
+                <span className="mt-1 block text-xs leading-relaxed text-ink-400">
+                  Your partner can view and mark these complete. Care card, provider questions, notes, and private responsibilities stay on this device.
+                </span>
+              </span>
+            </label>
           )}
 
           {/* Primary CTA — single big share button. The button is the

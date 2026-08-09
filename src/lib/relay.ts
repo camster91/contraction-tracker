@@ -53,12 +53,13 @@ export async function createShareOnRelay(input: {
   ttlHours?: number;
   mode?: string;
   state?: string;
-}): Promise<{ code: string; expiresAt: string; hostToken: string; hasPin: boolean; state: string; mode: string } | null> {
+  journeyPermissions?: JourneyPermission[];
+}): Promise<{ code: string; expiresAt: string; hostToken: string; hasPin: boolean; state: string; mode: string; journeyPermissions: JourneyPermission[] } | null> {
   try {
     const res = await fetch(`${RELAY_URL}/api/shares`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionId: input.sessionId, pin: input.pin, ttlHours: input.ttlHours, mode: input.mode, state: input.state }),
+      body: JSON.stringify({ sessionId: input.sessionId, pin: input.pin, ttlHours: input.ttlHours, mode: input.mode, state: input.state, journeyPermissions: input.journeyPermissions }),
     });
     if (!res.ok) return null;
     const result = await res.json();
@@ -68,6 +69,49 @@ export async function createShareOnRelay(input: {
   } catch {
     return null;
   }
+}
+
+export type JourneyPermission = 'responsibilities:read' | 'responsibilities:complete';
+export type SharedResponsibility = {
+  id: string;
+  title: string;
+  assigneeName?: string;
+  phase?: 'preparing' | 'labor' | 'postpartum' | 'archived';
+  completedAt: string | null;
+};
+export type SharedJourney = { permissions: JourneyPermission[]; responsibilities: SharedResponsibility[]; updatedAt: string | null };
+
+export async function pushJourneyToRelay(code: string, responsibilities: SharedResponsibility[]): Promise<boolean> {
+  try {
+    const res = await fetch(`${RELAY_URL}/api/shares/${code}/journey`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', ...getShareAuthorizationHeaders(code) },
+      body: JSON.stringify({ responsibilities }),
+    });
+    return res.ok;
+  } catch { return false; }
+}
+
+export async function pullJourneyFromRelay(code: string): Promise<SharedJourney | null> {
+  try {
+    const res = await fetch(`${RELAY_URL}/api/shares/${code}/journey`, { headers: getShareAuthorizationHeaders(code) });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch { return null; }
+}
+
+export async function updateSharedResponsibilityOnRelay(code: string, id: string, completed: boolean, identity: {
+  clientId: string; clientSecret: string; authorName: string;
+}): Promise<SharedResponsibility | null> {
+  try {
+    const res = await fetch(`${RELAY_URL}/api/shares/${code}/journey/responsibilities/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...getShareAuthorizationHeaders(code) },
+      body: JSON.stringify({ completed, ...identity }),
+    });
+    if (!res.ok) return null;
+    return (await res.json()).responsibility;
+  } catch { return null; }
 }
 
 export async function pushContractionsToRelay(
@@ -189,6 +233,7 @@ export type ShareFromRelay = {
   lastOpenedAt: string | null;
   createdAt: string;
   stateChangedAt: string | null;
+  journeyPermissions?: JourneyPermission[];
 };
 
 export async function getShareFromRelay(code: string): Promise<ShareFromRelay | null> {

@@ -35,6 +35,7 @@ export type Share = {
   revoked: boolean;
   createdAt: string;
   lastOpenedAt?: string; // for showing "last viewed 3m ago" to the host
+  journeyPermissions?: Array<'responsibilities:read' | 'responsibilities:complete'>;
 };
 
 // ---- localStorage keys ----
@@ -206,6 +207,7 @@ export function createShare(input: {
   ttlHours?: number;
   pin?: string;
   mode?: string;
+  journeyPermissions?: Array<'responsibilities:read' | 'responsibilities:complete'>;
 }): CreateShareResult {
   // One share per session. If an active share already exists for this
   // session, return it instead of creating a new one. This means the
@@ -244,6 +246,7 @@ export function createShare(input: {
     expiresAt: new Date(Date.now() + ttl * 60 * 60 * 1000).toISOString(),
     revoked: false,
     createdAt: new Date().toISOString(),
+    journeyPermissions: input.journeyPermissions ?? [],
   };
   setShares([...existing, share]);
   return { kind: 'created', share };
