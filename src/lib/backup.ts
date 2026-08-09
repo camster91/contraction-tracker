@@ -1,8 +1,14 @@
 // Backup — export all app data to a JSON file, import and merge from one.
 // No new npm deps. Uses native FileReader + Blob + URL.createObjectURL.
 
-export type BackupData = {
-  version: number;
+import {
+  createDefaultJourney,
+  normalizeJourney,
+  type JourneyDocument,
+} from './journey.ts';
+
+export type BackupDataV1 = {
+  version: 1;
   app: 'olive-contraction-tracker';
   savedAt: string;
   contractions: unknown[];
@@ -13,6 +19,13 @@ export type BackupData = {
   exams: Record<string, unknown[]>;
   checklists: Record<string, unknown[]>;
 };
+
+export type BackupData = Omit<BackupDataV1, 'version'> & {
+  version: 2;
+  journey: JourneyDocument;
+};
+
+export type CompatibleBackupData = BackupDataV1 | BackupData;
 
 export type ImportResult = {
   contractions: number;
@@ -31,9 +44,10 @@ export function buildBackup(payload: {
   shares: unknown[];
   exams: Record<string, unknown[]>;
   checklists: Record<string, unknown[]>;
+  journey: JourneyDocument;
 }): BackupData {
   return {
-    version: 1,
+    version: 2,
     app: 'olive-contraction-tracker',
     savedAt: new Date().toISOString(),
     ...payload,
@@ -41,14 +55,38 @@ export function buildBackup(payload: {
 }
 
 /** Validate that an object looks like an Olive backup. */
-export function validateBackup(raw: unknown): raw is BackupData {
+export function validateBackup(raw: unknown): raw is CompatibleBackupData {
   if (!raw || typeof raw !== 'object') return false;
   const b = raw as Record<string, unknown>;
   return (
-    b.version === 1 &&
+    (b.version === 1 || b.version === 2) &&
     b.app === 'olive-contraction-tracker' &&
     Array.isArray(b.contractions)
   );
+}
+
+/** Upgrade a valid legacy/current backup into the normalized v2 schema. */
+export function migrateBackup(
+  raw: unknown,
+  now = new Date().toISOString(),
+  fallbackJourneyId?: string,
+): BackupData {
+  if (!validateBackup(raw)) throw new Error('This file is not a valid Olive backup.');
+  const source = raw as CompatibleBackupData;
+  const fallback = fallbackJourneyId ?? createDefaultJourney(now).profile.id;
+  return {
+    version: 2,
+    app: 'olive-contraction-tracker',
+    savedAt: typeof source.savedAt === 'string' ? source.savedAt : now,
+    contractions: source.contractions,
+    current: source.current ?? null,
+    sessions: Array.isArray(source.sessions) ? source.sessions : [],
+    people: Array.isArray(source.people) ? source.people : [],
+    shares: Array.isArray(source.shares) ? source.shares : [],
+    exams: source.exams && typeof source.exams === 'object' ? source.exams : {},
+    checklists: source.checklists && typeof source.checklists === 'object' ? source.checklists : {},
+    journey: normalizeJourney(source.version === 2 ? source.journey : undefined, now, fallback),
+  };
 }
 
 /** Trigger a browser download of the backup JSON file. */
@@ -65,7 +103,7 @@ export function downloadBackup(data: BackupData): void {
 }
 
 /** Read and parse a backup file selected by the user. */
-export function readBackupFile(file: File): Promise<BackupData> {
+export function readBackupFile(file: File): Promise<CompatibleBackupData> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -91,7 +129,7 @@ export function readBackupFile(file: File): Promise<BackupData> {
  * - Checklists: skip duplicates by id per session
  */
 export function mergeBackup(
-  imported: BackupData,
+  imported: CompatibleBackupData,
   existing: {
     contractions: Map<string, unknown>;
     sessions: Map<string, unknown>;
@@ -195,7 +233,7 @@ export function loadLatestBackup(): BackupData | null {
       const raw = localStorage.getItem(key);
       if (raw) {
         const parsed = JSON.parse(raw);
-        if (validateBackup(parsed)) return parsed;
+        if (validateBackup(parsed)) return migrateBackup(parsed);
       }
     } catch { /* ignore */ }
   }

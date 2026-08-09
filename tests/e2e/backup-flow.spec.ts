@@ -84,7 +84,8 @@ test('backup-flow: export from Settings, then import back, data preserved', asyn
   const exportedContent = fs.readFileSync(exportedPath, 'utf-8');
   const exported = JSON.parse(exportedContent);
   expect(exported.app, 'exported file should have Olive app tag').toBe('olive-contraction-tracker');
-  expect(exported.version).toBe(1);
+  expect(exported.version).toBe(2);
+  expect(exported.journey?.schemaVersion).toBe(1);
   expect(Array.isArray(exported.contractions), 'exported file should have contractions array').toBe(true);
   expect(exported.contractions.length, 'exported should have 5 contractions').toBe(5);
 

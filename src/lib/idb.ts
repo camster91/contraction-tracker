@@ -148,3 +148,41 @@ export async function loadAutoBackup<T>(): Promise<{ contractions: T[]; current:
     }
   });
 }
+
+/** Mirror the journey document separately so contraction recovery stays backward compatible. */
+export async function autoBackupJourney(journey: unknown): Promise<boolean> {
+  const db = await openDB();
+  if (!db) return false;
+  return new Promise((resolve) => {
+    try {
+      const tx = db.transaction(STORE, 'readwrite');
+      const req = tx.objectStore(STORE).put({
+        version: 1,
+        savedAt: new Date().toISOString(),
+        journey,
+      }, 'journey');
+      req.onsuccess = () => resolve(true);
+      req.onerror = () => resolve(false);
+    } catch {
+      resolve(false);
+    }
+  });
+}
+
+export async function loadJourneyBackup<T>(): Promise<{ journey: T; savedAt: string | null } | null> {
+  const db = await openDB();
+  if (!db) return null;
+  return new Promise((resolve) => {
+    try {
+      const tx = db.transaction(STORE, 'readonly');
+      const req = tx.objectStore(STORE).get('journey');
+      req.onsuccess = () => {
+        const stored = req.result;
+        resolve(stored?.journey ? { journey: stored.journey as T, savedAt: stored.savedAt ?? null } : null);
+      };
+      req.onerror = () => resolve(null);
+    } catch {
+      resolve(null);
+    }
+  });
+}

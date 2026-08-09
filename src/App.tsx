@@ -46,12 +46,13 @@ import {
   setHour12Preferred,
 } from './lib/contractions';
 import { load, save, uid, isQuotaExceeded, clearQuotaExceeded } from './lib/storage';
-import { autoBackup, loadAutoBackup, saveCurrentToIdb, clearCurrentFromIdb, loadCurrentBackup } from './lib/idb';
+import { autoBackup, autoBackupJourney, loadAutoBackup, saveCurrentToIdb, clearCurrentFromIdb, loadCurrentBackup } from './lib/idb';
 import {
   buildBackup,
   downloadBackup,
   readBackupFile,
   mergeBackup,
+  migrateBackup,
   rotateBackup,
   validateBackup,
 } from './lib/backup';
@@ -118,6 +119,16 @@ import Onboarding from './components/Onboarding';
 import BabyIsHereMount from './components/BabyIsHereMount';
 import TagFilter from './components/TagFilter';
 import HistoryHeader from './components/HistoryHeader';
+import TodayPanel from './components/TodayPanel';
+import JourneySheet from './components/JourneySheet';
+import {
+  getJourney,
+  mergeJourney,
+  saveJourney,
+  updateJourneyPhase,
+  type JourneyDocument,
+  type JourneyPhase,
+} from './lib/journey';
 
 const STORAGE_KEY = 'contraction-tracker:v1';
 const SESSION_KEY = 'contraction-tracker:current';
@@ -175,6 +186,7 @@ export default function App() {
   const [bigText, setBigTextState] = useState<boolean>(() => isBigText());
   const [muteSchedule, setMuteScheduleState] = useState<MuteSchedule>(() => getMuteSchedule());
   const [carePlan, setCarePlanState] = useState<CarePlan>(() => getCarePlan());
+  const [journey, setJourney] = useState<JourneyDocument>(() => getJourney());
   const [tagFilter, setTagFilter] = useState<string | null>(null);
   const [tagsDraft, setTagsDraft] = useState<string[]>([]);
   const [showSettings, setShowSettings] = useState(false);
@@ -194,6 +206,7 @@ export default function App() {
   // Hospital sheet (cervical exams)
   const [showHospital, setShowHospital] = useState(false);
   const [showMoreTools, setShowMoreTools] = useState(false);
+  const [showJourney, setShowJourney] = useState(false);
 
   // Pain location draft (edit panel)
   const [painLocationsDraft, setPainLocationsDraft] = useState<string[]>([]);
@@ -228,6 +241,7 @@ export default function App() {
   // for now but is no longer mounted from App.tsx.
   // Hidden file input for importing backups
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const journeyOpenerRef = useRef<HTMLButtonElement>(null);
 
   // Backup reminder — show if no share link created in last 4+ hours and not dismissed
   const [dismissedBannerAt, setDismissedBannerAt] = useState<number | null>(() => {
@@ -460,6 +474,10 @@ export default function App() {
     // actually fired; it was dead code.
     broadcastContractions(contractions);
   }, [contractions, current]);
+  useEffect(() => {
+    saveJourney(journey);
+    autoBackupJourney(journey).catch(() => {});
+  }, [journey]);
   useEffect(() => {
     save(SESSION_KEY, current);
     autoBackup(contractions, current).then((ok) => {
@@ -892,6 +910,7 @@ export default function App() {
       shares,
       exams,
       checklists,
+      journey,
     });
     downloadBackup(data);
     rotateBackup(data);
@@ -945,6 +964,7 @@ export default function App() {
         setBackupError('This file is not a valid Olive backup.');
         return;
       }
+      const migrated = migrateBackup(parsed, new Date().toISOString(), journey.profile.id);
       // Build existing maps using proper types. Previously these
       // were Map<string, { id: string }> with `as never[]` casts on
       // the write-back (App.tsx:1014-1022). The casts hid real
@@ -968,7 +988,7 @@ export default function App() {
         existingChecklists.set(s.id, new Map(getChecklist(s.id).map((i) => [i.id, i])));
       }
 
-      const result = mergeBackup(parsed, {
+      const result = mergeBackup(migrated, {
         contractions: existingContractions,
         sessions: existingSessions,
         people: existingPeople,
@@ -983,6 +1003,7 @@ export default function App() {
       const { setPeople, setShares } = await import('./lib/sessions');
       setPeople([...existingPeople.values()]);
       setShares([...existingShares.values()]);
+      setJourney(mergeJourney(journey, migrated.journey));
 
       // Persist exams and checklists
       for (const [sid, examMap] of existingExams) {
@@ -1024,6 +1045,7 @@ export default function App() {
       shares,
       exams,
       checklists,
+      journey,
     });
     const json = JSON.stringify(data, null, 2);
     const blob = new Blob([json], { type: 'application/json' });
@@ -1395,6 +1417,20 @@ export default function App() {
       )}
 
       {/* Sessions sheet — drops from the Olive wordmark */}
+      {showJourney && (
+        <JourneySheet
+          journey={journey}
+          onJourneyChange={setJourney}
+          onPhaseChange={(nextPhase: JourneyPhase) => {
+            setJourney((currentJourney) => updateJourneyPhase(currentJourney, nextPhase));
+          }}
+          onClose={() => {
+            setShowJourney(false);
+            requestAnimationFrame(() => journeyOpenerRef.current?.focus());
+          }}
+        />
+      )}
+
       {showSessions && !showPeople && !showShare && (
         <>
           <div
@@ -1847,6 +1883,10 @@ export default function App() {
         {/* Onboarding — 3 inline hint cards for first-time users */}
         {onboardingStep !== null && finished.length === 0 && !current && (
           <Onboarding onDismiss={() => setOnboardingStep(null)} />
+        )}
+
+        {!current && onboardingStep === null && (
+          <TodayPanel journey={journey} onOpen={() => setShowJourney(true)} buttonRef={journeyOpenerRef} />
         )}
 
         {/* Status update composer + Baby is here button.
