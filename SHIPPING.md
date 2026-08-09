@@ -1,114 +1,94 @@
-# Olive v1.0.1 — Release Readiness
+# Olive v1.1.0 — Release Readiness
 
-Last updated: 2026-08-07. Status: **WEB RELEASED; STORE SUBMISSION BLOCKED.**
+Last updated: 2026-08-08. Status: **WEB RELEASED; ANDROID ARTIFACT READY; STORE SUBMISSION REQUIRES MANUAL CONSOLE WORK.**
 
-Verified on 2026-08-07: strict lint/typecheck/build passed; the combined local
-Chromium release suite completed with 110 passed, 7 environment/optional skips,
-and 0 failures against the new relay contract. Focused app/relay integration
-passed 11/11, and the relay security/retention suite passed 15/15. Release
-coverage includes host and PIN capabilities, identity proof, malformed payload
-rejection, offline reload, modal keyboard behavior, zoom, session isolation,
-SSE, privacy, and 12-character links. Store submission remains blocked only by
-iOS validation on macOS/Xcode and manual store-console access.
+Olive v1.1.0 is live at `https://contractions.ashbi.ca`. The release was
+committed as `34f52ee` with the Windows cache-stamp validation fix in `83065f7`,
+pushed to `main` with GitHub Actions intentionally skipped, and deployed through
+the verified manual VPS path.
 
-The `olive-release-candidate:1.0.1` Docker image also builds successfully with
-the production relay origin, and the focused WebKit compatibility run passed
-4/4 tests.
+## Release outcome
 
-## PWA (Live at https://contractions.ashbi.ca)
+- Provider-configurable care-plan timing replaces a fixed medical assumption.
+- A reminder appears only after a sustained matching pattern and states that it
+  is not a diagnosis.
+- The primary action calls the user's saved care team; the reminder can be
+  stopped by the user.
+- A concise, objective care summary can be shared with the care team.
+- Pregnancy status remains user-controlled instead of advancing automatically.
+- Partner sharing stays prominent; secondary tools are grouped behind
+  **More tools** to keep the labor flow calm and focused.
+- The installed PWA reloads offline through service-worker cache `olive-v22`.
+- No generic AI chatbot or diagnostic model was added. This is a deliberate
+  safety and privacy choice, not a missing release dependency.
 
-All features verified by 76+ gauntlet tests (3.5 min CI). Zero TODOs, zero FIXMEs in source.
+## Verification evidence
 
-### Performance
-- Self-hosted fonts (Fraunces + Inter, Latin subset) — zero external font deps
-- SW cache v21 with cache-first navigation — the installed PWA reloads offline
-- Dark preloader during React mount (~15s cold start)
-- CSP simplified: no googleapis.com, no gstatic.com
-- Dist: 1.7MB (16 font files, Latin subset only)
+- `npm run verify`: lint, service-worker stamp, TypeScript, and production build
+  passed.
+- Local Chromium release suite: 95 passed, 23 optional/environment-dependent
+  skips, 0 failed.
+- Local WebKit compatibility: 9 passed, 0 failed.
+- Relay suite: 15 passed, 0 failed; production-only dependency audit found 0
+  vulnerabilities.
+- Production Chromium checks: 9 focused product/browser tests plus 5
+  accessibility/offline tests passed.
+- Production WebKit checks: 9 passed.
+- Store screenshots: 20/20 generated from the live app across 6.7-inch,
+  6.1-inch, 5.5-inch iPhone, and 12.9-inch iPad sizes. The final shot shows the
+  real saved care-plan reminder rather than the retired warning copy.
 
-### UX Polish
-- Warmer onboarding text (no numbered steps, reassuring tone)
-- "Not now" instead of "Skip"
-- First contraction guidance text
-- Backup card → info sheet with Export/Import buttons
-- Backup banner only shows after ≥1 finished contraction
-- Memory book discovery card on main screen
-- State transitions have 5-second undo toast
-- Share creation has guidance text
-- Create Share above Send Update (primary action first)
-- Checklist empty state: "No items yet"
-- All sheets have empty states
+## Production deployment
 
-### Audio
-- 5-1-1 alert: three soft 440Hz pulses + speech synthesis
-- Speech: "This looks like the 5 1 1 pattern. Consider calling your provider."
-- Force=true bypasses quiet hours for medical signals
-- Start/Stop chimes (rising C5→E5, falling E5→C5)
-- Mute toggle + quiet hours support
-- iOS audio unlock via user gesture
-
-### Accessibility
-- WCAG AA contrast on all text (ink-500 bumped to #a47a6e)
-- Header buttons have aria-labels
-- Feature cards have visible text (accessible name via text content)
-- Mobile zoom is enabled
-- Bottom sheets expose dialog semantics, enter/trap/restore focus, and close with Escape
-- Timer supports Enter and Space; onboarding step targets are at least 24x24 CSS pixels
-
-### Sharing (revised 2026-06-09)
-- **One share per session** — creating again returns the same code
-- **7-day default TTL** (168 hours), not 30 days
-- Partner / Friends modes (PIN removed in earlier pass)
-- navigator.share fixed for iOS Safari (URL in text field)
-- Time-remaining countdown shown to both host ("X days left") and
-  partner ("This link works for X more days")
-- Old expired shares auto-filtered from getShares()
-- Relay CORS: explicit production and Capacitor origins; untrusted web origins are rejected
-
-### Privacy
-- Zero analytics, zero tracking, zero third-party SDKs
-- Privacy policy at /privacy (self-hosted, no external deps)
-- CSP: script-src 'self' only
-- Relay: host and PIN access use hashed capabilities; activity identities use separate hashed client proof
-- Production source maps are disabled; browser security headers are emitted by the static server
-- Expiry cleanup and sensitive-data purge on revocation are covered by automated tests
+- Live app image: `sha256:f7058871596ad94d67806c8898100b74012be9e72d4d38e0504ff4679745fc7c`
+- Retained rollback image: `camster91/contraction-tracker:rollback-868d1b7`
+- Relay health: HTTP 200 at `https://relay.ashbi.ca/health`
+- Public app response: HTTP 200 with response-level CSP, HSTS,
+  `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, and strict
+  referrer policy.
+- The relay was not rebuilt or restarted during the frontend release.
 
 ## Android
 
-- Release AAB compiles successfully after Capacitor sync and is signed with the dedicated Olive upload key
+- Version: `1.1.0` (`versionCode 3`)
 - Signed AAB: `android/app/build/outputs/bundle/release/app-release.aab`
-- SHA-256: `CEFD68BA6D5D50AFF2F1654D90D9B66D254B05C4B66DF5534C8B53EBB810BD72`
-- `jarsigner -verify` and the release signing task both passed
-- Sideload guide: docs/SIDELOAD-APK.md
-- Upload script: scripts/upload-play-store.py
+- AAB SHA-256: `C6C47C070CD08BC5F786B5FAA9AD8EAEEC0E14374DDBACA58F826D42B9C0D19C`
+- Signed APK: `android/app/build/outputs/apk/release/app-release.apk`
+- APK SHA-256: `459D811ED194ED526975D59D81897EE832DEA134F0B0014842AC0A744C3BD219`
+- `jarsigner -verify`, `bundleRelease`, and `assembleRelease` passed. The upload
+  certificate is intentionally self-signed and is valid until 2053-12-23.
 
 ## iOS
 
-- Project structure: 10/10 verify-ios.sh passes
-- arm64 (was armv7 — fixed)
-- MARKETING_VERSION synced (1.0.1; build 2)
-- OliveLiveActivity removed for v1.0.0
-- PrivacyInfo.xcprivacy is wired into the App target and declares optional shared-session data
-- Build script: scripts/build-ios.sh
-- Upload script: scripts/upload-app-store.sh
+- Marketing version: `1.1.0` (build 3)
+- Project metadata, privacy manifest, release notes, and upload scripts are
+  prepared.
+- A production archive still requires macOS, Xcode, the Apple Developer team,
+  and the correct provisioning profile. Those credentials and tools are not
+  present in this Windows workspace.
 
-### BLOCKER: iOS archive/signing must be run and verified on macOS with Xcode and the Apple Developer team
-
-## Store Metadata
+## Store package
 
 - App name: Olive — Contraction Timer
-- Bundle ID: com.ashbi.olive
-- Version: 1.0.1
+- Bundle ID: `com.ashbi.olive`
 - Category: Health & Fitness (primary), Medical (secondary)
-- Price: free (no v1.0.1 IAP)
-- Privacy URL: https://contractions.ashbi.ca/privacy
-- Support URL: https://contractions.ashbi.ca
-- Screenshots: 20 images at 4 device sizes (6.7", 6.1", 5.5", 12.9")
-- App icon: 22 sizes (12 iOS + 6 Android + 4 PWA)
-- Description + Keywords + Promotional Text: ready (see store-listing.md)
+- Price: free; v1.1.0 has no in-app purchase
+- Privacy URL: `https://contractions.ashbi.ca/privacy`
+- Support URL: `https://contractions.ashbi.ca`
+- Metadata: `APP-STORE-CONNECT-FIELDS.txt`,
+  `PLAY-STORE-CONSOLE-FIELDS.txt`, `WHATS-NEW.txt`, and
+  `play-store-release-notes.txt`
+- Screenshots:
+  `C:\Users\camst\.hermes\cache\indie-ship\APPS\olive-contractions\screenshots`
 
-## Remaining store-release work
+## Remaining external release gates
 
-1. Archive and validate iOS on macOS/Xcode with the Apple Developer team; Xcode is not available on this machine.
-2. Review current App Store Connect and Google Play data declarations before manual submission.
-3. Upload the signed Android AAB and complete the two store-console review flows manually. GitHub Actions are intentionally skipped for this release; production uses the verified manual deployment path.
+1. Build, sign, and validate the iOS archive on macOS/Xcode.
+2. Confirm the current Apple and Google privacy/data declarations in their
+   consoles.
+3. Upload the signed Android AAB and iOS archive, then submit them manually for
+   store review.
+
+Localization, Apple Watch/Live Activity integration, and broader native health
+ecosystem features remain future product work. They are not represented as part
+of this verified v1.1.0 release.

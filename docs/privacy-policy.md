@@ -1,6 +1,6 @@
 # Olive privacy policy
 
-Effective August 7, 2026. App version 1.0.1.
+Effective August 8, 2026. App version 1.1.0.
 
 Olive is a contraction timer for expecting parents and their support people. The app stores contraction sessions, optional notes and tags, care-team contacts, and hospital details locally on the user's device.
 
@@ -14,4 +14,4 @@ If voice control is enabled, Olive uses speech recognition supplied by the brows
 
 Users can delete local data from Olive, revoke shared sessions, export a JSON backup, or contact the developer through `https://contractions.ashbi.ca` for help with a deletion request.
 
-Olive is an informational timing and communication tool, not a medical device. It does not diagnose labor or replace professional medical advice. Pattern notices, including the 5-1-1 pattern, are informational only. Users should follow their healthcare professional's instructions, contact them before making medical decisions, and use local emergency services when urgent help is needed.
+Olive is an informational timing and communication tool, not a medical device. It does not diagnose labor or replace professional medical advice. A saved care-plan reminder only compares recorded timings with values chosen by the user and remains informational. Users should follow their healthcare professional's instructions, contact them before making medical decisions, and use local emergency services when urgent help is needed.

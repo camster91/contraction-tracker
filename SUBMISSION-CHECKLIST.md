@@ -118,7 +118,7 @@ Send the recruitment message from `docs/USER-TESTING.md` to:
 2. **Friend who's pregnant or recently gave birth**
 3. **Tech-savvy friend** — catches crashes
 4. **Birth partner** (your mom, dad, etc.) — tests the share flow
-5. **Midwife or OB nurse** — catches 5-1-1 medical accuracy
+5. **Midwife or OB nurse** — reviews the care-plan language and handoff summary
 
 For Android testers, send the universal APK at
 `android/app/build/outputs/apk/release/app-release.apk`

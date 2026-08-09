@@ -127,7 +127,7 @@ npm start
 
 The frontend is a PWA + Capacitor app — deploy the `dist/` build to your CDN / static host (currently contractions.ashbi.ca, hosted on Coolify). The relay backend should be deployed separately (currently relay.ashbi.ca, also on Coolify) and its URL configured in the frontend.
 
-CI/CD: GitHub Actions auto-deploys to Coolify on push to `main`. The deploy workflow uses SSH directly (not the Coolify API) because this is a standalone docker-compose deploy, not a Coolify-tracked application.
+The repository includes a GitHub Actions deployment workflow for normal releases. Olive v1.1.0 was intentionally pushed with `[skip ci]` and released through the verified manual SSH/docker-compose path.
 
 ---
 

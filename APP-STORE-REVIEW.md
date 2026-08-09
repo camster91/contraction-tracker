@@ -24,8 +24,8 @@ Guidelines. Passing a local check does not guarantee App Review approval.
 | App does what its description says | ✅ | Contraction timer for expecting couples, exactly as described |
 | All buttons/links functional | ✅ | Gauntlet tested every interactive element |
 | No placeholder content | ✅ | v1.1.0 has no "coming soon" pages |
-| Stable performance | ✅ | 96 gauntlet tests, 0 flakes in last 3 CI runs |
-| No crashes on launch | ✅ | Verified across chromium + webkit |
+| Stable performance | ✅ | Local release suite: 95 passed, 23 optional/environment skips, 0 failed |
+| No crashes on launch | ✅ | Verified locally and on production across Chromium + WebKit |
 | Memory leaks | ⚠️ | Cannot fully verify headless; user testing recommended |
 | Battery usage | ⚠️ | Wake Lock API is requested but not held indefinitely |
 

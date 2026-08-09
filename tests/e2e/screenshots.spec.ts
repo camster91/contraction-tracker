@@ -27,7 +27,7 @@ const SHOTS: Shot[] = [
   { name: '02-contraction-active', desc: 'Active contraction in progress with timer running' },
   { name: '03-history', desc: 'History of recorded contractions' },
   { name: '04-share', desc: 'Share with partner modal' },
-  { name: '05-511-alert', desc: 'Main screen (5-1-1 alert requires seeded data; see follow-up)' },
+  { name: '05-care-plan-reminder', desc: 'Saved care-team timing reminder' },
 ];
 
 for (const shot of SHOTS) {
@@ -68,7 +68,38 @@ for (const shot of SHOTS) {
         await page.waitForTimeout(1_000);
       }
     }
-    // 05-511-alert: would need seeded data. Falls through to main screen.
+    else if (shot.name === '05-care-plan-reminder') {
+      await page.evaluate(() => {
+        const now = Date.now();
+        const contractions = Array.from({ length: 11 }, (_, i) => {
+          const start = now - (55 - i * 5) * 60_000;
+          return {
+            id: `care-plan-${i}`,
+            sessionId: 'care-plan-seed',
+            start: new Date(start).toISOString(),
+            end: new Date(start + 60_000).toISOString(),
+            durationMs: 60_000,
+            intensity: 'medium',
+            note: '',
+            tags: [],
+            painLocations: [],
+          };
+        });
+        localStorage.setItem('contraction-tracker:v1', JSON.stringify({ contractions }));
+        localStorage.setItem('contraction-tracker:care-plan', JSON.stringify({
+          providerName: 'North Star Midwives',
+          providerPhone: '+1 416 555 0142',
+          intervalMinutes: 5,
+          durationSeconds: 60,
+          windowMinutes: 60,
+        }));
+        localStorage.setItem('contraction-tracker:onboarding-seen', '1');
+        localStorage.setItem('contraction-tracker:backup-dismissed', String(Date.now()));
+      });
+      await page.reload({ waitUntil: 'domcontentloaded' });
+      await helpers.waitForApp(page);
+      await expect(page.getByText('Saved care-plan reminder')).toBeVisible();
+    }
 
     // Let animations settle
     await page.waitForTimeout(1_000);
