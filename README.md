@@ -1,8 +1,10 @@
-# Olive — Contraction Timer
+# Olive — Birth Journey Companion
 
-A private, offline-first contraction timer built as a PWA + Capacitor iOS/Android app. Tap when a contraction starts, tap when it ends, and Olive records the timing while keeping a chosen partner in sync. No account is required.
+A calm, private coordination companion for the final weeks of pregnancy, birth day, and the first 12 postpartum weeks. Olive's shipped core is an offline-first contraction timer with secure partner sharing, built as a PWA + Capacitor iOS/Android app. No account is required.
 
 **Live:** [contractions.ashbi.ca](https://contractions.ashbi.ca) (PWA) · [relay.ashbi.ca](https://relay.ashbi.ca) (backend) · **Release pricing:** free.
+
+**Product direction:** Olive helps the expecting parent, partner, and care team stay aligned without attempting diagnosis or replacing professional care. The expanded Birth Journey experience is specified for v1.2 and is not yet represented as shipped functionality. See [`docs/PRODUCT-VISION.md`](docs/PRODUCT-VISION.md) and [`docs/V1.2-BIRTH-JOURNEY-SPEC.md`](docs/V1.2-BIRTH-JOURNEY-SPEC.md).
 
 ---
 
