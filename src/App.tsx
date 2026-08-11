@@ -113,7 +113,7 @@ import {
 import { getChecklist, packedCount, saveChecklist, type ChecklistItem } from './lib/checklist';
 import { getExams, type CervicalExam } from './lib/hospital';
 import { postMessage, PostMessageError } from './lib/feed';
-import { pullJourneyFromRelay, pushContractionsToRelay, pushJourneyToRelay, postContractionEventToRelay, RELAY_URL, getShareAuthorizationHeaders } from './lib/relay';
+import { getShareEventStreamUrl, pullJourneyFromRelay, pushContractionsToRelay, pushJourneyToRelay, postContractionEventToRelay, RELAY_URL, getShareAuthorizationHeaders } from './lib/relay';
 import { getOrCreateClientId } from './lib/identity';
 import Onboarding from './components/Onboarding';
 import BabyIsHereMount from './components/BabyIsHereMount';
@@ -499,6 +499,24 @@ export default function App() {
       setJourneySharingReady(true);
     };
     void refreshSharedResponsibilities();
+    const streams = getShares()
+      .filter((share) => share.journeyPermissions?.includes('responsibilities:read'))
+      .flatMap((share) => {
+        try {
+          const stream = new EventSource(getShareEventStreamUrl(share.id));
+          stream.onmessage = (event) => {
+            try {
+              const payload = JSON.parse(event.data);
+              if (payload.type === 'journey' && payload.category === 'responsibilities') {
+                void refreshSharedResponsibilities();
+              }
+            } catch { /* malformed relay events never block local use */ }
+          };
+          return [stream];
+        } catch {
+          return [];
+        }
+      });
     const onVisible = () => {
       if (document.visibilityState === 'visible') void refreshSharedResponsibilities();
     };
@@ -510,6 +528,7 @@ export default function App() {
       window.removeEventListener('focus', onVisible);
       document.removeEventListener('visibilitychange', onVisible);
       window.removeEventListener('online', onVisible);
+      streams.forEach((stream) => stream.close());
     };
   }, []);
 

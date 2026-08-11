@@ -1,14 +1,14 @@
 # Deployment readiness report: Olive v1.2.0
 
-Date: 2026-08-09
+Date: 2026-08-10
 Stack: React/Vite PWA, Capacitor Android/iOS shell, Node/Express/sql.js relay  
-Target: local signed release candidate; production deployment explicitly excluded
+Target: deployed production web and relay, with PWA v1.2.1 patch ready for authorized deployment; native-store submission excluded
 
 ## Decision
 
-**Cleared for local release handoff. Not represented as deployed or store-submitted.**
+**Production web and relay deployment verified. This v1.2.1 PWA patch is locally verified and ready for the authorized deployment in progress; it is not store-submitted.**
 
-Production release still requires separate authorization, deployment of relay before app, and post-deploy verification. iOS archive signing requires macOS/Xcode and Apple credentials.
+Relay v1.1.0 was deployed before Olive v1.2.0, with a relay database backup and retained rollback images/source snapshots. The v1.2.1 PWA patch adds active-session reviewed-task reconciliation and cache `olive-v24`. iOS archive signing still requires macOS/Xcode and Apple credentials.
 
 ## Security
 
@@ -17,7 +17,7 @@ Production release still requires separate authorization, deployment of relay be
 - Pass: production source maps are disabled and no `.map` files exist in `dist`.
 - Pass: relay host capabilities, PIN access tokens, client identity proof, normalized journey permissions, revocation purge, expiry purge, payload validation, CORS, rate limiting, and identifier stripping are regression-tested.
 - Pass: care-card details, provider questions, private responsibilities, and journey notes are outside the relay journey contract.
-- Skip: production HTTPS, CSP, HSTS, and edge-header revalidation; no deployment was authorized. The previously deployed version is not evidence that v1.2 is live.
+- Pass: public HTTPS/TLS, HTTP-to-HTTPS redirect, CSP, HSTS, `nosniff`, referrer policy, frame protection, no `.git` exposure, and no public source maps were revalidated after deployment.
 
 ## Responsive and accessibility
 
@@ -36,6 +36,7 @@ Production release still requires separate authorization, deployment of relay be
 - Pass: reviewed responsibilities are opt-in and partner completion is idempotent.
 - Pass: host reload, focus, and reconnect reconcile a partner's reviewed-task completion before automatic sync; private tasks remain local-only.
 - Pass: installed-app offline reopening remains covered by the full regression suite.
+- Pass: post-deploy mobile Chromium checks passed for the partner reconciliation flow and all five core timer/offline scenarios.
 
 ## Native packaging
 
@@ -55,12 +56,12 @@ Production release still requires separate authorization, deployment of relay be
 ## Infrastructure and operations
 
 - Pass: release and rollback boundaries are documented in `SHIPPING.md`.
-- Skip: GitHub Actions, force deployment, production deployment, and QA-team delegation were explicitly excluded.
-- Skip: monitoring and post-deploy smoke checks apply only after an authorized production release.
+- Pass: manual relay-first deployment used a verified ZIP transfer, retained rollback images/source snapshots, and a relay database backup.
+- Warning: GitHub-hosted workflows triggered by the push failed before runner allocation; hosted automation is not presently a usable release gate.
 
 ## Remaining external gates
 
 1. Build and sign the iOS archive on macOS/Xcode.
 2. Reconfirm store privacy/data declarations against the current console taxonomies.
-3. Obtain explicit authorization before uploading, submitting, or deploying.
-4. After deployment, verify public HTTPS, relay health/version, headers, service worker `olive-v23`, offline reload, mobile timer, and disposable create/view/complete/revoke flows.
+3. Restore GitHub-hosted runner availability before treating repository Actions as a required release gate.
+4. Obtain explicit authorization before uploading or submitting to either app store.

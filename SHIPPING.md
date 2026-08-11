@@ -1,8 +1,8 @@
 # Olive v1.2.0 — Release Readiness
 
-Last updated: 2026-08-09. Status: **LOCAL RELEASE CANDIDATE; PRODUCTION AND STORE SUBMISSION NOT PERFORMED.**
+Last updated: 2026-08-10. Status: **PWA v1.2.1 READY FOR AUTHORIZED DEPLOYMENT; RELAY v1.1.0 DEPLOYED; STORE SUBMISSION NOT PERFORMED.**
 
-The production site remains on the previously verified release. v1.2.0 is prepared locally without GitHub Actions, a forced deployment, production mutation, or delegated QA-team run.
+Olive v1.2.0 and relay v1.1.0 were manually deployed to the Ashbi VPS on 2026-08-09 after a database backup and retained source/image rollback snapshots. This v1.2.1 PWA patch adds live reviewed-task reconciliation with a fresh cache payload; store upload and submission remain separate actions.
 
 ## Release scope
 
@@ -14,7 +14,8 @@ The production site remains on the previously verified release. v1.2.0 is prepar
 - Reviewed partner sharing limited to normalized responsibilities
 - Category-scoped relay capability enforcement and proven idempotent partner completion
 - Host reconciliation preserves a partner's reviewed-task completion across reload, focus, and reconnect without synchronizing private tasks
-- Service-worker cache `olive-v23`
+- Active hosts also reconcile reviewed-task completions from the relay event stream without a reload
+- Service-worker cache `olive-v24`
 
 The contraction timer remains the primary labor action. Olive does not infer a medical state, score recovery, diagnose symptoms, or provide medication advice.
 
@@ -28,6 +29,14 @@ The contraction timer remains the primary labor action. Olive does not infer a m
 - Shared-responsibility reconciliation: 11 unit checks and a local app-plus-relay browser regression passed.
 - App and relay production dependency audits: 0 known vulnerabilities.
 - `git diff --check`: clean apart from informational Windows line-ending notices.
+
+## Production verification evidence
+
+- Relay v1.1.0 health endpoint, public HTTPS, and HTTP-to-HTTPS redirect passed.
+- Production app served the v1.2.0 `olive-v23` payload with HSTS, CSP, `nosniff`, referrer policy, and frame protection headers before this v1.2.1 patch deployment.
+- Production mobile checks passed: the host/partner responsibility reconciliation regression and five core timer/offline scenarios.
+- A disposable PIN/capability share denied anonymous access, permitted validated viewer and host actions, then returned `410` after authorized revocation.
+- GitHub-hosted workflows triggered by the push failed before any runner was allocated. The manual deployment and production checks above are independently verified; restoring hosted-runner availability remains an external automation task.
 
 ## Android
 
@@ -59,8 +68,6 @@ The contraction timer remains the primary labor action. Olive does not infer a m
 
 ## Explicitly excluded actions
 
-- No GitHub Actions invocation
-- No force deployment or production deployment
 - No app-store upload or submission
 - No QA-team delegation
 
@@ -69,4 +76,4 @@ The contraction timer remains the primary labor action. Olive does not infer a m
 1. Build and sign the iOS archive on macOS/Xcode.
 2. Reconfirm Apple and Google privacy/data declarations in their current consoles.
 3. Upload the signed Android AAB and iOS archive only after explicit approval.
-4. Run post-deploy production smoke tests only after a separately authorized release.
+4. Restore GitHub-hosted runner availability before relying on repository Actions as a release gate.
