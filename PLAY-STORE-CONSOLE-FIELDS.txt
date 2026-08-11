@@ -1,4 +1,4 @@
-# Google Play Console — pre-filled fields for Olive v1.2.0
+# Google Play Console — pre-filled fields for Olive v1.2.1
 # Copy/paste from here into Play Console. Each section is exactly
 # what the field expects.
 
@@ -8,7 +8,7 @@ APP DETAILS
 App name: Olive
 Default language: English (United States)
 
-Pricing: Free (v1.2.0 has no IAP)
+Pricing: Free (v1.2.1 has no IAP)
 
 In-app products: None
 Contains ads: No
@@ -102,7 +102,7 @@ PRICING
 ════════════════════════════════════════════════════════════════════════════
 RELEASE DECISION: Free.
 The current build does not implement in-app purchases, so do not configure
-or advertise an IAP for v1.2.0.
+or advertise an IAP for v1.2.1.
 
 
 ════════════════════════════════════════════════════════════════════════════
@@ -149,7 +149,7 @@ Q: Does your app contain ads?
 A: No.
 
 Q: Does your app have in-app purchases?
-A: No. The v1.2.0 build has no in-app purchase implementation.
+A: No. The v1.2.1 build has no in-app purchase implementation.
 
 Q: Does your app use any data for tracking?
 A: No, the app does not track users.
@@ -211,7 +211,7 @@ INTERNAL TESTING TRACK (recommended for first release)
 ────────────────────────────────────────────────────────────────────────
 1. Production > Create new release
 2. Upload the signed AAB: android/app/build/outputs/bundle/release/app-release.aab
-3. Release name: 1.2.0 (4)
+3. Release name: 1.2.1 (5)
 4. Release notes (paste from play-store-release-notes.txt):
 
    First public release of Olive, the contraction timer for

@@ -1,4 +1,4 @@
-# Deployment readiness report: Olive v1.2.0
+# Deployment readiness report: Olive v1.2.1
 
 Date: 2026-08-10
 Stack: React/Vite PWA, Capacitor Android/iOS shell, Node/Express/sql.js relay  
@@ -40,15 +40,14 @@ Relay v1.1.0 was deployed before Olive v1.2.0, with a relay database backup and 
 
 ## Native packaging
 
-- Pass: Android version `1.2.0`, `versionCode 4`.
-- Pass: signed AAB and APK built successfully; AAB JAR signature and APK v2 signature verified.
-- Pass: final AAB contains the `olive-v23` service worker payload.
-- Pass: iOS marketing version `1.2.0`, build 4, arm64, icons, splash assets, privacy manifest wiring, Capacitor config, and `olive-v23` copied payload verified structurally.
+- Pass: Android version `1.2.1`, `versionCode 5`; a clean signed AAB and APK were built successfully and AAB JAR/APK v2 signatures verified.
+- Pass: final Android and copied iOS payloads contain the `olive-v24` service worker.
+- Pass: iOS marketing version `1.2.1`, build 5, arm64, icons, splash assets, privacy manifest wiring, and Capacitor config were structurally verified.
 - Warning: iOS archive, code signing, and provisioning cannot be completed in this Windows workspace.
 
 ## Content, privacy, and store package
 
-- Pass: changelog, What's New, Play release notes, store-console fields, privacy policy, review notes, and submission checklist reflect v1.2.0.
+- Pass: What's New, Play release notes, store-console fields, privacy policy, and submission checklist were refreshed for v1.2.1.
 - Pass: release copy states that Olive is informational and not a medical device.
 - Pass: privacy copy identifies reviewed responsibility sharing and lists journey categories excluded from the relay.
 - Skip: current App Store Connect and Google Play declarations were not submitted or altered.

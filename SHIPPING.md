@@ -1,4 +1,4 @@
-# Olive v1.2.0 — Release Readiness
+# Olive v1.2.1 — Release Readiness
 
 Last updated: 2026-08-10. Status: **PWA v1.2.1 READY FOR AUTHORIZED DEPLOYMENT; RELAY v1.1.0 DEPLOYED; STORE SUBMISSION NOT PERFORMED.**
 
@@ -40,20 +40,20 @@ The contraction timer remains the primary labor action. Olive does not infer a m
 
 ## Android
 
-- Version: `1.2.0` (`versionCode 4`)
+- Version: `1.2.1` (`versionCode 5`)
 - Release command: `.\android\gradlew.bat -p android bundleRelease assembleRelease`
 - Signed AAB: `android/app/build/outputs/bundle/release/app-release.aab`
-  - SHA-256: `D3BBEAB3916B79C819E7C532538A00E6FCC9E3052CE27488EE6CB4AB6BA70A03`
+  - SHA-256: `C966946BC31F3BA25FFA5AF76C41206EB337C9B89AD4752094664859CE1E7D1A`
   - JAR signature verified; the upload certificate is self-signed and expires 2053-12-23.
 - Signed APK: `android/app/build/outputs/apk/release/app-release.apk`
-  - SHA-256: `B44C0A7F0710DA0265CBC18D1109C9A1863D0EC279F09D80E152CF9632740E99`
+  - SHA-256: `875DD8A17BAF836B14E404F2A57D94731303C10FB04A39705E9DAD81DA1E9129`
   - Android APK Signature Scheme v2 verified with one signer.
 - Gradle `clean bundleRelease assembleRelease` completed successfully.
 
 ## iOS
 
-- Marketing version: `1.2.0` (build 4)
-- Project metadata, arm64 requirement, 12 app-icon assets, splash assets, wired privacy manifest, Capacitor config, and copied `olive-v23` web payload were structurally verified.
+- Marketing version: `1.2.1` (build 5)
+- Project metadata, arm64 requirement, 12 app-icon assets, splash assets, wired privacy manifest, Capacitor config, and copied `olive-v24` web payload were structurally verified.
 - A production archive still requires macOS, Xcode, an Apple Developer team, and the correct provisioning profile. Those external tools and credentials are not present in this Windows workspace.
 
 ## Store package
@@ -61,7 +61,7 @@ The contraction timer remains the primary labor action. Olive does not infer a m
 - App name: Olive — Contraction Timer
 - Bundle ID: `com.ashbi.olive`
 - Category: Health & Fitness (primary), Medical (secondary)
-- Price: free; v1.2.0 has no in-app purchase
+- Price: free; v1.2.1 has no in-app purchase
 - Privacy URL: `https://contractions.ashbi.ca/privacy`
 - Support URL: `https://contractions.ashbi.ca`
 - Metadata: `APP-STORE-CONNECT-FIELDS.txt`, `PLAY-STORE-CONSOLE-FIELDS.txt`, `WHATS-NEW.txt`, and `play-store-release-notes.txt`

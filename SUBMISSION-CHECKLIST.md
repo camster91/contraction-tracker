@@ -67,7 +67,7 @@ Go to https://play.google.com/console
 2. App name: Olive
 3. Default language: English (United States)
 4. App or game: App
-5. Free or paid: **Free.** The v1.2.0 build has no IAP.
+5. Free or paid: **Free.** The v1.2.1 build has no IAP.
 6. Accept declarations, click "Create app"
 
 ### Step 2: Set up store listing (20 min)
@@ -101,7 +101,7 @@ Go to Policy > App content > Data safety
 Go to Testing > Internal testing
 - Click "Create new release"
 - Upload the signed AAB: `android/app/build/outputs/bundle/release/app-release.aab`
-- Release name: 1.2.0 (4)
+- Release name: 1.2.1 (5)
 - Release notes: paste from `play-store-release-notes.txt`
 - Click "Review release" then "Start rollout to Internal testing"
 

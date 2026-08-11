@@ -1,6 +1,8 @@
-# Olive v1.2.0 — What's New
+# Olive v1.2.1 — What's New
 
 Olive now supports the wider birth journey while keeping the labor timer fast and calm.
+
+- See partner-completed responsibilities update while Olive stays open, without sending private tasks to the relay.
 
 - Keep a private care card with the facts you choose to record.
 - Save questions for your provider without automated medical answers.

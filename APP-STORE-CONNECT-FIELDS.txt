@@ -1,4 +1,4 @@
-# App Store Connect — pre-filled fields for Olive v1.2.0
+# App Store Connect — pre-filled fields for Olive v1.2.1
 # Copy/paste from here into App Store Connect. Each section is exactly
 # what the field expects, with no extra formatting.
 

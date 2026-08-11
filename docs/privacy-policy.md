@@ -1,6 +1,6 @@
 # Olive privacy policy
 
-Effective August 8, 2026. App version 1.2.0.
+Effective August 10, 2026. App version 1.2.1.
 
 Olive is a birth-journey companion and contraction timer for expecting parents and their support people. The app stores journey details, contraction sessions, optional notes and tags, care-team contacts, and hospital details locally on the user's device.
 
