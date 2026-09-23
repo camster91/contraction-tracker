@@ -14,8 +14,6 @@
 - "I couldn't figure out what to tap"
 - "The 5-1-1 alert is too clinical, I want to feel held"
 - "I expected X to be a button, not a link"
-- "I don't trust this with my data — why does it need the relay?"
-- "My partner opened the link and was confused"
 - Copy that lands wrong
 - Anything that makes a real pregnant person in labor feel safe or unsafe
 
@@ -28,9 +26,9 @@
 **Who to recruit (mix matters):**
 1. Pregnant person, third trimester, first baby
 2. Pregnant person, third trimester, second-or-later baby (different mental model)
-3. Partner of a pregnant person (the secondary user — does the share flow feel like sharing?)
+3. Partner of a pregnant person (support role — can they follow the timer and care summary?)
 4. Friend who's NOT pregnant, has never been pregnant, no context (cold-start UX)
-5. Someone who recently gave birth (last 6 months) — postpartum state, memory book feature
+5. Someone who recently gave birth (last 6 months) — postpartum state, birth journey
 
 **Where to find them:** JW community (Bianca's network), your work colleagues, partner-of-friends. Do not use any of your paying clients. Do not use Reddit or social media — those testers don't know you and won't give honest feedback.
 
@@ -48,7 +46,7 @@
 
 ## Before the session
 
-1. **Open the PWA in your browser** at `https://contractions.ashbi.ca/` on your iPhone
+1. **Install the app on a test iPhone** (TestFlight or a sideloaded build)
 2. **Don't open it ahead of time** — you want to see cold-start
 3. **Have a notepad open** for the rough transcript. You don't need a recording unless they say yes
 4. **Set a 30-min timer**
@@ -59,7 +57,7 @@ Show them the PWA, then run these 5 segments in order. Total: 25 min of tester t
 
 ### 1. Cold start (5 min) — no app open
 
-> "Open Safari and go to contractions.ashbi.ca"
+> "Open the Olive app"
 
 Watch them:
 - What do they do on the landing page?
@@ -86,27 +84,20 @@ Watch them:
 - "How long did that feel? In real labor you'd be in pain — would this UX work?"
 - "What would you want to see while a contraction is in progress?"
 
-### 3. Partner sync (5 min) — share with a second device
+### 3. Backup & care summary (5 min) — get the data out
 
-> "Now imagine you want your partner to see this too. Try to set that up."
-
-Watch them:
-- Can they find the share button?
-- Does the share flow make sense?
-- When they get a code, do they know what to do with it?
-
-Switch to your second phone (or open the same URL in another browser tab on your laptop). Open the share link. Enter the PIN.
-
-> "Pretend you're the partner. You're at work and your pregnant partner just sent you this link."
+> "Your data lives only on this phone. Show me how you'd keep it safe and get it to your care team."
 
 Watch them:
-- Do they understand what they're looking at?
-- Does the live view make sense?
-- Do they know what to do (nothing? keep watching? what?)
+- Can they find Settings → Export backup?
+- Does "Send via…" feel trustworthy (it uses the phone's own share sheet)?
+- Import the exported file back — do they trust the merge message?
+- Can they find the Share care summary action and read what it would send?
 
 **Open questions:**
-- "If you got this link while at work, would you feel reassured or more worried?"
-- "What would you want to be able to do here?"
+- "Where did you expect your data to live?"
+- "If your phone died mid-labor, what would you want to have happened?"
+- "Would you send that care summary to your midwife? Why or why not?"
 
 ### 4. Voice control (3 min) — if your tester is alone
 
@@ -179,6 +170,6 @@ One issue at a time. Don't batch.
 - 5 testers is a sample, not a study
 - No one is in real labor during the test
 - No one is using this with a real birth partner
-- The PWA on a phone is not the native iOS/Android app
+- A test iPhone is not the tester's own device with their real data on it
 
 This is the fastest way to find the **friction** that the Gauntlet can't. It's not a substitute for the real launch — it's the last check before.

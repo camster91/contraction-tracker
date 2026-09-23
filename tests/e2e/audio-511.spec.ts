@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Audio: verify the sound system fires on 5-1-1 trigger.
  *
  * The audio module (src/lib/audio.ts) is fully built with:
@@ -13,7 +13,7 @@
 import { test, expect } from '@playwright/test';
 import * as helpers from './helpers';
 
-const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'https://contractions.ashbi.ca/';
+const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:8765/';
 
 test('audio: chimeAlert is called when the sustained saved reminder triggers', async ({ page }) => {
   await page.goto(BASE_URL, { waitUntil: 'domcontentloaded' });
@@ -23,7 +23,7 @@ test('audio: chimeAlert is called when the sustained saved reminder triggers', a
   await page.evaluate(() => {
     (window as any).__audioCalls = [];
     // The audio module functions are imported, so we can't patch them
-    // directly. Instead, we check if the 5-1-1 alert renders — the
+    // directly. Instead, we check if the 5-1-1 alert renders â€” the
     // alert rendering triggers chimeAlert() as a side effect in the
     // useEffect block. If the alert banner is visible, the chime
     // was fired (modulo snooze/mute conditions).
@@ -54,7 +54,7 @@ test('audio: chimeAlert is called when the sustained saved reminder triggers', a
   // Verify the saved care-plan reminder is visible.
   const body = (await page.locator('body').textContent()) || '';
   const hasReminder = /Saved care-plan reminder/i.test(body);
-  expect(hasReminder, 'The sustained reminder banner should be visible — if it shows, chimeAlert was called').toBe(true);
+  expect(hasReminder, 'The sustained reminder banner should be visible â€” if it shows, chimeAlert was called').toBe(true);
 
   console.log('5-1-1 alert body:', body.substring(0, 300));
 });

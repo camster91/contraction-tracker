@@ -13,7 +13,6 @@ import { defineConfig, devices } from '@playwright/test';
  * the bugs ironed out — adding too many browsers in v1 produces noise.
  */
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:8765/';
-const relayURL = process.env.RELAY_URL;
 
 // Several legacy specs read PLAYWRIGHT_BASE_URL directly. Normalizing it here
 // keeps those specs and Playwright's baseURL on the same target.
@@ -75,27 +74,12 @@ export default defineConfig({
     },
   ],
 
-  webServer: [
-    ...(baseURL.startsWith('http://127.0.0.1:8765') ? [{
-        command: 'node node_modules/serve/build/main.js dist -l 8765 --no-clipboard',
-        url: baseURL,
-        reuseExistingServer: !process.env.CI,
-        timeout: 120_000,
-      }] : []),
-    ...(relayURL?.startsWith('http://127.0.0.1:') ? [{
-      command: 'node server.js',
-      cwd: '../luna-relay',
-      url: `${relayURL}/api/health`,
-      reuseExistingServer: false,
+  webServer: baseURL.startsWith('http://127.0.0.1:8765') ? [{
+      command: 'node node_modules/serve/build/main.js dist -l 8765 --no-clipboard',
+      url: baseURL,
+      reuseExistingServer: !process.env.CI,
       timeout: 120_000,
-      env: {
-        PORT: new URL(relayURL).port,
-        DATA_DIR: '../contraction-tracker/playwright-report/relay-data',
-        ALLOWED_ORIGINS: 'http://127.0.0.1:8765,http://localhost,capacitor://localhost,https://contractions.ashbi.ca',
-        RELAY_CLEANUP_INTERVAL_MS: '1000',
-      },
-    }] : []),
-  ],
+    }] : [],
 
   // Output dirs are gitignored — Playwright writes to playwright-report/ and
   // test-results/ which we keep out of the repo.

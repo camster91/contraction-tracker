@@ -1,5 +1,5 @@
-/**
- * Backup export → import round-trip via the actual UI.
+﻿/**
+ * Backup export â†’ import round-trip via the actual UI.
  *
  * Existing backup.spec.ts tests validate the schema and the lib
  * functions. This test goes further: opens Settings, clicks the
@@ -15,7 +15,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as helpers from './helpers';
 
-const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'https://contractions.ashbi.ca/';
+const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:8765/';
 const DOWNLOAD_DIR = '/tmp/olive-test-downloads';
 fs.mkdirSync(DOWNLOAD_DIR, { recursive: true });
 
@@ -60,7 +60,7 @@ test('backup-flow: export from Settings, then import back, data preserved', asyn
   await settingsBtn.click({ force: true });
   await page.waitForTimeout(1_000);
 
-  // Find the Backup card in settings — it's the one with "Export & restore" subtitle
+  // Find the Backup card in settings â€” it's the one with "Export & restore" subtitle
   const backupCard = page.getByRole('button').filter({ hasText: /Backup/i }).first();
   if ((await backupCard.count()) === 0) {
     test.skip(true, 'Backup card not found in Settings');

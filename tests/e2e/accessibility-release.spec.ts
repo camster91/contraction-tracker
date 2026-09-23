@@ -37,7 +37,6 @@ test('mobile viewport permits user zoom', async ({ page }) => {
 test('bottom sheets expose modal semantics and keep keyboard focus inside', async ({ page }) => {
   const sheets: Array<{ button: string | RegExp; dialog: string | RegExp }> = [
     { button: 'Settings', dialog: 'Settings' },
-    { button: 'Share with partner', dialog: 'Share with partner' },
     { button: 'Hospital bag: 0/12 packed', dialog: 'Hospital bag' },
     { button: 'Exams: Log exam', dialog: 'Hospital exams' },
     { button: 'People: Add contacts', dialog: 'People' },
@@ -78,7 +77,7 @@ test('onboarding step controls have at least 24 by 24 CSS pixel targets', async 
   await page.evaluate(() => localStorage.clear());
   await page.reload();
 
-  for (const step of [1, 2, 3]) {
+  for (const step of [1, 2]) {
     const box = await page.getByRole('button', { name: `Go to step ${step}` }).boundingBox();
     expect(box, `step ${step} should be visible`).not.toBeNull();
     expect(box!.width).toBeGreaterThanOrEqual(24);

@@ -43,21 +43,6 @@ test('gauntlet: app loads and renders the main timer screen', async ({ page }) =
   expect(errors, 'no uncaught errors during main loop').toHaveLength(0);
 });
 
-test('gauntlet: invalid share link shows graceful error, not crash', async ({ page }) => {
-  await page.goto(`${BASE_URL}?share=zzzzzz`, {
-    waitUntil: 'domcontentloaded',
-  });
-  await helpers.waitForApp(page);
-  await page.waitForTimeout(2_000);
-
-  // Body should still render something — the app should not crash on
-  // a malformed share code (ShareView.tsx:51 validates against the pattern).
-  const body = page.locator('body');
-  await expect(body).toBeVisible();
-  const text = (await body.textContent()) || '';
-  expect(text.length, 'page has content').toBeGreaterThan(50);
-});
-
 test('gauntlet: app survives offline / online flip', async ({ page }) => {
   await page.goto(BASE_URL, { waitUntil: 'domcontentloaded' });
   await helpers.waitForApp(page);

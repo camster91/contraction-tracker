@@ -26,7 +26,6 @@ test('responsibility can be assigned and completed offline', async ({ page }) =>
 
   const task = page.getByRole('article', { name: 'Bring the hospital bag' });
   await expect(task.getByText('Jordan')).toBeVisible();
-  await expect(task.getByText('Private')).toBeVisible();
   await task.getByRole('button', { name: 'Mark complete' }).click();
   await expect(task.getByRole('button', { name: 'Reopen responsibility' })).toBeVisible();
 

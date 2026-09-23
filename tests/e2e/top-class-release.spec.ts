@@ -16,7 +16,6 @@ test('labor screen keeps preparation tools behind one clear disclosure', async (
   await page.goto('/');
   await waitForApp(page);
 
-  await expect(page.getByRole('button', { name: /Share with partner/i }).first()).toBeVisible();
   await expect(page.getByRole('button', { name: /More tools/i })).toBeVisible();
   await expect(page.getByRole('button', { name: /Hospital bag:/i })).toBeHidden();
 
