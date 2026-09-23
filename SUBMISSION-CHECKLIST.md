@@ -147,18 +147,18 @@ TestFlight is at the top of App Store Connect (My Apps > Olive > TestFlight tab)
 
 | Day | Action | Owner | Time |
 |---|---|---|---|
-| **Today (June 9)** | Run 95 gauntlet tests one more time | Me | 5 min |
-| June 9 | Generate fresh screenshots | Me (done) | 10 min |
-| June 9 | Pre-fill store fields doc | Me (done) | 10 min |
-| June 9 | Send "ready to ship" email with all artifacts | Me | 5 min |
-| **June 10** | iOS: `xcodebuild -license` + archive | Cam | 15 min |
-| June 10 | iOS: sign + upload in Xcode Organizer | Cam | 30 min |
-| June 10 | Android: create Play Console listing, upload AAB | Cam | 45 min |
-| June 10 | Send user-testing recruitment to 5 people | Cam | 15 min |
-| **June 11** | Monitor reviews, fix any critical bugs | Both | ongoing |
-| **June 12** | Both stores in review. Promote Android to production. | Cam | 30 min |
-| June 13-14 | Final verification, no last-minute changes | Both | — |
-| **June 14-15** | LIVE. Push notifications, email list, social media | Cam | — |
+| **Day 1** | Run 95 gauntlet tests one more time | Me | 5 min |
+| Day 1 | Generate fresh screenshots | Me (done) | 10 min |
+| Day 1 | Pre-fill store fields doc | Me (done) | 10 min |
+| Day 1 | Send "ready to ship" email with all artifacts | Me | 5 min |
+| **Day 2** | iOS: `xcodebuild -license` + archive | Cam | 15 min |
+| Day 2 | iOS: sign + upload in Xcode Organizer | Cam | 30 min |
+| Day 2 | Android: create Play Console listing, upload AAB | Cam | 45 min |
+| Day 2 | Send user-testing recruitment to 5 people | Cam | 15 min |
+| **Day 3** | Monitor reviews, fix any critical bugs | Both | ongoing |
+| **Day 4** | Both stores in review. Promote Android to production. | Cam | 30 min |
+| Day 5-6 | Final verification, no last-minute changes | Both | — |
+| **Day 6-7** | LIVE. Push notifications, email list, social media | Cam | — |
 
 ---
 
