@@ -223,6 +223,6 @@ PRODUCTION TRACK (after internal testing passes)
 WHAT TO UPLOAD
 ════════════════════════════════════════════════════════════════════════════
 - Signed AAB: android/app/build/outputs/bundle/release/app-release.aab
-  Signed with Olive upload key (CN=Cameron Ashley, O=Ashbi Design, C=CA)
-  SHA-256: 916256d46e9879c5c2ae8813ce4ccaaa234d6f43dee5a1daf0e76bc35a4fadc5
-  Valid until: 2094-06-07
+  Signed with Olive upload key (CN=Olive, OU=Mobile, O=Ashbi, L=Toronto, ST=Ontario, C=CA)
+  SHA-256: 8c1f1ff9b79e314ff88f29b734c28a60662a22d8968d3e4d14981da77640fbc5
+  Valid until: 2095-03-05

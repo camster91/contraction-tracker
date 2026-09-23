@@ -12,7 +12,7 @@ devices. Useful for:
 
 - Size: 4.4MB
 - SHA-256: `4c91d2cd4f4a4fc6a148a80b3e9db0774bd38cbd15759c4d4ff5730ae5832a91`
-- Signed with: Olive upload key (CN=Cameron Ashley, O=Ashbi Design, C=CA)
+- Signed with: Olive upload key (CN=Olive, OU=Mobile, O=Ashbi, L=Toronto, ST=Ontario, C=CA)
 - Targets: Android 7.0+ (API 24+)
 
 ## Sideload methods (pick one)
