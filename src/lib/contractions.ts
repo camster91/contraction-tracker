@@ -130,18 +130,6 @@ export function formatElapsed(totalSeconds: number): string {
   return `${sec}s`;
 }
 
-/** The 5-1-1 rule: contractions ~1 minute long, ~5 minutes apart, for ~1 hour.
- *  Returns true if the most recent hour of contractions roughly matches. */
-export function isFiveOneOne(contractions: Contraction[], now: number = Date.now()): boolean {
-  return isCarePlanPattern(contractions, {
-    providerName: '',
-    providerPhone: '',
-    intervalMinutes: 5,
-    durationSeconds: 60,
-    windowMinutes: 60,
-  }, now);
-}
-
 export type ContractionReminderPlan = {
   providerName: string;
   providerPhone: string;

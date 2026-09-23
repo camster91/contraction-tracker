@@ -11,7 +11,6 @@ import {
   deleteResponsibility,
   mergeJourney,
   normalizeJourney,
-  reconcileSharedResponsibilityCompletions,
   updateJourneyProfile,
   updateJourneyEntry,
   updateProviderQuestion,
@@ -195,24 +194,6 @@ test('responsibilities support assignment and idempotent completion', () => {
   const completedAgain = updateResponsibility(completed, 'task-1', { completedAt: NOW }, NOW);
   assert.equal(completedAgain.responsibilities[0].completedAt, NOW);
   assert.deepEqual(deleteResponsibility(completedAgain, 'task-1', NOW).responsibilities, []);
-});
-
-test('shared responsibility reconciliation applies the remote completion state without touching private work', () => {
-  const journey = createDefaultJourney(NOW, 'shared-responsibilities');
-  const shared = updateResponsibility(
-    addResponsibility(journey, { title: 'Bring the bag' }, NOW, 'shared-task'),
-    'shared-task',
-    { private: false },
-    NOW,
-  );
-  const local = addResponsibility(shared, { title: 'Keep this private' }, NOW, 'private-task');
-
-  const reconciled = reconcileSharedResponsibilityCompletions(local, [
-    { id: 'shared-task', completedAt: '2026-08-09T01:00:00.000Z' },
-  ], '2026-08-09T01:05:00.000Z');
-
-  assert.equal(reconciled.responsibilities.find((item) => item.id === 'shared-task').completedAt, '2026-08-09T01:00:00.000Z');
-  assert.equal(reconciled.responsibilities.find((item) => item.id === 'private-task').completedAt, undefined);
 });
 
 test('journey entries normalize dates and remain private by default', () => {

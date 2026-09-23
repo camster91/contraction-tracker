@@ -1,4 +1,4 @@
-// Session / People / Share data model.
+// Session / People data model.
 //
 // All fields are additive and read with safe defaults so v1.6 data
 // (with no sessionId) still works. Old contractions belong to the
@@ -25,23 +25,9 @@ export type Person = {
   createdAt: string;
 };
 
-export type Share = {
-  id: string;            // short code used in the URL (e.g. "olive-3kf8")
-  sessionId: string;
-  mode?: string;         // 'partner' | 'friends' — default 'partner'
-  pin?: string;          // optional 4-digit PIN
-  state?: 'prenatal' | 'labor' | 'postpartum' | 'archived'; // default 'prenatal'
-  expiresAt: string;     // ISO
-  revoked: boolean;
-  createdAt: string;
-  lastOpenedAt?: string; // for showing "last viewed 3m ago" to the host
-  journeyPermissions?: Array<'responsibilities:read' | 'responsibilities:complete'>;
-};
-
 // ---- localStorage keys ----
 const SESSIONS_KEY = 'contraction-tracker:sessions';
 const PEOPLE_KEY = 'contraction-tracker:people';
-const SHARES_KEY = 'contraction-tracker:shares';
 const ACTIVE_SESSION_KEY = 'contraction-tracker:active-session';
 
 // ---- helpers (with shadow mirrors for corruption recovery, same pattern as storage.ts) ----
@@ -167,114 +153,6 @@ export function deletePerson(id: string) {
   setPeople(getPeople().filter((p) => p.id !== id));
 }
 
-// ---- Shares ----
-
-export function getShares(): Share[] {
-  const arr = readJSON<Share[]>(SHARES_KEY, []);
-  // Filter out expired/revoked shares so the UI only shows live ones.
-  // This also acts as garbage collection — old 30-day-TTL shares
-  // (from before the 7-day switch) eventually self-clean.
-  return arr.filter(isShareValid);
-}
-
-export function setShares(shares: Share[]) {
-  writeJSON(SHARES_KEY, shares);
-}
-
-/** Generate a short, URL-friendly code that's hard to guess. */
-function generateShareCode(): string {
-  // 6 chars, lowercase + digits, omit ambiguous chars (0/o, 1/l/i)
-  const alphabet = 'abcdefghjkmnpqrstuvwxyz23456789';
-  let out = '';
-  for (let i = 0; i < 6; i++) {
-    out += alphabet[Math.floor(Math.random() * alphabet.length)];
-  }
-  return out;
-}
-
-export type CreateShareResult =
-  | { kind: 'reused'; share: Share; previousMode?: string }
-  | { kind: 'created'; share: Share };
-
-export function createShare(input: {
-  sessionId: string;
-  // Optional id override — used by handleCreate to pass the relay's
-  // returned code so the local shares array and the relay row point at
-  // the same id. Without this, the local store and the relay each
-  // generated their own code and the host-marker / partner-URL lookups
-  // would miss when the two didn't happen to collide.
-  id?: string;
-  ttlHours?: number;
-  pin?: string;
-  mode?: string;
-  journeyPermissions?: Array<'responsibilities:read' | 'responsibilities:complete'>;
-}): CreateShareResult {
-  // One share per session. If an active share already exists for this
-  // session, return it instead of creating a new one. This means the
-  // partner with the existing code keeps seeing live updates as the
-  // session progresses — no broken links, no multiple codes to track.
-  const existing = getShares();
-  const active = existing.find(
-    (s) => s.sessionId === input.sessionId && isShareValid(s),
-  );
-  if (active) {
-    // Update mode if the user is upgrading from "friends" to "partner"
-    // or vice versa. Keep the same code.
-    const previousMode = active.mode;
-    if (input.mode && input.mode !== active.mode) {
-      active.mode = input.mode;
-      setShares(existing);
-    }
-    return { kind: 'reused', share: active, previousMode };
-  }
-  const id = input.id || generateShareCode();
-  // Ensure unique across all sessions (defensive — should not collide
-  // with input.id since the relay guarantees uniqueness; only matters
-  // for the locally-generated fallback).
-  if (existing.find((s) => s.id === id)) {
-    return createShare(input);
-  }
-  const ttl = input.ttlHours ?? 168; // 7 days default — long enough to
-  // cover early labor through postpartum; short enough that an
-  // abandoned share self-destructs within a week.
-  const share: Share = {
-    id,
-    sessionId: input.sessionId,
-    mode: input.mode || 'full',
-    pin: input.pin,
-    state: 'prenatal',
-    expiresAt: new Date(Date.now() + ttl * 60 * 60 * 1000).toISOString(),
-    revoked: false,
-    createdAt: new Date().toISOString(),
-    journeyPermissions: input.journeyPermissions ?? [],
-  };
-  setShares([...existing, share]);
-  return { kind: 'created', share };
-}
-
-export function getShare(id: string): Share | null {
-  return getShares().find((s) => s.id === id) || null;
-}
-
-export function revokeShare(id: string) {
-  setShares(getShares().map((s) => (s.id === id ? { ...s, revoked: true } : s)));
-}
-
-export function isShareValid(share: Share | null): share is Share {
-  if (!share) return false;
-  if (share.revoked) return false;
-  if (new Date(share.expiresAt).getTime() < Date.now()) return false;
-  return true;
-}
-
-export function markShareOpened(id: string) {
-  setShares(getShares().map((s) => (s.id === id ? { ...s, lastOpenedAt: new Date().toISOString() } : s)));
-}
-
-export function setShareState(id: string, state: 'prenatal' | 'labor' | 'postpartum' | 'archived') {
-  setShares(getShares().map((s) => (s.id === id ? { ...s, state } : s)));
-}
-
 // ---- Contraction filter by session ----
 
 /** Get the sessionId for a contraction. Old data (no sessionId) → primary. */
@@ -301,81 +179,4 @@ export function migrateContractionsToSessions(contractions: Contraction[]): Cont
     return c;
   });
   return changed ? out : contractions;
-}
-
-// ---- Host display name ------------------------------------------------
-// The host's display name is the author name attached to status
-// updates and Baby-is-here posts in the partner's activity feed.
-// Stored in localStorage so the host can customize it (and so
-// partners see "Bianca" instead of "Host" when the host posts).
-// The fallback is "Host" so the relay is never called with an
-// empty authorName (the relay's `authorName` field is required).
-//
-// The `olive:host-name` localStorage key is intentionally NOT
-// session-scoped. The host is a single person per device; a
-// per-session name would force the host to re-enter it on every
-// new session.
-const HOST_NAME_KEY = 'olive:host-name';
-const DEFAULT_HOST_NAME = 'Host';
-
-export function getHostName(): string {
-  try {
-    const v = localStorage.getItem(HOST_NAME_KEY);
-    if (v && v.trim()) return v.trim().slice(0, 40);
-  } catch { /* localStorage may be disabled; fall through */ }
-  return DEFAULT_HOST_NAME;
-}
-
-export function setHostName(name: string): void {
-  try {
-    const trimmed = name.trim().slice(0, 40);
-    if (trimmed) localStorage.setItem(HOST_NAME_KEY, trimmed);
-    else localStorage.removeItem(HOST_NAME_KEY);
-  } catch { /* best-effort */ }
-}
-
-// ---- Birth journal (private to the host) -------------------------------
-// The Baby is here modal collects structured birth stats (weight,
-// length, birth time) for the host's personal records. These
-// fields are private to the host and are NOT shared with the
-// partner's activity feed — they go only into localStorage.
-//
-// A future Settings/journal surface will let the host export
-// or view this data. For now it's stored, not surfaced, because
-// the immediate goal is to prevent PII leakage via the relay.
-// The previous version (pre-T32) posted name + weight + length
-// + birth time to the relay as a single message, where it
-// persisted forever and was broadcast to anyone holding the
-// share link.
-
-export type BirthStats = {
-  name: string;
-  weightLbs: number | null;
-  weightKg: number | null;
-  lengthIn: number | null;
-  lengthCm: number | null;
-  birthTime: string | null; // ISO 8601
-  recordedAt: string; // ISO 8601
-};
-
-const JOURNAL_KEY_PREFIX = 'olive:journal:';
-
-function journalKey(shareId: string): string {
-  return `${JOURNAL_KEY_PREFIX}${shareId}`;
-}
-
-export function saveBirthStats(shareId: string, stats: BirthStats): void {
-  try {
-    localStorage.setItem(journalKey(shareId), JSON.stringify(stats));
-  } catch { /* best-effort — quota errors don't block the celebration */ }
-}
-
-export function getBirthStats(shareId: string): BirthStats | null {
-  try {
-    const raw = localStorage.getItem(journalKey(shareId));
-    if (!raw) return null;
-    return JSON.parse(raw) as BirthStats;
-  } catch {
-    return null;
-  }
 }
