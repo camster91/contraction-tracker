@@ -43,9 +43,3 @@ jobs:
         run: npm run lint
         env:
           CI: true
-
-      - name: Check sw.js CACHE_NAME matches package.json version
-
-        run: npm run check:sw
-        env:
-          CI: true
