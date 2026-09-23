@@ -34,8 +34,12 @@ The contraction timer remains the primary labor action. Olive does not infer a m
 - Version: `1.3.0` (`versionCode 6`)
 - Release command: `.\android\gradlew.bat -p android bundleRelease assembleRelease`
 - Signed AAB: `android/app/build/outputs/bundle/release/app-release.aab`
-  - Record the SHA-256 and JAR-signature check here after building.
-- Gradle `clean bundleRelease assembleRelease` must be re-run for the v1.3.0 bundle.
+- Built 2026-09-23 from main `c1bed1e` on CAM-DESKTOP (Temurin JDK 21, Android SDK build-tools 36.1.0):
+  - AAB SHA-256: `8c1f1ff9b79e314ff88f29b734c28a60662a22d8968d3e4d14981da77640fbc5` (4,916,615 bytes)
+  - Tester APK SHA-256: `76c148b85a07dd60c0cd2cc9ee4aea6d47fee42e6fa2b700ecbf8893f8b333e5` (5,127,001 bytes, `app-release.apk`)
+  - JAR-signature check: `jarsigner -verify app-release.aab` → "jar verified."; `apksigner verify` on the APK confirms the upload key (SHA-256 `795331565b4325bd05c84817b30ddfbc9dc3c674fe432af6ef423b24c7739407`, CN=Olive, OU=Mobile, O=Ashbi)
+  - Badging: `package: name='com.ashbi.olive' versionCode='6' versionName='1.3.0'`
+- Upload keystore: `android/app/olive-upload.keystore` (alias `olive`, generated 2026-09-23, validity 25,000 days). It is gitignored; passwords are in `android/app/keystore.properties` (also gitignored). **Back up both — losing the upload key requires a Google Play key reset to ever update the app.**
 
 ## iOS
 

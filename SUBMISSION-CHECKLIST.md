@@ -120,7 +120,7 @@ Send the recruitment message from `docs/USER-TESTING.md` to:
 
 For Android testers, send the universal APK at
 `android/app/build/outputs/apk/release/app-release.apk`
-(4.4MB, sideloadable to any Android 7.0+ device)
+(~5.1MB, sideloadable to any Android 7.0+ device)
 
 For iOS testers, use the TestFlight build once Apple processes it.
 TestFlight is at the top of App Store Connect (My Apps > Olive > TestFlight tab).
