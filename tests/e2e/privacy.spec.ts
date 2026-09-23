@@ -4,12 +4,12 @@
  * that removed `serve -s` SPA-mode (which was rewriting /privacy/ to
  * the main app's index.html and hiding the privacy page entirely).
  *
- * The URL `https://contractions.ashbi.ca/privacy` must serve a static
+ * The URL `https://olive.ashbi.ca/privacy` must serve a static
  * HTML page with the privacy policy content, NOT the main app shell.
  */
 import { test, expect } from '@playwright/test';
 
-const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'https://contractions.ashbi.ca/';
+const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:8765/';
 const PRIVACY_URL = `${BASE_URL}privacy`;
 
 test('privacy: /privacy/ returns the privacy policy, not the main app', async ({ request }) => {
@@ -26,8 +26,8 @@ test('privacy: /privacy/ returns the privacy policy, not the main app', async ({
   expect(body).toContain('Olive');
   // And the key no-tracking commitment
   expect(body).toContain('zero analytics SDKs');
-  // And the relay URL
-  expect(body).toContain('relay.ashbi.ca');
+  // And the on-device data commitment
+  expect(body).toContain('your device');
 });
 
 test('privacy: page renders visibly in a real browser (not blank, no console errors)', async ({ page }) => {
@@ -49,8 +49,8 @@ test('privacy: page renders visibly in a real browser (not blank, no console err
   const bodyText = (await page.locator('body').textContent()) || '';
   expect(bodyText.length, 'Privacy page must have content').toBeGreaterThan(500);
 
-  // Back link to the app
-  const backLink = page.locator('a[href="/"]').first();
+  // Back link to the support site
+  const backLink = page.locator('a[href="https://olive.ashbi.ca"]').first();
   await expect(backLink).toBeVisible();
 
   // No CSP / font / image errors in the console
@@ -82,5 +82,5 @@ test('privacy: privacy-policy.md is the source of the privacy page', async () =>
   const content = fs.readFileSync(policyPath, 'utf-8');
   expect(content.toLowerCase()).toContain('privacy policy');
   expect(content).toContain('Olive');
-  expect(content).toContain('shared-session data');
+  expect(content).toContain('your device');
 });

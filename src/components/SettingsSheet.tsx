@@ -1,8 +1,7 @@
 // Settings sheet — bottom overlay with theme, time format, quiet hours, backup, and version
-import { useEffect, useState, type Dispatch, type SetStateAction } from 'react';
+import { type Dispatch, type SetStateAction } from 'react';
 import { Cog, Moon, Download, Share2, Upload } from 'lucide-react';
 import { type CarePlan, type MuteSchedule, isInQuietHours } from '../lib/settings';
-import { getHostName, setHostName } from '../lib/sessions';
 import { useModalDialog } from '../hooks/useModalDialog';
 
 interface SettingsSheetProps {
@@ -18,7 +17,6 @@ interface SettingsSheetProps {
   setHour12: (v: boolean) => void;
   handleExportBackup: () => void;
   handleSendVia: () => void;
-  handleAppUpdate: () => void;
   fileInputRef: React.RefObject<HTMLInputElement | null>;
   appVersion: string;
   onClose: () => void;
@@ -37,27 +35,11 @@ export default function SettingsSheet({
   setHour12,
   handleExportBackup,
   handleSendVia,
-  handleAppUpdate,
   fileInputRef,
   appVersion,
   onClose,
 }: SettingsSheetProps) {
   const dialogRef = useModalDialog(onClose);
-  // Host display name (separate from props — owned by this sheet
-  // because it's a write-target for the host, not a global state).
-  // The partner view shows this name as the author of all host
-  // posts. Default 'Host' (see getHostName helper) — the host
-  // can change it here to "Bianca" or any name they want their
-  // circle to see.
-  const [hostName, setHostNameLocal] = useState<string>('');
-  useEffect(() => {
-    setHostNameLocal(getHostName());
-  }, []);
-  const handleHostNameChange = (v: string) => {
-    const trimmed = v.slice(0, 40);
-    setHostNameLocal(trimmed);
-    setHostName(trimmed);
-  };
   return (
     <>
       <div
@@ -142,32 +124,6 @@ export default function SettingsSheet({
             </div>
             <div className="mt-2 text-[10px] text-sage-300">
               Every {carePlan.intervalMinutes} min · lasting {carePlan.durationSeconds} sec · for {carePlan.windowMinutes} min
-            </div>
-          </div>
-
-          {/* Host display name. The host's posts (status updates,
-              baby-is-here) appear in the partner view with this
-              name as the author. Default 'Host' (per the getHostName
-              helper) — set it to your name so the partner (a parent,
-              a sibling, a doula) sees a real person posting. */}
-          <div className="mb-3">
-            <label
-              htmlFor="host-name-input"
-              className="block text-[10px] uppercase tracking-[0.15em] text-ink-400 font-semibold mb-1.5"
-            >
-              Your name (visible to your circle)
-            </label>
-            <input
-              id="host-name-input"
-              type="text"
-              value={hostName}
-              onChange={(e) => handleHostNameChange(e.target.value)}
-              placeholder="e.g. Bianca"
-              maxLength={40}
-              className="w-full bg-ink-100/5 border border-ink-200/30 rounded-xl px-3 py-2 text-sm text-ink-50 placeholder:text-ink-500 focus:outline-none focus:border-rose-300/50"
-            />
-            <div className="text-[10px] text-ink-500 mt-1">
-              Posts from this device will be signed with this name. Leave blank to stay anonymous.
             </div>
           </div>
 
@@ -319,7 +275,7 @@ export default function SettingsSheet({
             </div>
           </div>
 
-          {/* Version & update */}
+          {/* Version */}
           <div className="border-t border-ink-200/20 mt-3 pt-3">
             <div className="flex items-center justify-between mb-2">
               <div>
@@ -327,14 +283,8 @@ export default function SettingsSheet({
                 <div className="text-[11px] text-ink-300 mt-0.5">Olive v{appVersion}</div>
               </div>
             </div>
-            <button
-              onClick={handleAppUpdate}
-              className="w-full bg-rose-300 active:bg-rose-400 text-plum-950 rounded-xl py-2.5 text-sm font-semibold transition-colors"
-            >
-              Update to latest version
-            </button>
             <div className="text-[9px] text-ink-600 mt-1.5 text-center">
-              Clears old cache and loads the newest version. Your data is safe.
+              Updates arrive through the App Store or Play Store.
             </div>
           </div>
         </div>

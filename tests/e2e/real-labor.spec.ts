@@ -1,5 +1,5 @@
-/**
- * "Real labor" stress test — simulates a 3-hour active labor
+﻿/**
+ * "Real labor" stress test â€” simulates a 3-hour active labor
  * pattern. The user opens the app at 3am with active contractions.
  *
  * Pattern simulated:
@@ -12,7 +12,7 @@
  *   - 7th contraction: 90s, gap 2.5min
  *   - 8th contraction: 95s (last one)
  *
- * This is the "early labor → active labor" pattern that doctors
+ * This is the "early labor â†’ active labor" pattern that doctors
  * look for. The 5-1-1 rule is: contractions every 5 min, lasting
  * 1 min, for 1 hour. With this test, the 5th contraction triggers
  * 5-1-1 and the app should show "Time to call your provider."
@@ -27,7 +27,7 @@
 import { test, expect } from '@playwright/test';
 import * as helpers from './helpers';
 
-const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'https://contractions.ashbi.ca/';
+const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:8765/';
 
 test('real-labor: a sustained timing pattern triggers the saved reminder', async ({ page }) => {
   await page.goto(BASE_URL, { waitUntil: 'domcontentloaded' });
@@ -41,7 +41,7 @@ test('real-labor: a sustained timing pattern triggers the saved reminder', async
 
   // Simulate 1 hour of contractions (isFiveOneOne only looks at
   // the last hour). Pattern: progressively shorter gaps + longer
-  // durations, simulating the "early labor → active labor" curve.
+  // durations, simulating the "early labor â†’ active labor" curve.
   // 5 contractions: 60s, 65s, 70s, 75s, 80s with 4-min gaps = 20 min total.
   await page.evaluate(() => {
     const now = Date.now();
@@ -125,7 +125,7 @@ test('real-labor: backup export from active-labor state contains all 8', async (
   });
   expect(count).toBe(8);
 
-  // Now find the export path — we need to navigate to Settings, but the
+  // Now find the export path â€” we need to navigate to Settings, but the
   // simpler test is: programmatically build a backup payload via the
   // lib, then verify it contains all 8.
   const backupSize = await page.evaluate(() => {

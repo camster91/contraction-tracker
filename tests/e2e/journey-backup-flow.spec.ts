@@ -67,6 +67,8 @@ test('v2 import merges journey records without overwriting healthy profile field
     current: null,
     sessions: [],
     people: [],
+    // Older versions of Olive wrote a `shares` key; imports must still
+    // succeed with it present (the key is ignored, not rejected).
     shares: [],
     exams: {},
     checklists: {},

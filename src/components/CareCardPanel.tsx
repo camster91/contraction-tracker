@@ -41,7 +41,7 @@ export default function CareCardPanel({ journey, onChange }: {
       <div>
         <h3 className="font-display text-xl text-ink-50">Care card</h3>
         <p className="text-[11px] text-ink-400 leading-relaxed mt-1">
-          Optional details owned by you. Nothing here is shared automatically.
+          Optional details owned by you. Everything stays on this device.
         </p>
       </div>
       <label className="block text-[11px] text-ink-300">

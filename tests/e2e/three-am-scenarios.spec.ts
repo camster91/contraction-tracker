@@ -1,5 +1,5 @@
-/**
- * "3am scenarios" — tests for the things that actually break when a
+﻿/**
+ * "3am scenarios" â€” tests for the things that actually break when a
  * real person is in labor at 3am. The happy path is easy. The
  * failure modes are not.
  *
@@ -21,7 +21,7 @@
 import { test, expect } from '@playwright/test';
 import * as helpers from './helpers';
 
-const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'https://contractions.ashbi.ca/';
+const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:8765/';
 
 test('3am: fast start/stop (5 seconds) records duration correctly', async ({ page }) => {
   await page.goto(BASE_URL, { waitUntil: 'domcontentloaded' });
@@ -75,7 +75,7 @@ test('3am: fast start/stop (5 seconds) records duration correctly', async ({ pag
   expect(result.durationSec, `Duration should be <10s, got ${result.durationSec}s`).toBeLessThanOrEqual(10);
 });
 
-test('3am: many contractions in sequence (200) — all stored, no data loss', async ({ page }) => {
+test('3am: many contractions in sequence (200) â€” all stored, no data loss', async ({ page }) => {
   await page.goto(BASE_URL, { waitUntil: 'domcontentloaded' });
   await helpers.waitForApp(page);
 
@@ -120,7 +120,7 @@ test('3am: many contractions in sequence (200) — all stored, no data loss', as
   expect(bodyText.length, 'Page should have rendered with 200 contractions').toBeGreaterThan(50);
 });
 
-test('3am: stale active contraction in storage (end === null) on app boot — graceful', async ({ page }) => {
+test('3am: stale active contraction in storage (end === null) on app boot â€” graceful', async ({ page }) => {
   await page.goto(BASE_URL, { waitUntil: 'domcontentloaded' });
   await helpers.waitForApp(page);
 
@@ -151,7 +151,7 @@ test('3am: stale active contraction in storage (end === null) on app boot — gr
   expect(bodyText.length).toBeGreaterThan(50);
 
   // The page should NOT show the "in progress" timer (because the
-  // contraction started over an hour ago — it's clearly abandoned).
+  // contraction started over an hour ago â€” it's clearly abandoned).
   // We're not asserting the exact UI state here, just that the app
   // didn't white-screen.
   const hasErrorBoundary = /something went wrong|error boundary/i.test(bodyText);
@@ -193,39 +193,4 @@ test('3am: a short cluster stays observational and does not diagnose labor', asy
   expect(bodyText).toMatch(/Frequent contractions|Pattern building/);
   expect(bodyText).not.toContain('Saved care-plan reminder');
   expect(bodyText).not.toMatch(/active labor|time to call|head to the hospital/i);
-});
-
-test('3am: app loads offline after first visit (SW cache works)', async ({ page, context }) => {
-  // First visit: app loads, the worker controls the page, and the shell is cached.
-  await page.goto(BASE_URL, { waitUntil: 'domcontentloaded' });
-  await helpers.waitForApp(page);
-
-  const serviceWorker = await page.evaluate(async () => {
-    const registration = await navigator.serviceWorker.ready;
-    if (!navigator.serviceWorker.controller) {
-      await new Promise<void>((resolve) => {
-        navigator.serviceWorker.addEventListener('controllerchange', () => resolve(), { once: true });
-      });
-    }
-    const cacheNames = await caches.keys();
-    return {
-      active: Boolean(registration.active),
-      controlled: Boolean(navigator.serviceWorker.controller),
-      cacheNames,
-    };
-  });
-
-  expect(serviceWorker.active, 'service worker should be active before going offline').toBe(true);
-  expect(serviceWorker.controlled, 'service worker should control the page before going offline').toBe(true);
-  expect(serviceWorker.cacheNames.some((name) => name.startsWith('olive-v')), 'app shell cache should exist').toBe(true);
-
-  // Second visit: set network offline, reload
-  await context.setOffline(true);
-  try {
-    await page.reload({ waitUntil: 'domcontentloaded', timeout: 10_000 });
-    const bodyText = (await page.locator('body').textContent()) || '';
-    expect(bodyText.length, 'App should still render from SW cache when offline').toBeGreaterThan(100);
-  } finally {
-    await context.setOffline(false);
-  }
 });

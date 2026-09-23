@@ -4,7 +4,6 @@ import {
   Plus,
   Square,
   Trash2,
-  Share2,
   Download,
   AlertTriangle,
   Pencil,
@@ -24,7 +23,6 @@ import {
   Stethoscope,
   Mic,
   MicOff,
-  BookOpen,
   Clock,
 } from 'lucide-react';
 import {
@@ -86,8 +84,6 @@ import Timeline from './components/Timeline';
 import FrequencyChart from './components/FrequencyChart';
 import SessionsSheet from './components/SessionsSheet';
 import PeopleSheet from './components/PeopleSheet';
-import ShareSheet from './components/ShareSheet';
-import ActivityFeed from './components/ActivityFeed';
 import ChecklistSheet from './components/ChecklistSheet';
 import SettingsSheet from './components/SettingsSheet';
 import HospitalSheet from './components/HospitalSheet';
@@ -101,22 +97,14 @@ import {
   createSession,
   getSessions,
   getActiveSessionId,
-  getHostName,
   getPeople,
-  getShares,
   migrateContractionsToSessions,
-  sessionIdOf,
   type Session,
   type Person,
-  type Share,
 } from './lib/sessions';
 import { getChecklist, packedCount, saveChecklist, type ChecklistItem } from './lib/checklist';
 import { getExams, type CervicalExam } from './lib/hospital';
-import { postMessage, PostMessageError } from './lib/feed';
-import { getShareEventStreamUrl, pullJourneyFromRelay, pushContractionsToRelay, pushJourneyToRelay, postContractionEventToRelay, RELAY_URL, getShareAuthorizationHeaders } from './lib/relay';
-import { getOrCreateClientId } from './lib/identity';
 import Onboarding from './components/Onboarding';
-import BabyIsHereMount from './components/BabyIsHereMount';
 import TagFilter from './components/TagFilter';
 import HistoryHeader from './components/HistoryHeader';
 import TodayPanel from './components/TodayPanel';
@@ -124,7 +112,6 @@ import JourneySheet from './components/JourneySheet';
 import {
   getJourney,
   mergeJourney,
-  reconcileSharedResponsibilityCompletions,
   saveJourney,
   updateJourneyPhase,
   type JourneyDocument,
@@ -172,11 +159,6 @@ export default function App() {
     return valid;
   });
   const [current, setCurrent] = useState<Contraction | null>(() => load(SESSION_KEY, null));
-  // T5: partner's in-progress contraction, polled from the relay. Distinct
-  // from `current` (the host's own timer) — both can coexist when the
-  // partner is timing remotely and the host's local timer is null.
-  const [partnerCurrent, setPartnerCurrent] = useState<{ start: number; author: string | null } | null>(null);
-  const myClientId = useMemo(() => getOrCreateClientId(), []);
   const [now, setNow] = useState(Date.now());
   const [editingId, setEditingId] = useState<string | null>(null);
   const [intensityDraft, setIntensityDraft] = useState<string>('');
@@ -188,13 +170,11 @@ export default function App() {
   const [muteSchedule, setMuteScheduleState] = useState<MuteSchedule>(() => getMuteSchedule());
   const [carePlan, setCarePlanState] = useState<CarePlan>(() => getCarePlan());
   const [journey, setJourney] = useState<JourneyDocument>(() => getJourney());
-  const [journeySharingReady, setJourneySharingReady] = useState(false);
   const [tagFilter, setTagFilter] = useState<string | null>(null);
   const [tagsDraft, setTagsDraft] = useState<string[]>([]);
   const [showSettings, setShowSettings] = useState(false);
   const [showSessions, setShowSessions] = useState(false);
   const [showPeople, setShowPeople] = useState(false);
-  const [showShare, setShowShare] = useState<string | null>(null); // sessionId or null
   const [sessions, setSessions] = useState<Session[]>(() => getSessions());
   const [activeSessionId, setActiveId] = useState<string>(() => getActiveSessionId());
   const [voiceActive, setVoiceActive] = useState(false);
@@ -233,8 +213,6 @@ export default function App() {
   const [pendingRestore, setPendingRestore] = useState<Contraction | null>(null);
   const [pendingRestoreAt, setPendingRestoreAt] = useState<string | null>(null);
 
-  // State change toast — shown when the host manually changes the share's labor stage
-  const [stateToast, setStateToast] = useState<string | null>(null);
   const [backupError, setBackupError] = useState<string | null>(null);
 
   // Status update prompt removed in v1.0.1 (replaced by the inline
@@ -245,15 +223,12 @@ export default function App() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const journeyOpenerRef = useRef<HTMLButtonElement>(null);
 
-  // Backup reminder — show if no share link created in last 4+ hours and not dismissed
+  // Backup reminder — show if not dismissed recently and there is data to lose
   const [dismissedBannerAt, setDismissedBannerAt] = useState<number | null>(() => {
     const raw = localStorage.getItem(BACKUP_REMINDER_KEY);
     return raw ? JSON.parse(raw) : null;
   });
-  const shares = getShares();
-  const hasRecentShare = shares.some((s) => !s.revoked);
-  const showBackupBanner = !hasRecentShare
-    && !(dismissedBannerAt && Date.now() - dismissedBannerAt < 24 * 60 * 60 * 1000)
+  const showBackupBanner = !(dismissedBannerAt && Date.now() - dismissedBannerAt < 24 * 60 * 60 * 1000)
     && contractions.filter((c) => c.end).length > 0; // don't bug brand-new users with 0 finished contractions
 
   // Onboarding tooltip steps: null = dismissed, 0/1/2 = step
@@ -304,61 +279,6 @@ export default function App() {
     clearQuotaExceeded();
     setQuotaToast(false);
   };
-
-  // Auto-dismiss state change toast after 4 seconds
-  useEffect(() => {
-    if (!stateToast) return;
-    const timer = setTimeout(() => setStateToast(null), 4000);
-    return () => clearTimeout(timer);
-  }, [stateToast]);
-
-  // T5: Poll the relay for the in-progress timer of the active share.
-  // Adaptive cadence — 1s when a partner is timing (so the host's display
-  // feels live), 5s otherwise. Stops polling when there's no active share
-  // or the host is timing locally (no point showing a redundant pill).
-  useEffect(() => {
-    let cancelled = false;
-    let timer: ReturnType<typeof setTimeout> | null = null;
-    const tick = async () => {
-      if (cancelled) return;
-      try {
-        const activeShares = getShares().filter(
-          (s) => !s.revoked && s.sessionId === activeSessionId && (s.mode === 'full' || s.mode === 'track'),
-        );
-        if (activeShares.length === 0) {
-          setPartnerCurrent(null);
-        } else {
-          // First active share. (Same simplification as T2.)
-          const s = activeShares[0];
-          const r = await fetch(`${RELAY_URL}/api/shares/${s.id}/contractions`, {
-            headers: getShareAuthorizationHeaders(s.id),
-          });
-          if (r.ok) {
-            const data = await r.json();
-            const cur = data.current || null;
-            // Only show as partner-timer if the author isn't us AND the
-            // host isn't timing locally (the local timer UI takes priority).
-            if (cur && cur.author !== myClientId && !current) {
-              setPartnerCurrent({ start: cur.start, author: cur.author });
-            } else {
-              setPartnerCurrent(null);
-            }
-          } else {
-            setPartnerCurrent(null);
-          }
-        }
-      } catch { /* ignore — best effort */ }
-      if (cancelled) return;
-      // 1s when a partner is timing (smooth UI), 5s otherwise.
-      const next = partnerCurrent ? 1000 : 5000;
-      timer = setTimeout(tick, next);
-    };
-    tick();
-    return () => {
-      cancelled = true;
-      if (timer) clearTimeout(timer);
-    };
-  }, [current, activeSessionId, myClientId, partnerCurrent]);
 
   // Auto-discard stale in-progress timer. If a "current" contraction has been
   // running for more than 12 hours, it's almost certainly a forgotten timer
@@ -481,101 +401,12 @@ export default function App() {
     autoBackupJourney(journey).catch(() => {});
   }, [journey]);
 
-  // Pull the owner-visible, category-scoped responsibility state before the
-  // first automatic push. This prevents a reload from overwriting a partner's
-  // completed item with a stale local copy. Focus/online recovery uses the
-  // same merge path so the owner sees partner changes without a new account.
-  useEffect(() => {
-    let mounted = true;
-    const refreshSharedResponsibilities = async () => {
-      const shares = getShares().filter((share) => share.journeyPermissions?.includes('responsibilities:read'));
-      const snapshots = await Promise.all(shares.map((share) => pullJourneyFromRelay(share.id)));
-      if (!mounted) return;
-      setJourney((currentJourney) => snapshots.reduce((nextJourney, snapshot) => (
-        snapshot
-          ? reconcileSharedResponsibilityCompletions(nextJourney, snapshot.responsibilities)
-          : nextJourney
-      ), currentJourney));
-      setJourneySharingReady(true);
-    };
-    void refreshSharedResponsibilities();
-    const streams = getShares()
-      .filter((share) => share.journeyPermissions?.includes('responsibilities:read'))
-      .flatMap((share) => {
-        try {
-          const stream = new EventSource(getShareEventStreamUrl(share.id));
-          stream.onmessage = (event) => {
-            try {
-              const payload = JSON.parse(event.data);
-              if (payload.type === 'journey' && payload.category === 'responsibilities') {
-                void refreshSharedResponsibilities();
-              }
-            } catch { /* malformed relay events never block local use */ }
-          };
-          return [stream];
-        } catch {
-          return [];
-        }
-      });
-    const onVisible = () => {
-      if (document.visibilityState === 'visible') void refreshSharedResponsibilities();
-    };
-    window.addEventListener('focus', onVisible);
-    document.addEventListener('visibilitychange', onVisible);
-    window.addEventListener('online', onVisible);
-    return () => {
-      mounted = false;
-      window.removeEventListener('focus', onVisible);
-      document.removeEventListener('visibilitychange', onVisible);
-      window.removeEventListener('online', onVisible);
-      streams.forEach((stream) => stream.close());
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!journeySharingReady) return;
-    try {
-      const peopleById = new Map(getPeople().map((person) => [person.id, person]));
-      const sharedResponsibilities = journey.responsibilities
-        .filter((item) => !item.private)
-        .map((item) => ({
-          id: item.id,
-          title: item.title,
-          assigneeName: item.assigneePersonId ? peopleById.get(item.assigneePersonId)?.name : undefined,
-          phase: item.phase,
-          completedAt: item.completedAt ?? null,
-        }));
-      for (const share of getShares()) {
-        if (share.journeyPermissions?.includes('responsibilities:read')) {
-          pushJourneyToRelay(share.id, sharedResponsibilities).catch(() => {});
-        }
-      }
-    } catch { /* journey sharing remains best-effort and never blocks local persistence */ }
-  }, [journey, journeySharingReady]);
   useEffect(() => {
     save(SESSION_KEY, current);
     autoBackup(contractions, current).then((ok) => {
       if (ok) setSavedAt(new Date());
     });
     broadcastCurrent(current);
-    // Auto-sync to relay if a share is active for this session
-    try {
-      const activeShares = getShares().filter(s => !s.revoked && s.sessionId === activeSessionId);
-      for (const s of activeShares) {
-        // Only push contractions from THIS session — not all of them.
-        // Otherwise switching sessions would leak old data into the
-        // partner's view.
-        const sessionContractions = contractionsInSession(contractions, s.sessionId);
-        const sessionCurrent = current && sessionIdOf(current) === s.sessionId ? current : null;
-        pushContractionsToRelay(s.id, sessionContractions, sessionCurrent).catch(() => {});
-      }
-    } catch { /* relay sync is best-effort */ }
-    // activeSessionId is intentionally NOT in the dep array: this effect
-    // should fire on contraction/timer changes, not on session switches.
-    // When the user switches sessions, the filter `s.sessionId === activeSessionId`
-    // re-evaluates on the next save, so the right share gets the right data
-    // without us re-running on every session tap.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [current, contractions]);
 
   useEffect(() => {
@@ -614,23 +445,6 @@ export default function App() {
   }, [current]);
 
   useEffect(() => {
-    // Register the PWA service worker (only in production; dev is unregister-then-reload)
-    if ('serviceWorker' in navigator && import.meta.env.PROD) {
-      navigator.serviceWorker.register('/sw.js').catch(() => {
-        /* PWA install is optional; fail silently */
-      });
-      // When the waiting worker takes over (via skipWaiting + clients.claim),
-      // reload the page so the new bundle is loaded. The Update button does
-      // this by posting 'SKIP_WAITING'; the auto-skipWaiting on install also
-      // triggers this for users who just leave the app open.
-      let reloading = false;
-      const onChange = () => {
-        if (reloading) return;
-        reloading = true;
-        window.location.reload();
-      };
-      navigator.serviceWorker.addEventListener('controllerchange', onChange);
-    }
     // Install the visibility-change re-acquire handler for the wake lock
     installWakeLockVisibilityHandler();
     // Release the wake lock if the page is being torn down
@@ -670,17 +484,6 @@ export default function App() {
     enableWakeLock();
     // Tactile feedback — vital when phone is in a pillow or screen is dim
     try { navigator.vibrate?.(80); } catch { /* unsupported */ }
-    // T4: emit the start event to the relay. Any active share for the
-    // current session gets a parallel /event call. The host's start flows
-    // through the relay so partner devices see it instantly.
-    try {
-      const activeShares = getShares().filter(
-        (s) => !s.revoked && s.sessionId === activeSessionId,
-      );
-      for (const s of activeShares) {
-        postContractionEventToRelay(s.id, { type: 'start' }).catch(() => {});
-      }
-    } catch { /* best-effort */ }
   };
 
   const handleStop = () => {
@@ -943,8 +746,8 @@ export default function App() {
       await navigator.clipboard.writeText(text);
       toast.success('Summary copied to clipboard');
     } catch {
-      // Last-resort fallback: the user has no clipboard, no share,
-      // no relay. Surface the text inline rather than blocking the
+      // Last-resort fallback: the user has no clipboard, no share
+      // sheet. Surface the text inline rather than blocking the
       // page with an alert. Long summaries wrap in a scrollable
       // pre so this stays usable.
       toast.info(text.length > 200 ? text.slice(0, 200) + '…' : text, { duration: 10_000 });
@@ -966,7 +769,6 @@ export default function App() {
   const handleExportBackup = async () => {
     const sessions = getSessions();
     const people = getPeople();
-    const shares = getShares();
     // Dynamically import to avoid circular deps and use proper ESM types
     const exams: Record<string, unknown[]> = {};
     for (const s of sessions) {
@@ -981,51 +783,12 @@ export default function App() {
       current,
       sessions,
       people,
-      shares,
       exams,
       checklists,
       journey,
     });
     downloadBackup(data);
     rotateBackup(data);
-  };
-
-  // ---- Safe app update (preserves data across SW reload) ----
-  // Tries the soft path first: if a new SW is waiting, just tell it to take
-  // over and the page reloads itself. Falls back to the heavy "unregister +
-  // wipe cache + reload" path if no worker is waiting (e.g. the page is being
-  // visited for the first time in a while and the install hasn't even run).
-  const handleAppUpdate = async () => {
-    if (!confirm('Update to the latest version? Your data is preserved and will be restored.')) return;
-    if ('serviceWorker' in navigator) {
-      const reg = await navigator.serviceWorker.getRegistration();
-      if (reg && reg.waiting) {
-        reg.waiting.postMessage('SKIP_WAITING');
-        // The new worker will call clients.claim(); we reload on controllerchange.
-        return;
-      }
-      if (reg && reg.installing) {
-        reg.installing.addEventListener('statechange', () => {
-          if (reg.installing && reg.installing.state === 'installed' && navigator.serviceWorker.controller) {
-            reg.installing.postMessage('SKIP_WAITING');
-          }
-        });
-        return;
-      }
-      // No waiting/incoming worker — do a fresh registration so the next
-      // page load picks up the latest sw.js.
-      try { await reg?.update(); } catch { /* ignore */ }
-    }
-    // Last-resort: unregister everything and reload to force a clean SW.
-    if ('serviceWorker' in navigator) {
-      const regs = await navigator.serviceWorker.getRegistrations();
-      await Promise.all(regs.map((r) => r.unregister()));
-    }
-    if ('caches' in window) {
-      const keys = await caches.keys();
-      await Promise.all(keys.map((k) => caches.delete(k)));
-    }
-    window.location.reload();
   };
 
   // ---- Backup import ----
@@ -1041,16 +804,14 @@ export default function App() {
       const migrated = migrateBackup(parsed, new Date().toISOString(), journey.profile.id);
       // Build existing maps using proper types. Previously these
       // were Map<string, { id: string }> with `as never[]` casts on
-      // the write-back (App.tsx:1014-1022). The casts hid real
-      // type errors — if the merged data shape was wrong, TS
-      // couldn't catch it. Using Person/Share/CervicalExam/ChecklistItem
-      // means TS will check both the read and the write.
+      // the write-back. The casts hid real type errors — if the merged
+      // data shape was wrong, TS couldn't catch it. Using Person/
+      // CervicalExam/ChecklistItem means TS will check both the read
+      // and the write.
       const allPeople = getPeople();
-      const allShares = getShares();
       const existingContractions = new Map<string, Contraction>(contractions.map((c) => [c.id, c]));
       const existingSessions = new Map<string, Session>(sessions.map((s) => [s.id, s]));
       const existingPeople = new Map<string, Person>(allPeople.map((p) => [p.id, p]));
-      const existingShares = new Map<string, Share>(allShares.map((sh) => [sh.id, sh]));
       const existingExams = new Map<string, Map<string, CervicalExam>>();
       const existingChecklists = new Map<string, Map<string, ChecklistItem>>();
 
@@ -1066,7 +827,6 @@ export default function App() {
         contractions: existingContractions,
         sessions: existingSessions,
         people: existingPeople,
-        shares: existingShares,
         exams: existingExams,
         checklists: existingChecklists,
       });
@@ -1074,9 +834,8 @@ export default function App() {
       // Apply merged data
       setContractions([...existingContractions.values()]);
       setSessions([...existingSessions.values()]);
-      const { setPeople, setShares } = await import('./lib/sessions');
+      const { setPeople } = await import('./lib/sessions');
       setPeople([...existingPeople.values()]);
-      setShares([...existingShares.values()]);
       setJourney(mergeJourney(journey, migrated.journey));
 
       // Persist exams and checklists
@@ -1102,7 +861,6 @@ export default function App() {
   const handleSendVia = async () => {
     const sessions = getSessions();
     const people = getPeople();
-    const shares = getShares();
     const exams: Record<string, unknown[]> = {};
     for (const s of sessions) {
       exams[s.id] = getExams(s.id);
@@ -1116,7 +874,6 @@ export default function App() {
       current,
       sessions,
       people,
-      shares,
       exams,
       checklists,
       journey,
@@ -1143,66 +900,6 @@ export default function App() {
     () => contractions.filter((c) => c.end).sort((a, b) => a.start.localeCompare(b.start)),
     [contractions],
   );
-
-  // Active share for the current session. Used to gate the inline
-  // status composer + Baby is here button. Only valid if there's a
-  // non-revoked share for the active session. Not memoized: a
-  // memoized version with dep [activeSessionId] would NOT re-run
-  // when the share is revoked (shares are stored in localStorage,
-  // and localStorage mutations don't trigger re-renders). For the
-  // tiny per-render cost of getShares() (a single JSON.parse),
-  // a plain read is the right call.
-  const activeShare = getShares().find(
-    (s) => s.sessionId === activeSessionId && !s.revoked,
-  ) || null;
-
-  // Hide the inline status composer + Baby button during onboarding
-  // (3am in-labor user has enough on screen).
-  const hideStatusSurface = onboardingStep !== null && finished.length === 0 && !current;
-
-  // Whether to show the Baby is here button. Only when there's an
-  // active share AND the share's state hasn't already moved past
-  // active labor (postpartum / archived means baby is already here
-  // or the share is dead). Without a share, the button has no place
-  // to post the celebration.
-  const showBabyButton = !!activeShare && activeShare.state !== 'postpartum' && activeShare.state !== 'archived';
-
-  // Local state for the inline status composer. Empty by default;
-  // cleared on submit. On failure, kept + shown as inline error so
-  // the host can retry.
-  const [statusDraft, setStatusDraft] = useState('');
-  const [statusSending, setStatusSending] = useState(false);
-  const [statusError, setStatusError] = useState<string | null>(null);
-  const handlePostStatus = async () => {
-    const text = statusDraft.trim();
-    if (!text || !activeShare || statusSending) return;
-    setStatusSending(true);
-    setStatusError(null);
-    try {
-      // Author the post with the host's display name from local
-      // storage (default 'Host'). The partner view shows the
-      // authorName in the activity feed, so a parent who has the
-      // link open will see "Bianca" instead of "Host" when the
-      // host has set their name in Settings.
-      await postMessage(activeShare.id, 'status', text, getHostName(), undefined);
-      setStatusDraft('');
-    } catch (err) {
-      // Don't clear the input — the user typed something meaningful
-      // and deserves to retry. Inline error message below the
-      // composer tells them what happened. Use the typed PostMessage-
-      // Error to distinguish network failures (retryable) from
-      // http/shape failures (the relay rejected it, retrying won't
-      // help without a code change).
-      if (err instanceof PostMessageError && err.code === 'http') {
-        setStatusError(
-          `The share server rejected the post (${err.status ?? 'error'}). It may have been archived.`,
-        );
-      } else {
-        setStatusError("Couldn't reach the share server. Tap Post to retry.");
-      }
-    }
-    setStatusSending(false);
-  };
 
   // One-time migration: stamp old contractions (no sessionId) with the primary
   // session. Idempotent — only writes if any are missing the field.
@@ -1412,35 +1109,6 @@ export default function App() {
         </div>
       )}
 
-      {/* State change toast — shown when the host manually changes the share's labor stage */}
-      {stateToast && (
-        <div
-          className="fixed inset-x-0 top-6 z-50 flex justify-center pointer-events-none"
-          role="status"
-          aria-live="polite"
-        >
-          <div className="pointer-events-auto mx-4 flex items-start gap-3 bg-sage-300/15 border border-sage-300/40 backdrop-blur-xl rounded-2xl px-4 py-3 shadow-[0_8px_32px_-8px_rgba(0,0,0,0.6)] max-w-sm animate-fade-in">
-            <div className="flex-1 min-w-0">
-              <div className="text-sm font-semibold text-sage-200">
-                {['prenatal', 'labor', 'postpartum', 'archived'].includes(stateToast)
-                  ? `Stage set to ${stateToast}`
-                  : stateToast}
-              </div>
-              <div className="text-xs text-ink-300 mt-0.5">
-                Your circle will be notified.
-              </div>
-            </div>
-            <button
-              onClick={() => setStateToast(null)}
-              className="p-1 text-ink-400 active:text-ink-200 flex-shrink-0"
-              aria-label="Dismiss"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* Hidden file input for backup import */}
       {backupError && (
         <div className="fixed bottom-20 inset-x-5 z-50 mx-auto max-w-sm rounded-xl border border-red-400/30 bg-red-400/10 px-4 py-3 text-xs text-red-200 animate-fade-in shadow-[0_4px_24px_-8px_rgba(248,113,113,0.3)] flex items-center gap-2">
@@ -1483,7 +1151,6 @@ export default function App() {
           }}
           handleExportBackup={handleExportBackup}
           handleSendVia={handleSendVia}
-          handleAppUpdate={handleAppUpdate}
           fileInputRef={fileInputRef}
           appVersion={APP_VERSION}
           onClose={() => setShowSettings(false)}
@@ -1505,7 +1172,7 @@ export default function App() {
         />
       )}
 
-      {showSessions && !showPeople && !showShare && (
+      {showSessions && !showPeople && (
         <>
           <div
             className="fixed inset-0 z-30"
@@ -1521,7 +1188,6 @@ export default function App() {
             }}
             onClose={() => setShowSessions(false)}
             onOpenPeople={() => setShowPeople(true)}
-            onOpenShare={(id) => setShowShare(id)}
             onViewSession={(s) => {
               setViewingSessionId(s.id);
               setShowSessions(false);
@@ -1530,7 +1196,7 @@ export default function App() {
         </>
       )}
 
-      {/* People sheet */}
+      {/* People sheet — closes both sheets when dismissed */}
       {showPeople && (
         <>
           <div
@@ -1542,25 +1208,6 @@ export default function App() {
             aria-hidden="true"
           />
           <PeopleSheet onClose={() => setShowPeople(false)} finished={finished} />
-        </>
-      )}
-
-      {/* Share sheet — opens from a session row's share button */}
-      {showShare && (
-        <>
-          <div
-            className="fixed inset-0 z-30"
-            onClick={() => setShowShare(null)}
-            aria-hidden="true"
-          />
-          <ShareSheet
-            sessionId={showShare}
-            journey={journey}
-            onClose={() => {
-              setShowShare(null);
-              setSessions(getSessions());
-            }}
-          />
         </>
       )}
 
@@ -1583,32 +1230,6 @@ export default function App() {
           </span>
         </button>
         <div className="flex items-center gap-0.5">
-          {/* T5: partner timing indicator. Renders only when a partner is
-              actively timing remotely (and the host isn't timing locally). */}
-          {partnerCurrent && (
-            <div
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-300/15 border border-rose-300/30"
-              aria-live="polite"
-            >
-              <span
-                className="w-1.5 h-1.5 rounded-full bg-rose-300"
-                style={{ animation: 'pulse 1.5s ease-in-out infinite' }}
-              />
-              <span className="text-[10px] font-medium text-rose-200 tabular-nums">
-                {formatElapsed(Math.floor((now - partnerCurrent.start) / 1000))}
-              </span>
-              <span className="text-[10px] text-rose-300/80">partner</span>
-            </div>
-          )}
-          {/* Share with partner — always visible */}
-          <button
-            onClick={() => setShowShare(activeSessionId)}
-            className="p-2 rounded-lg text-ink-300 active:text-rose-300 active:bg-rose-300/10 transition-colors"
-            aria-label="Share with partner"
-            title="Share with partner"
-          >
-            <Share2 className="w-4 h-4" strokeWidth={1.75} />
-          </button>
           {/* Sound on/off */}
           <button
             onClick={handleMuteToggle}
@@ -1767,11 +1388,9 @@ export default function App() {
       <ActiveLaborBanner contractions={contractions} now={now} />
 
       {/* Backup reminder banner — soft nudge if no local backup has been
-          exported recently. The "Back up now" CTA now triggers the actual
-          file-download backup (was: opened the Share sheet, which is the
-          partner-sharing flow — different feature, different purpose).
-          Hidden during active timing and while editing a contraction so it
-          doesn't obstruct those flows. */}
+          exported recently. The "Back up now" CTA triggers the actual
+          file-download backup. Hidden during active timing and while
+          editing a contraction so it doesn't obstruct those flows. */}
       {showBackupBanner && !current && !editingId && (
         <div className="flex-shrink-0 mx-5 mb-3 rounded-2xl border border-sage-300/30 bg-sage-300/10 px-4 py-3 animate-fade-in">
           <div className="flex items-start gap-3">
@@ -1964,91 +1583,10 @@ export default function App() {
           <TodayPanel journey={journey} onOpen={() => setShowJourney(true)} buttonRef={journeyOpenerRef} />
         )}
 
-        {/* Status update composer + Baby is here button.
-            Always visible when there's an active share and we're not in
-            onboarding. The composer is the canonical way to post a
-            free-text status note to the network (replaces the topbar
-            prompt). The Baby button is the celebratory birth trigger. */}
-        {!hideStatusSurface && activeShare && (
-          <div className="mb-3 space-y-2">
-            {/* Inline status composer. Posts a free-text message to
-                the network via the same path the partner's
-                StatusUpdatePrompt uses. Empty by default; cleared on
-                submit; Enter or Post button to send. Disabled while a
-                post is in flight to prevent double-submits. */}
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={statusDraft}
-                onChange={(e) => setStatusDraft(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handlePostStatus()}
-                placeholder={finished.length === 0
-                  ? "Tell your circle how it's going…"
-                  : "Update your circle…"}
-                // Cap matches ActivityFeed's composer (src/components/
-                // ActivityFeed.tsx:336). Without a cap, a runaway tab/
-                // extension can fill localStorage + the relay DB
-                // with unbounded content that broadcasts to every
-                // viewer on every refresh.
-                maxLength={2000}
-                disabled={statusSending}
-                className="flex-1 bg-ink-100/5 border border-ink-200/30 rounded-xl px-3 py-2 text-sm text-ink-50 placeholder:text-ink-500 focus:outline-none focus:border-rose-300/50 disabled:opacity-50"
-              />
-              <button
-                onClick={handlePostStatus}
-                disabled={!statusDraft.trim() || statusSending}
-                className="bg-rose-300 active:bg-rose-400 disabled:bg-rose-300/60 disabled:text-plum-950/60 text-plum-950 rounded-xl px-3 py-2 text-sm font-semibold transition-colors"
-                aria-label="Post status update"
-              >
-                {statusSending ? '…' : 'Post'}
-              </button>
-            </div>
-            {statusError && (
-              <div className="text-[11px] text-amber-200 px-1">
-                {statusError}
-              </div>
-            )}
-
-            {/* Baby is here — only when there's a share AND the
-                celebration hasn't happened yet. Once the host posts
-                the birth, the share's state transitions to postpartum
-                and this button disappears. */}
-            {showBabyButton && (
-              <BabyIsHereMount
-                share={activeShare.id}
-                onSuccess={() => {
-                  setStateToast('🎉 Baby is here! Share updated.');
-                }}
-              />
-            )}
-
-            {/* T33 — host-side mirror of the activity feed. The
-                host can already POST updates via the composer
-                above (line 1847). This shows the host what the
-                circle has said back. readOnly=true hides the
-                composer inside ActivityFeed (the host posts via
-                the dedicated inline composer, not the ActivityFeed
-                one). Lives below the Baby is here button so the
-                primary actions are visible first. */}
-            <ActivityFeed
-              code={activeShare.id}
-              shareState={activeShare.state || 'prenatal'}
-              readOnly={true}
-            />
-          </div>
-        )}
-
-        {/* Keep the labor surface focused. Partner sharing is primary; planning,
-            records, and keepsakes stay one deliberate tap away. */}
+        {/* Keep the labor surface focused. The timer is primary; planning
+            and records stay one deliberate tap away. */}
         <div className="mb-4 space-y-2">
           <div className="grid grid-cols-2 gap-2">
-            <FeatureCard
-              icon={<Share2 className="w-4 h-4" />}
-              label="Share"
-              sub={activeShare ? 'Partner connected' : 'Invite partner'}
-              onClick={() => setShowShare(activeSessionId)}
-              accent="rose"
-            />
             <button
               type="button"
               onClick={() => setShowMoreTools((visible) => !visible)}
@@ -2087,18 +1625,6 @@ export default function App() {
                 onClick={() => setShowBackupInfo(true)}
                 accent="sage"
               />
-              {getShares().some((share) => !share.revoked && share.state === 'archived' && share.sessionId === activeSessionId) && (
-                <FeatureCard
-                  icon={<BookOpen className="w-4 h-4" />}
-                  label="Memory book"
-                  sub="View keepsake"
-                  onClick={() => {
-                    const share = getShares().find((item) => !item.revoked && item.state === 'archived' && item.sessionId === activeSessionId);
-                    if (share) window.open(`/?share=${share.id}`, '_blank');
-                  }}
-                  accent="rose"
-                />
-              )}
             </div>
           )}
         </div>

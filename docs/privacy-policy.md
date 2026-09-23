@@ -1,17 +1,93 @@
 # Olive privacy policy
 
-Effective August 10, 2026. App version 1.2.1.
+Effective September 2026. App version 1.3.0.
 
-Olive is a birth-journey companion and contraction timer for expecting parents and their support people. The app stores journey details, contraction sessions, optional notes and tags, care-team contacts, and hospital details locally on the user's device.
+Olive is a birth-journey companion and contraction timer for expecting parents and their support people. **Everything you record stays on your device.** Olive makes no network requests, has no account system, and sends nothing to any server. This policy explains what data the app handles and why.
 
-Sharing is optional. When a user creates a share link, Olive sends shared-session data to the Olive relay at `relay.ashbi.ca`. The relay may store a random share code and client identifier, session and expiry metadata, current stage, contraction timestamps and details, timer state, limited audit events, optional activity-feed display names, messages, reactions, or images, and only the responsibility fields the owner explicitly reviewed for that invite. Care-card details, provider questions, private responsibilities, journey notes, care-team contacts, hospital details, and exported files are not uploaded by the sharing feature.
+Olive is built on a fundamental principle: **your health data belongs to you.**
 
-Shared-session data is used only to synchronize the session, provide the activity feed and reviewed responsibilities, limit abuse, and support revocation. It is encrypted in transit using HTTPS. It is deleted automatically after expiry; the default share period is seven days. Revocation immediately removes contractions, messages, reviewed responsibility snapshots, and client-name bindings. Minimal revocation metadata may remain until expiry so the revoked code stays blocked.
+## Data the app handles
 
-Olive contains no advertising, analytics SDK, or crash-reporting service, and does not sell or license user data. The relay application does not persist IP addresses in its session database, although network infrastructure processes IP addresses and request metadata to deliver and protect the service. People who receive a share link can access the data permitted by that link.
+### Data stored on your device
 
-If voice control is enabled, Olive uses speech recognition supplied by the browser or operating system. Processing may be on-device or through that platform's speech service. Olive does not record or retain voice audio or send it to the Olive relay.
+When you use Olive, the following data is stored locally on your device:
 
-Users can delete local data from Olive, revoke shared sessions, export a JSON backup, or contact the developer through `https://contractions.ashbi.ca` for help with a deletion request.
+- Contraction timestamps (start time, end time, duration)
+- Contraction intervals (time between contractions)
+- Session start/end times
+- Pregnancy phase selected by you and saved timing comparisons
+- Optional notes, tags, intensity, pain-location markers you add yourself
+- Birth-journey records: care card, provider questions, responsibilities, timeline entries
+- People you choose to add to your care team (name, phone, email — entered by you)
+- Hospital info (name, address, doctor, etc. — entered by you)
+- Local backups of the above, written to a file only when you tap "Export backup"
 
-Olive is an informational timing and communication tool, not a medical device. It does not diagnose labor or replace professional medical advice. A saved care-plan reminder only compares recorded timings with values chosen by the user and remains informational. Users should follow their healthcare professional's instructions, contact them before making medical decisions, and use local emergency services when urgent help is needed.
+None of this data ever leaves your device. Olive contains no sync server and no share links; there is nowhere for it to go.
+
+### What you explicitly hand out
+
+- **Backups and care summaries.** "Export backup", "Send via…", and the care summary action use your device's own system share sheet. The file or text goes directly to whichever app you choose (Mail, AirDrop, Messages). Olive has no visibility into where it goes and does not transmit it anywhere itself.
+- **Voice control.** If you enable voice control, Olive uses the speech-recognition service supplied by your operating system. Processing may occur on-device or through that platform's speech service, depending on the device and settings. Olive does not record, retain, or transmit voice audio.
+
+### No analytics, no tracking
+
+Olive contains **zero analytics SDKs, zero tracking pixels, zero third-party data collectors.** We do not know how many people use the app, what features you use, or when you use it.
+
+### No ads
+
+Olive contains no advertising or sponsored content.
+
+## How data is used
+
+**What the app does:**
+
+- **Local data** — to display contraction history, journey details, and pattern detection within the app on your device
+
+**What we don't do:**
+
+- We do not build profiles.
+- We do not sell or license your data.
+- We do not use your data for research, marketing, or product improvement in any form that identifies you.
+
+## Data retention
+
+- **All data** is stored on your device only. You can delete it at any time by deleting items in the app, uninstalling the app, or clearing the app's local storage from your device settings.
+- **No cloud storage** of session data is performed by Olive. If you back up your device via iCloud, Google Drive, or any other platform, your Olive data may be included in that backup. That is a function of your device settings, not Olive.
+- **Files you export** are ordinary files in whichever destination you chose through the system share sheet; Olive retains no copy.
+
+## Data sharing with third parties
+
+Olive sends data to no advertising, analytics, crash-reporting, or other third-party services. There is no server component. The only ways data leaves your device are the ones you initiate yourself: exporting a backup file or care summary through the system share sheet, and — if you enable voice control — your platform's own speech-recognition service.
+
+## Children's privacy
+
+Olive is not designed for use by children under 13. We do not collect data from children.
+
+## Your rights
+
+You own your data. At any time, you can:
+
+- **Delete all data** by deleting items in the app, uninstalling it, or clearing app storage from your device settings. Because nothing ever left the device, deleting it in the app is complete deletion.
+- **Export your data** as a JSON backup file at any time.
+- **Request help** through the support channel listed below.
+
+## Security
+
+- Olive makes no network requests, so there is no transit to secure and no server holding your data.
+- Local data is stored in the app's sandboxed storage on your device, protected by your device's own lock and encryption.
+- Olive does not retain voice recordings.
+
+## Health and safety
+
+Olive is an informational timing and communication tool, not a medical device. It does not diagnose labor or replace professional medical advice. Timing reminders compare recorded contractions with instructions saved by the user and are informational only. Follow the instructions of your healthcare professional, contact them before making medical decisions, and use local emergency services when urgent help is needed.
+
+## Changes to this policy
+
+If this policy changes, the updated policy will be posted at the same location with a new effective date. Significant changes will be communicated within the app.
+
+## Contact
+
+For questions, concerns, or data deletion requests:
+
+- **Support:** https://olive.ashbi.ca
+- **Developer:** Available via the app's support channel

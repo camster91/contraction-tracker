@@ -1,15 +1,15 @@
-/**
- * Backup round-trip — verifies the backup schema and the import/export
+﻿/**
+ * Backup round-trip â€” verifies the backup schema and the import/export
  * pipeline don't lose data.
  *
- * Realistic scenario: 200 contractions, 3 sessions, 4 people, 2 shares,
+ * Realistic scenario: 200 contractions, 3 sessions, 4 people,
  * 1 exam, 6 checklist items. Round-trip through JSON.stringify/parse and
  * assert exact equality.
  */
 import { test, expect } from '@playwright/test';
 import * as helpers from './helpers';
 
-const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'https://contractions.ashbi.ca/';
+const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:8765/';
 
 /** Generate a realistic backup payload in the page context. */
 function makeRealisticBackup() {
@@ -42,10 +42,6 @@ function makeRealisticBackup() {
       { id: 'p-3', name: 'Doula Mary', role: 'doula', phone: '555-0103', email: 'm@example.com' },
       { id: 'p-4', name: 'Hospital', role: 'hospital', phone: '555-0100', email: '' },
     ],
-    shares: [
-      { id: 'sh-1', sessionId: 's-2', code: 'abc123', createdAt: '2025-06-15T12:00:00Z' },
-      { id: 'sh-2', sessionId: 's-3', code: 'xyz789', createdAt: '2026-01-15T12:00:00Z' },
-    ],
     exams: {
       's-1': [{ id: 'e-1', date: '2025-01-15T10:00:00Z', dilation: 4, effacement: 50, station: -2, notes: 'early labor' }],
       's-2': [],
@@ -67,7 +63,7 @@ function makeRealisticBackup() {
 }
 
 test('backup: schema validates as an Olive backup', async ({ page }) => {
-  // Schema-only test — we don't need the app to mount. Using
+  // Schema-only test â€” we don't need the app to mount. Using
   // about:blank avoids the ~15s React mount wait, which matters
   // in CI where retries amplify the cost.
   await page.goto('about:blank');
@@ -136,7 +132,7 @@ test('backup: rejects missing contractions array', async ({ page }) => {
 });
 
 test('backup: rejects null / non-object input', async ({ page }) => {
-  // Schema-only test — no need for the app to mount.
+  // Schema-only test â€” no need for the app to mount.
   await page.goto('about:blank');
 
   // JSON transport through page.evaluate strips null/undefined values
@@ -170,11 +166,11 @@ test('backup: rejects null / non-object input', async ({ page }) => {
 });
 
 test('backup: full round-trip preserves 200 contractions exactly', async ({ page }) => {
-  // Schema-only round-trip — no need to mount the app.
+  // Schema-only round-trip â€” no need to mount the app.
   await page.goto('about:blank');
 
   const result = await page.evaluate((original) => {
-    // Stringify then parse — the actual mechanism for backup files
+    // Stringify then parse â€” the actual mechanism for backup files
     const json = JSON.stringify(original, null, 2);
     const parsed = JSON.parse(json);
 
@@ -192,7 +188,6 @@ test('backup: full round-trip preserves 200 contractions exactly', async ({ page
       contractionCount: parsed.contractions.length,
       sessionCount: parsed.sessions.length,
       peopleCount: parsed.people.length,
-      shareCount: parsed.shares.length,
       examCount: Object.values(parsed.exams as Record<string, unknown[]>).reduce((acc, arr) => acc + arr.length, 0),
       checklistCount: Object.values(parsed.checklists as Record<string, unknown[]>).reduce((acc, arr) => acc + arr.length, 0),
       // Sample data preservation
@@ -209,7 +204,6 @@ test('backup: full round-trip preserves 200 contractions exactly', async ({ page
   expect(result.contractionCount).toBe(200);
   expect(result.sessionCount).toBe(3);
   expect(result.peopleCount).toBe(4);
-  expect(result.shareCount).toBe(2);
   expect(result.examCount).toBe(1);
   expect(result.checklistCount).toBe(6);
   expect(result.firstContractionId).toBe('c-0');
@@ -222,7 +216,7 @@ test('backup: full round-trip preserves 200 contractions exactly', async ({ page
 });
 
 test('backup: rejection of malformed JSON', async ({ page }) => {
-  // Schema-only test — no need to mount the app.
+  // Schema-only test â€” no need to mount the app.
   await page.goto('about:blank');
 
   const result = await page.evaluate(() => {

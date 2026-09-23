@@ -1,5 +1,5 @@
-/**
- * Cross-browser smoke test — runs against both Chromium and WebKit
+﻿/**
+ * Cross-browser smoke test â€” runs against both Chromium and WebKit
  * (real iOS Safari engine) to catch engine-specific bugs.
  *
  * Why this matters: the PWA gets shipped inside a Capacitor iOS
@@ -11,7 +11,7 @@
  *
  * Run with: npx playwright test e2e/cross-browser.spec.ts --project='iPhone 14 (webkit)'
  *
- * NOT run in CI by default — these tests require the live PWA to
+ * NOT run in CI by default â€” these tests require the live PWA to
  * load, and on slow CI networks the `retries: 2` config can amplify
  * a slow first attempt into a 10+ minute hang. Use as a release
  * validation tool: `npx playwright install webkit && npx playwright
@@ -20,14 +20,14 @@
 import { test, expect } from '@playwright/test';
 import * as helpers from './helpers';
 
-// Skip the entire file in CI — the chromium project already covers
+// Skip the entire file in CI â€” the chromium project already covers
 // the same flows against the same live URL, with the same retry
 // behavior. Cross-browser is opt-in for release validation, not CI.
 test.beforeAll(({ }) => {
   if (process.env.CI) test.skip(true, 'cross-browser suite is opt-in for release validation');
 });
 
-const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'https://contractions.ashbi.ca/';
+const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:8765/';
 
 test('cross-browser: main app loads without errors', async ({ page }) => {
   const consoleErrors: string[] = [];

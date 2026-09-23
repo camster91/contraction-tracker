@@ -1,10 +1,10 @@
 # Olive — Birth Journey Companion
 
-A calm, private coordination companion for the final weeks of pregnancy, birth day, and the first 12 postpartum weeks. Olive's shipped core is an offline-first contraction timer with secure partner sharing, built as a PWA + Capacitor iOS/Android app. No account is required.
+A calm, private companion for the final weeks of pregnancy, birth day, and the first 12 postpartum weeks. Olive's shipped core is an offline-first contraction timer with a local birth journey, distributed as native iOS/Android apps built with Capacitor. No account is required.
 
-**Live:** [contractions.ashbi.ca](https://contractions.ashbi.ca) (PWA) · [relay.ashbi.ca](https://relay.ashbi.ca) (backend) · **Release pricing:** free.
+**Privacy policy:** [olive.ashbi.ca/privacy](https://olive.ashbi.ca/privacy) · **Release pricing:** free.
 
-**Product direction:** Olive helps the expecting parent, partner, and care team stay aligned without attempting diagnosis or replacing professional care. The expanded Birth Journey experience is specified for v1.2 and is not yet represented as shipped functionality. See [`docs/PRODUCT-VISION.md`](docs/PRODUCT-VISION.md) and [`docs/V1.2-BIRTH-JOURNEY-SPEC.md`](docs/V1.2-BIRTH-JOURNEY-SPEC.md).
+**Product direction:** Olive helps the expecting parent and care team stay prepared without attempting diagnosis or replacing professional care. See [`docs/PRODUCT-VISION.md`](docs/PRODUCT-VISION.md).
 
 ---
 
@@ -17,10 +17,10 @@ A calm, private coordination companion for the final weeks of pregnancy, birth d
 - Full contraction history with timestamps
 - One-tap objective care summary for calls, messages, or email
 
-### Real-Time Multi-Device Sync (SSE)
-- Both partners see the same live session — no refreshing, no lag
-- Shared via a single link; partner joins instantly without an account
-- Uses Server-Sent Events for instant push updates across devices
+### Birth Journey
+- Care card, provider questions, and practical responsibilities, all on-device
+- Postpartum first-12-weeks timeline
+- Hospital bag checklist with pre-loaded items
 
 ### Voice Control
 - Start and stop timers by speaking — hands-free when you can't reach your phone
@@ -29,26 +29,23 @@ A calm, private coordination companion for the final weeks of pregnancy, birth d
 ### User-Controlled Care Plan
 - Save the interval, duration, and sustained-window instructions from your care team
 - Store a care-team name and phone number for a direct call action when the saved pattern appears
-- Timing patterns never automatically diagnose labor or change the shared session's status
+- Timing patterns never automatically diagnose labor
 
 ### Designed for the Moment
 - Large, high-contrast timer visible across the room
-- Core timer and history work offline, including reopening the installed PWA
+- Core timer and history work entirely offline
 - No account required — open and start
 - Preparation and record-keeping tools stay behind a single disclosure during labor
-
-### Memory Book PDF
-- When labor is over, export a beautiful PDF of your contraction timeline
-- A keepsake of the work, the timing, and the team
 
 ---
 
 ## Privacy
 
 - **No ads, no analytics, no third-party SDKs.**
-- Session data stays on your device unless you create a share link. Shared contraction data and optional activity-feed content are sent over HTTPS to the Olive relay, expire automatically, and can be revoked by the host.
+- Everything you record stays on your device. Olive makes no network requests and sends nothing to any server.
+- Backups and care summaries leave the device only through your own system share sheet, when you choose.
 - Voice control runs entirely on-device; no voice recordings are transmitted.
-- Full privacy policy hosted at the app's support page.
+- Full privacy policy at [olive.ashbi.ca/privacy](https://olive.ashbi.ca/privacy).
 
 ---
 
@@ -57,11 +54,8 @@ A calm, private coordination companion for the final weeks of pregnancy, birth d
 | Layer | Technology |
 |---|---|
 | App | React 19 + TypeScript + Vite + Tailwind CSS |
-| Native | Capacitor 8 (iOS + Android wrappers around the PWA) |
-| Backend | olive-relay (Node.js + Express + sql.js WASM, deployed at relay.ashbi.ca) |
-| Sync | Server-Sent Events (SSE) |
-| PWA | Versioned offline app shell (`olive-v24`) |
-| Version | 1.2.1 |
+| Native | Capacitor 8 (iOS + Android) |
+| Version | 1.3.0 |
 
 ---
 
@@ -69,8 +63,7 @@ A calm, private coordination companion for the final weeks of pregnancy, birth d
 
 | Repo | URL |
 |---|---|
-| App / Frontend | github.com/camster91/contraction-tracker |
-| Backend / Relay | github.com/camster91/luna-relay (the backend is still branded "luna-relay" — rename to olive-relay is a separate task) |
+| App | github.com/camster91/contraction-tracker |
 
 ---
 
@@ -83,14 +76,14 @@ git clone https://github.com/camster91/contraction-tracker.git
 cd contraction-tracker
 npm install
 npm run dev
-# Open http://localhost:5173 — the PWA runs in any modern browser
+# Open http://localhost:5173 — the app runs in any modern browser
 ```
 
 ### Build for production
 
 ```bash
 npm run build
-# Outputs to dist/ — the PWA bundle
+# Outputs to dist/ — the web bundle the native apps ship
 ```
 
 ### Native iOS
@@ -113,23 +106,13 @@ cd android
 ./gradlew bundleRelease      # AAB at app/build/outputs/bundle/release/
 ```
 
-### Backend (relay)
-
-```bash
-git clone https://github.com/camster91/luna-relay.git
-cd olive-relay
-npm install
-npm start
-# Runs on relay.ashbi.ca (or localhost for dev)
-```
-
 ---
 
 ## Deploy
 
-The frontend is a PWA + Capacitor app — deploy the `dist/` build to your CDN / static host (currently contractions.ashbi.ca, hosted on Coolify). The relay backend should be deployed separately (currently relay.ashbi.ca, also on Coolify) and its URL configured in the frontend.
+Olive is distributed through the App Store and Google Play only; there is no public web deployment. The `dist/` web build exists because the Capacitor apps bundle it locally.
 
-The PWA is deployed manually to production. GitHub-hosted workflow runners are currently unavailable, so hosted Actions are not used as the release gate.
+The GitHub-hosted workflow runners are currently unavailable, so hosted Actions are not used as the release gate — verify locally with `npm run verify` and the Playwright suite.
 
 ---
 
@@ -137,6 +120,7 @@ The PWA is deployed manually to production. GitHub-hosted workflow runners are c
 
 | Version | Notes |
 |---|---|
+| 1.3.0 | Private-by-default, native-only release: partner sharing, relay, memory book, and the public web app removed |
 | 1.1.0 | Provider-specific care-plan reminders, objective care summary, non-diagnostic pattern language, user-controlled status, and focused labor-mode hierarchy |
 | 1.2.1 | Live reviewed-responsibility reconciliation for hosts, including the active app session |
 | 1.2.0 | Local-first birth journey, care card, provider questions, partner responsibilities, postpartum timeline, backup migration, and reviewed category-scoped sharing |

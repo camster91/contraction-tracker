@@ -1,6 +1,6 @@
-# Olive v1.2.0 — Submission Checklist
+# Olive v1.3.0 — Submission Checklist
 
-**Prepared August 7, 2026. Store review timing is controlled by Apple and Google.**
+**Prepared for the v1.3.0 private-by-default, native-only release. Store review timing is controlled by Apple and Google.**
 
 Total work: **~1.5 hours** spread over 2 days.
 
@@ -42,12 +42,12 @@ field. The file is formatted exactly as the fields appear in the UI.
 Specifically:
 - App name, subtitle, category, price
 - Description, keywords, promotional text
-- Use the conservative data declarations in `APP-STORE-CONNECT-FIELDS.txt`
+- Use the data declarations in `APP-STORE-CONNECT-FIELDS.txt` (Data Not Collected — the app makes no network requests)
 - Tracking = "No"
-- Screenshots (drag 5 files into order)
+- Screenshots (drag 4 files into order)
 - App icon (auto from xcassets)
 - Review notes (paste from file)
-- Export compliance = "Yes, mass-market exemption"
+- Export compliance = "No" (no encryption beyond platform HTTPS defaults)
 
 Click "Submit for Review" at the top right.
 
@@ -67,7 +67,7 @@ Go to https://play.google.com/console
 2. App name: Olive
 3. Default language: English (United States)
 4. App or game: App
-5. Free or paid: **Free.** The v1.2.1 build has no IAP.
+5. Free or paid: **Free.** The v1.3.0 build has no IAP.
 6. Accept declarations, click "Create app"
 
 ### Step 2: Set up store listing (20 min)
@@ -79,7 +79,7 @@ field. Specifically:
 - Full description (4000 chars max)
 - App icon: 512x512 from app-icon-master.png
 - Feature graphic: 1024x500 from play-feature-graphic-1024x500.png
-- 5 phone screenshots from screenshots/6.7_iphone/
+- 4 phone screenshots from screenshots/6.7_iphone/
 
 ### Step 3: Content rating (5 min)
 Go to Policy > App content > Content rating
@@ -90,10 +90,9 @@ Go to Policy > App content > Content rating
 
 ### Step 4: Privacy & Data Safety (10 min)
 Go to Policy > App content > Data safety
-- "Does your app collect or share any of the required user data types?" → Yes
-- Declare optional Health info, Messages/other user content, images, and random
-  identifiers used by shared sessions; see `PLAY-STORE-CONSOLE-FIELDS.txt`.
-- Confirm the console's current taxonomy before submitting the declaration.
+- "Does your app collect or share any of the required user data types?" → No
+  (As of v1.3.0 the app makes no network requests and sends nothing
+  off-device; see `PLAY-STORE-CONSOLE-FIELDS.txt`.)
 - Health app declaration: Yes (we track health-related data locally)
 - Target audience: 18+, not for children
 
@@ -101,7 +100,7 @@ Go to Policy > App content > Data safety
 Go to Testing > Internal testing
 - Click "Create new release"
 - Upload the signed AAB: `android/app/build/outputs/bundle/release/app-release.aab`
-- Release name: 1.2.1 (5)
+- Release name: 1.3.0 (6)
 - Release notes: paste from `play-store-release-notes.txt`
 - Click "Review release" then "Start rollout to Internal testing"
 
@@ -117,8 +116,7 @@ Send the recruitment message from `docs/USER-TESTING.md` to:
 1. **Bianca** — actual user, most important feedback
 2. **Friend who's pregnant or recently gave birth**
 3. **Tech-savvy friend** — catches crashes
-4. **Birth partner** (your mom, dad, etc.) — tests the share flow
-5. **Midwife or OB nurse** — reviews the care-plan language and handoff summary
+4. **Midwife or OB nurse** — reviews the care-plan language and handoff summary
 
 For Android testers, send the universal APK at
 `android/app/build/outputs/apk/release/app-release.apk`
@@ -130,9 +128,8 @@ TestFlight is at the top of App Store Connect (My Apps > Olive > TestFlight tab)
 **Test plan** (from `tests/USER-TEST-PLAN.md`):
 - Open the app, time a fake contraction (Start, wait, Stop)
 - Mark intensity, add a note
-- Share with someone via text/WhatsApp
+- Export a backup, then import it on a second device
 - Save a care-team reminder, verify that a short cluster does not trigger it, then verify a sustained matching pattern and call action
-- Check the memory book PDF export
 
 ---
 
@@ -141,7 +138,7 @@ TestFlight is at the top of App Store Connect (My Apps > Olive > TestFlight tab)
 - [ ] Both stores approved
 - [ ] All test feedback collected, any blockers fixed
 - [ ] Promote Android from internal testing to production
-- [ ] Verify the live PWA still serves
+- [ ] Verify https://olive.ashbi.ca/privacy returns the policy page (stores validate the privacy URL)
 - [ ] Update privacy policy if needed
 
 ---
@@ -180,8 +177,8 @@ TestFlight is at the top of App Store Connect (My Apps > Olive > TestFlight tab)
 | Release notes (for both stores) | `play-store-release-notes.txt` |
 | User testing plan | `docs/USER-TESTING.md` |
 | Sideload instructions for testers | `docs/SIDELOAD-APK.md` |
-| Live PWA | https://contractions.ashbi.ca |
-| Privacy policy | https://contractions.ashbi.ca/privacy |
+| Privacy page (olive.ashbi.ca) | https://olive.ashbi.ca/privacy |
+| Privacy policy | https://olive.ashbi.ca/privacy |
 
 ---
 
@@ -206,7 +203,7 @@ TestFlight is at the top of App Store Connect (My Apps > Olive > TestFlight tab)
 | Feature graphic (1024x500) | Done | Me |
 | App icon (all sizes) | Done | Me |
 | Privacy policy page | Live | Me |
-| Live PWA | Live | Me |
+| Native apps (App Store + Play) | **TODO** | You |
 | `xcodebuild -license` | **TODO** | You |
 | Sign + upload in Xcode | **TODO** | You |
 | Paste App Store Connect fields | **TODO** | You |

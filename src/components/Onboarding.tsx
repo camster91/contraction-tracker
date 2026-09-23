@@ -1,9 +1,9 @@
-// Onboarding — 3-step inline hint cards shown above the carousel for
+// Onboarding — 2-step inline hint cards shown above the carousel for
 // first-time users. Non-blocking (no backdrop blur). Manages its own
 // internal step state.
 
 import { useState } from 'react';
-import { Play, Square, Share2 } from 'lucide-react';
+import { Play, Square } from 'lucide-react';
 
 type Props = {
   onDismiss: () => void;
@@ -19,11 +19,6 @@ const STEPS = [
     icon: Square,
     title: 'Tap again when it passes',
     desc: 'Mark how strong it felt, or add a note if you want.',
-  },
-  {
-    icon: Share2,
-    title: 'Send a link to your partner',
-    desc: 'They can follow along in real time from their phone.',
   },
 ] as const;
 
@@ -41,7 +36,7 @@ export default function Onboarding({ onDismiss }: Props) {
     <div className="mb-4 rounded-2xl border border-rose-300/30 bg-rose-300/[0.06] px-4 py-3 animate-fade-in">
       <div className="flex items-start gap-3">
         <div className="w-7 h-7 rounded-full bg-rose-300/20 flex items-center justify-center flex-shrink-0">
-          <Icon className="w-3.5 h-3.5 text-rose-300" style={step === 0 || step === 1 ? { fill: 'currentColor' } : undefined} />
+          <Icon className="w-3.5 h-3.5 text-rose-300" style={step === 0 ? { fill: 'currentColor' } : undefined} />
         </div>
         <div className="flex-1 min-w-0">
           <div className="text-sm font-semibold text-ink-100 font-display">
@@ -61,7 +56,7 @@ export default function Onboarding({ onDismiss }: Props) {
       </div>
       <div className="flex items-center justify-between mt-3">
         <div className="flex gap-1.5">
-          {[0, 1, 2].map((i) => (
+          {[0, 1].map((i) => (
             <button
               key={i}
               onClick={() => setStep(i)}
@@ -77,7 +72,7 @@ export default function Onboarding({ onDismiss }: Props) {
             </button>
           ))}
         </div>
-        {step < 2 ? (
+        {step < 1 ? (
           <button
             onClick={() => setStep((s) => s + 1)}
             className="text-xs bg-rose-300 active:bg-rose-400 text-plum-950 rounded-lg px-3 py-1.5 font-semibold transition-colors min-h-[32px]"

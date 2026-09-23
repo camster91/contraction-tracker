@@ -1,4 +1,4 @@
-# Google Play Console — pre-filled fields for Olive v1.2.1
+# Google Play Console — pre-filled fields for Olive v1.3.0
 # Copy/paste from here into Play Console. Each section is exactly
 # what the field expects.
 
@@ -8,7 +8,7 @@ APP DETAILS
 App name: Olive
 Default language: English (United States)
 
-Pricing: Free (v1.2.1 has no IAP)
+Pricing: Free (v1.3.0 has no IAP)
 
 In-app products: None
 Contains ads: No
@@ -20,7 +20,7 @@ STORE LISTING (English)
 
 SHORT DESCRIPTION (max 80 chars)
 ────────────────────────────────────────────────────────────────────────
-Private birth journey, calm labor timer, and reviewed partner support.
+A private birth journey and a calm labor timer — all on your device.
 
 
 FULL DESCRIPTION (max 4000 chars)
@@ -29,19 +29,19 @@ Olive is a private birth-journey companion with the contraction timer you open a
 
 Real labor is hard to time. You're focused on breathing, your partner is timing on their phone, and neither of you is sure when the last one started. Olive is designed for that moment.
 
-Before and after labor, Olive keeps a private care card, provider questions, practical responsibilities, and a factual first-12-weeks postpartum timeline. You choose the phase, and only reviewed responsibilities can be included in a partner link.
+Before and after labor, Olive keeps a private care card, provider questions, practical responsibilities, and a factual first-12-weeks postpartum timeline. You choose the phase, and everything stays on your phone.
 
 WHAT IT DOES
 • One-tap Start/Stop timer — no menus, no settings, just a big button
 • Screen stays on while timing (wake lock API)
 • Provider-configurable timing reminders with an optional care-team call action
-• Share with your partner via a 12-character code — they see updates in real time from their own phone
 • Voice control — say "start" or "stop" hands-free
 • Hospital bag checklist with pre-loaded items
 • Contraction history with intensity (1-10), tags, and pain location
 • Per-contraction notes
-• Memory book PDF export for the postpartum keepsake
 • Objective frequent-pattern indicator without diagnostic claims
+• One-file backup and restore for your full history
+• Care summary handoff to your provider, right from the timer screen
 
 DESIGNED FOR REAL LABOR
 • Quiet interface — no flashing colors, no alarmist messaging
@@ -51,9 +51,7 @@ DESIGNED FOR REAL LABOR
 • Self-hosted fonts, instant load, dark mode first
 
 PRIVATE BY DEFAULT
-Olive stores your session on your device. If you choose to create a share link, the contraction session and optional activity-feed content are sent through the Olive relay so people with the link can follow along. Shared data expires automatically and can be revoked by the host.
-
-Care-card details, provider questions, private responsibilities, and journey notes stay off the relay. Zero analytics. Zero tracking. Zero third-party SDKs. See https://contractions.ashbi.ca/privacy for the full policy.
+Everything you record — contractions, journey details, notes, care-team contacts — stays on your device. Olive makes no network requests, has no account system, and contains zero analytics, zero tracking, and zero third-party SDKs. See https://olive.ashbi.ca/privacy for the full policy.
 
 Built by a dad for his wife. Now for you.
 
@@ -87,8 +85,7 @@ Upload in this order (first shown in search results):
 1. 01-hero-timer.png        (Main timer)
 2. 02-contraction-active.png (Active contraction)
 3. 03-history.png           (History view)
-4. 04-share.png             (Share sheet)
-5. 05-care-plan-reminder.png (saved care-plan reminder)
+4. 05-care-plan-reminder.png (saved care-plan reminder)
 
 Note: These are 1290x2796 (iPhone 15 Pro Max 6.7"). Play Store
 also accepts 1080x1920. To generate Android phone-size screenshots
@@ -102,7 +99,7 @@ PRICING
 ════════════════════════════════════════════════════════════════════════════
 RELEASE DECISION: Free.
 The current build does not implement in-app purchases, so do not configure
-or advertise an IAP for v1.2.1.
+or advertise an IAP for v1.3.0.
 
 
 ════════════════════════════════════════════════════════════════════════════
@@ -111,36 +108,28 @@ PRIVACY & APP CONTENT
 
 PRIVACY POLICY URL
 ────────────────────────────────────────────────────────────────────────
-https://contractions.ashbi.ca/privacy
+https://olive.ashbi.ca/privacy
 
 
 APP ACCESS
 ────────────────────────────────────────────────────────────────────────
-All functionality is available without a login or account. The optional
-sharing feature stores short-lived session data on the Olive relay.
+All functionality is available without a login or account. The app
+makes no network requests; all data stays on the device.
 
 
 DATA SAFETY (the new 2024 form)
 ────────────────────────────────────────────────────────────────────────
 Q: Does your app collect or share any of the required user data types?
-A: Yes. The optional sharing feature collects data on the Olive relay.
-
-Declare these collected data types for App functionality:
-- Health info: contraction timestamps, durations, intensity, notes, tags,
-  pain-location markers, stage, and timer state
-- Personal info, Messages, Photos and videos, and other user-generated content:
-  optional display names, text, reactions, and images posted to a shared session
-- User IDs: random share/session and browser client identifiers
-
-Collection is optional because it occurs only when the user creates or joins
-a shared session. The app does not sell data or use it for advertising.
+A: No. As of v1.3.0 the app makes no network requests and sends
+   nothing off-device. All data (contraction history, journey details,
+   notes, contacts) is stored locally and never transmitted.
 
 Q: Is all of the user data collected by your app encrypted in transit?
-A: Yes. Shared-session traffic uses HTTPS.
+A: Not applicable — no data is collected or transmitted.
 
-Q: Do you provide a way for users to request that their data is deleted?
-A: Yes. Hosts can revoke a share in the app, shares auto-delete after expiry,
-and the privacy policy provides a support channel for deletion help.
+Q: Do you provide a way for users to request that their data be deleted?
+A: Yes. Users can delete local data in the app at any time; since
+   nothing leaves the device, deletion in the app is complete deletion.
 
 Q: Is your app designed for children?
 A: No, the app is for expecting parents (18+).
@@ -149,7 +138,7 @@ Q: Does your app contain ads?
 A: No.
 
 Q: Does your app have in-app purchases?
-A: No. The v1.2.1 build has no in-app purchase implementation.
+A: No. The v1.3.0 build has no in-app purchase implementation.
 
 Q: Does your app use any data for tracking?
 A: No, the app does not track users.
@@ -161,10 +150,11 @@ A: No.
 HEALTH APP DECLARATION
 ────────────────────────────────────────────────────────────────────────
 Is this a health app? YES — it records user-entered contraction timing
-  and optionally shares that timing with people selected by the user.
+  on the user's device.
 
 Does it read or write health data? YES — it stores contraction
-  history locally (intensity, duration, timestamps).
+  history locally (intensity, duration, timestamps). The data
+  never leaves the device.
 
 Does it connect to medical devices? NO.
 
@@ -211,15 +201,8 @@ INTERNAL TESTING TRACK (recommended for first release)
 ────────────────────────────────────────────────────────────────────────
 1. Production > Create new release
 2. Upload the signed AAB: android/app/build/outputs/bundle/release/app-release.aab
-3. Release name: 1.2.1 (5)
-4. Release notes (paste from play-store-release-notes.txt):
-
-   First public release of Olive, the contraction timer for
-   expecting couples. Track contractions in real time with one
-   tap. Save timing instructions from your care team. Share a 12-character code
-   with your partner so they can follow along from their own
-   phone. No signup, no ads, no tracking. Your data stays on your
-   device, period.
+3. Release name: 1.3.0 (6)
+4. Release notes (paste from play-store-release-notes.txt)
 
 5. Review and roll out to internal testing
 6. Internal testing reviews in 1-3 days

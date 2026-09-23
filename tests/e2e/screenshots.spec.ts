@@ -1,12 +1,11 @@
-/**
- * Screenshot capture — generates the iPhone 6.7" screenshots for the
+﻿/**
+ * Screenshot capture â€” generates the iPhone 6.7" screenshots for the
  * App Store / Play Store listings. Each shot captures a different state.
  *
- * Default target: the live PWA at https://contractions.ashbi.ca/
- *   (matches what real users see — most accurate for store listings)
+ * Default target: a local production build at http://127.0.0.1:8765/
+ *   (matches what the shipped apps bundle).
  *
- * Override: PLAYWRIGHT_BASE_URL=http://127.0.0.1:8765/ to use a local
- *   build (set up a static file server in the dist/ dir first).
+ * Override: PLAYWRIGHT_BASE_URL to target another deployment.
  *
  * Run: npx playwright test e2e/screenshots.spec.ts --reporter=line
  */
@@ -14,7 +13,7 @@ import { test, expect } from '@playwright/test';
 import * as helpers from './helpers';
 import * as fs from 'fs';
 
-const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'https://contractions.ashbi.ca/';
+const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:8765/';
 // Default: write to project's own screenshots/ dir (CI-safe).
 // Override with SCREENSHOT_OUT env var to write to your local indie-ship cache.
 const OUT = process.env.SCREENSHOT_OUT
@@ -26,7 +25,6 @@ const SHOTS: Shot[] = [
   { name: '01-hero-timer', desc: 'Main timer screen with Start button, calm hero shot' },
   { name: '02-contraction-active', desc: 'Active contraction in progress with timer running' },
   { name: '03-history', desc: 'History of recorded contractions' },
-  { name: '04-share', desc: 'Share with partner modal' },
   { name: '05-care-plan-reminder', desc: 'Saved care-team timing reminder' },
 ];
 
@@ -61,12 +59,6 @@ for (const shot of SHOTS) {
       const stop = page.locator('button').filter({ hasText: 'Stop' }).first();
       await stop.click({ force: true });
       await page.waitForTimeout(1_500);
-    } else if (shot.name === '04-share') {
-      const share = page.getByRole('button', { name: /Share/i }).first();
-      if ((await share.count()) > 0) {
-        try { await share.click({ timeout: 2000 }); } catch { /* */ }
-        await page.waitForTimeout(1_000);
-      }
     }
     else if (shot.name === '05-care-plan-reminder') {
       await page.evaluate(() => {
@@ -104,7 +96,7 @@ for (const shot of SHOTS) {
     // Let animations settle
     await page.waitForTimeout(1_000);
 
-    // iPhone 6.7" Display: 1290 × 2796. Set logical viewport, screenshot
+    // iPhone 6.7" Display: 1290 Ã— 2796. Set logical viewport, screenshot
     // at native pixel ratio (3x) to hit the App Store size.
     await page.setViewportSize({ width: 430, height: 932 });
 

@@ -15,7 +15,6 @@ export type BackupDataV1 = {
   current: unknown;
   sessions: unknown[];
   people: unknown[];
-  shares: unknown[];
   exams: Record<string, unknown[]>;
   checklists: Record<string, unknown[]>;
 };
@@ -41,7 +40,6 @@ export function buildBackup(payload: {
   current: unknown;
   sessions: unknown[];
   people: unknown[];
-  shares: unknown[];
   exams: Record<string, unknown[]>;
   checklists: Record<string, unknown[]>;
   journey: JourneyDocument;
@@ -82,7 +80,6 @@ export function migrateBackup(
     current: source.current ?? null,
     sessions: Array.isArray(source.sessions) ? source.sessions : [],
     people: Array.isArray(source.people) ? source.people : [],
-    shares: Array.isArray(source.shares) ? source.shares : [],
     exams: source.exams && typeof source.exams === 'object' ? source.exams : {},
     checklists: source.checklists && typeof source.checklists === 'object' ? source.checklists : {},
     journey: normalizeJourney(source.version === 2 ? source.journey : undefined, now, fallback),
@@ -124,9 +121,11 @@ export function readBackupFile(file: File): Promise<CompatibleBackupData> {
  * - Contractions: skip duplicates by id
  * - Sessions: skip duplicates by id (keep existing)
  * - People: skip duplicates by id
- * - Shares: skip duplicates by id
  * - Exams: skip duplicates by id per session
  * - Checklists: skip duplicates by id per session
+ *
+ * Backups exported by older versions may still carry a `shares` key
+ * (partner sharing was removed in v1.3.0); it is ignored here.
  */
 export function mergeBackup(
   imported: CompatibleBackupData,
@@ -134,7 +133,6 @@ export function mergeBackup(
     contractions: Map<string, unknown>;
     sessions: Map<string, unknown>;
     people: Map<string, unknown>;
-    shares: Map<string, unknown>;
     exams: Map<string, Map<string, unknown>>;
     checklists: Map<string, Map<string, unknown>>;
   },
@@ -166,13 +164,6 @@ export function mergeBackup(
     if (p?.id && !existing.people.has(p.id)) {
       existing.people.set(p.id, p);
       people++;
-    }
-  }
-
-  // Shares
-  for (const sh of imported.shares as Array<{ id: string }>) {
-    if (sh?.id && !existing.shares.has(sh.id)) {
-      existing.shares.set(sh.id, sh);
     }
   }
 

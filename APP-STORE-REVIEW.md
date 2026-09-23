@@ -8,9 +8,9 @@ Guidelines. Passing a local check does not guarantee App Review approval.
 
 | Requirement | Olive | Notes |
 |-------------|-------|-------|
-| Privacy policy URL | ✅ `https://contractions.ashbi.ca/privacy` | Live, branded page |
+| Privacy policy URL | ✅ `https://olive.ashbi.ca/privacy` | Live, branded page |
 | App Store Privacy Policy field | ✅ Set to above URL | In `submission-checklist.md` |
-| App Privacy Details (App Store Connect) | ⚠️ Manual step | Declare optional relay data; use `APP-STORE-CONNECT-FIELDS.txt` |
+| App Privacy Details (App Store Connect) | ⚠️ Manual step | Declare Data Not Collected; use `APP-STORE-CONNECT-FIELDS.txt` |
 | PrivacyInfo.xcprivacy | ✅ Present | Mandatory since May 2024 |
 | Permission strings | ⚠️ Verify natively | Voice control can require microphone permission on the target platform |
 | Data sold to third parties | ✅ No | Privacy policy states that data is not sold or licensed |
@@ -21,11 +21,11 @@ Guidelines. Passing a local check does not guarantee App Review approval.
 
 | Requirement | Olive | Notes |
 |-------------|-------|-------|
-| App does what its description says | ✅ | Contraction timer for expecting couples, exactly as described |
+| App does what its description says | ✅ | Contraction timer for expecting parents, exactly as described |
 | All buttons/links functional | ✅ | Gauntlet tested every interactive element |
-| No placeholder content | ✅ | v1.2.0 has no "coming soon" pages |
-| Stable performance | ✅ | Local release suite: 110 passed, 23 optional/environment skips, 0 failed |
-| No crashes on launch | ✅ | v1.2.0 verified locally across Chromium and focused WebKit paths; production remains on the prior release |
+| No placeholder content | ✅ | v1.3.0 has no "coming soon" pages |
+| Stable performance | ✅ | Local release suite passed after the v1.3.0 removals |
+| No crashes on launch | ✅ | v1.3.0 verified locally across Chromium and focused WebKit paths |
 | Memory leaks | ⚠️ | Cannot fully verify headless; user testing recommended |
 | Battery usage | ⚠️ | Wake Lock API is requested but not held indefinitely |
 
@@ -35,23 +35,23 @@ Guidelines. Passing a local check does not guarantee App Review approval.
 |-------------|-------|-------|
 | App icon present at all sizes | ✅ | 12/12 iOS icon sizes generated |
 | Launch screen | ✅ | 6 splash images (light + dark, 1x/2x/3x) |
-| Screenshots at required sizes | ✅ | 5 screenshots at 4 sizes (6.7"/6.1"/5.5"/12.9") |
+| Screenshots at required sizes | ✅ | 4 screenshots at 4 sizes (6.7"/6.1"/5.5"/12.9") |
 | App description accurate | ✅ | store-listing.md matches actual features |
 | What's New release notes | ✅ | WHATS-NEW.txt + CHANGELOG.md |
 | Category correct | ✅ | Health & Fitness (primary) + Medical (secondary) |
 | Age rating accurate | ✅ | 12+ (no objectionable content, no gambling) |
-| Support URL works | ✅ | https://contractions.ashbi.ca |
+| Support URL works | ✅ | https://olive.ashbi.ca |
 | Marketing URL (optional) | ✅ | (none provided) |
 
 ## Legal
 
 | Requirement | Olive | Notes |
 |-------------|-------|-------|
-| Export compliance | ✅ | App uses HTTPS only, no encryption beyond standard |
+| Export compliance | ✅ | App makes no network requests; no encryption beyond platform defaults |
 | Trademarks clear | ✅ | "Olive" cleared via search (no major conflicts in health/fitness) |
 | Bundle ID preserved | ✅ | `com.ashbi.olive` (was Luna) — used for rebrand, not user-visible |
-| Versioning clear | ✅ | 1.2.0 marketing version, build 4 |
-| Third-party content licensed | ✅ | PWA is original, no third-party assets |
+| Versioning clear | ✅ | 1.3.0 marketing version, build 6 |
+| Third-party content licensed | ✅ | App is original, no third-party assets |
 | Music/audio | ✅ | No bundled music or audio content |
 
 ## Build / Signing
@@ -67,15 +67,15 @@ Guidelines. Passing a local check does not guarantee App Review approval.
 
 1. **Install and launch** — they will install via TestFlight or App Store, see if it crashes. (We have 0 crashes in the gauntlet.)
 2. **Privacy policy** — they will click the URL. Make sure it resolves. ✓
-3. **All advertised features** — they will check the description against the app. (Contraction timer, sharing, hospital bag, privacy all live.)
+3. **All advertised features** — they will check the description against the app. (Contraction timer, birth journey, hospital bag, privacy all live.)
 4. **No misleading claims** — they will check the description for medical claims. Olive says "We are not a medical device" type language is in the privacy policy.
-5. **Data collection** — they will compare the optional relay data flow with the App Privacy Details. Declare the Health & Fitness, User Content, and Identifiers categories described in `APP-STORE-CONNECT-FIELDS.txt`.
+5. **Data collection** — they will compare the app's behavior with the App Privacy Details. Declare "Data Not Collected" as described in `APP-STORE-CONNECT-FIELDS.txt`; the app makes no network requests.
 
 ## Likely questions from reviewers (if any)
 
-- **"Why is this Health & Fitness, not Medical?"** — Olive records user-entered timing and shares it only when requested. Saved timing reminders report observations, do not diagnose labor, and leave decisions with the user and their care team.
-- **"Do you collect any health data on your server?"** — Only when a user creates a share: the relay stores contraction and session data until expiry or revocation. Sharing is optional and documented in the privacy policy.
-- **"How is voice input processed?"** — Olive uses the browser or operating system's speech-recognition service. Processing can be local or provider-hosted; Olive does not store the audio or send it to the Olive relay.
+- **"Why is this Health & Fitness, not Medical?"** — Olive records user-entered timing. Saved timing reminders report observations, do not diagnose labor, and leave decisions with the user and their care team.
+- **"Do you collect any health data on your server?"** — No. The app makes no network requests; there is no server. Everything stays on the device.
+- **"How is voice input processed?"** — Olive uses the browser or operating system's speech-recognition service. Processing can be local or provider-hosted; Olive does not store the audio or transmit it anywhere.
 
 ## What to do when Apple rejects
 

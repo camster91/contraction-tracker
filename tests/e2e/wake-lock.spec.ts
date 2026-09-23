@@ -1,5 +1,5 @@
-/**
- * Wake Lock API — verifies the screen stays awake during a contraction.
+﻿/**
+ * Wake Lock API â€” verifies the screen stays awake during a contraction.
  *
  * Wake Lock is the feature that makes Olive actually usable at 3am:
  * the user starts a contraction, the phone would normally dim after
@@ -19,7 +19,7 @@
 import { test, expect } from '@playwright/test';
 import * as helpers from './helpers';
 
-const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'https://contractions.ashbi.ca/';
+const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:8765/';
 
 test('wake-lock: API exists in browser and contract is correct', async ({ page }) => {
   await page.goto(BASE_URL, { waitUntil: 'domcontentloaded' });
@@ -35,7 +35,7 @@ test('wake-lock: API exists in browser and contract is correct', async ({ page }
     };
   });
   console.log('Wake Lock API check:', JSON.stringify(apiCheck));
-  // Soft — this is informational. We log instead of asserting because
+  // Soft â€” this is informational. We log instead of asserting because
   // headless Chromium may not expose the API.
 });
 
@@ -80,9 +80,9 @@ test('wake-lock: enableWakeLock is called when a contraction starts', async ({ p
 
   // It should be >= 1 if the app uses wake lock
   if (calls.length === 0) {
-    console.log('NOTE: App did not call navigator.wakeLock.request — wake lock may be guarded');
+    console.log('NOTE: App did not call navigator.wakeLock.request â€” wake lock may be guarded');
   }
-  // We don't fail if it's 0 — the app might have a different guard.
+  // We don't fail if it's 0 â€” the app might have a different guard.
   // The test is informational.
 
   // Stop the contraction
@@ -116,7 +116,7 @@ test('wake-lock: wakelock.ts source code exposes the expected API', async () => 
 test('wake-lock: App.tsx calls enableWakeLock on contraction start', async () => {
   // Static check that the React app actually wires wake lock to the
   // start-contraction handler. If a future refactor drops the call,
-  // the user's screen will dim at 3am — this test catches that.
+  // the user's screen will dim at 3am â€” this test catches that.
   const fs = await import('fs');
   const path = await import('path');
   const appPath = path.resolve(process.cwd(), 'src/App.tsx');
@@ -124,6 +124,6 @@ test('wake-lock: App.tsx calls enableWakeLock on contraction start', async () =>
 
   // The app should import enableWakeLock
   expect(appSource, 'App.tsx should import enableWakeLock').toMatch(/import\s+.*\benableWakeLock\b.*from\s+['"]\.\.?\/lib\/wakelock['"]/);
-  // And call it somewhere — grep for the bare call
+  // And call it somewhere â€” grep for the bare call
   expect(appSource, 'App.tsx should call enableWakeLock()').toMatch(/\benableWakeLock\s*\(\s*\)/);
 });

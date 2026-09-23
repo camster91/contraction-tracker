@@ -1,5 +1,5 @@
-/**
- * App Store screenshot generator — runs at all required device sizes.
+﻿/**
+ * App Store screenshot generator â€” runs at all required device sizes.
  *
  * Apple App Store requires at least one screenshot for each device class:
  *   - 6.7" iPhone (iPhone 14 Pro Max, 15 Pro Max, 15 Plus): 1290x2796
@@ -22,7 +22,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as helpers from './helpers';
 
-const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'https://contractions.ashbi.ca/';
+const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:8765/';
 const HOME = process.env.HOME || '/Users/biancabienaime';
 const OUT_BASE = process.env.PLAYWRIGHT_SCREENSHOT_OUT
   ?? `${HOME}/.hermes/cache/indie-ship/APPS/olive-contractions/screenshots`;
@@ -83,9 +83,7 @@ const SHOTS: Shot[] = [
       await page.waitForTimeout(2_000);
     },
   },
-  { name: '04-share', desc: 'Share with partner modal' },
-  {
-    name: '05-care-plan-reminder',
+  { name: '05-care-plan-reminder',
     desc: 'Saved care-team timing reminder',
     setup: async (page) => {
       await page.evaluate(() => {

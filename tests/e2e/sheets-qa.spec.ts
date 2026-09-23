@@ -1,15 +1,14 @@
-/**
+﻿/**
  * Sheet-level integration tests for untested components.
  *
  * Each test: navigate to the live app, open the sheet via its trigger
  * card/button, interact with it, verify persistence.
  *
  * Covers: ChecklistSheet, HospitalSheet, PeopleSheet, SessionsSheet,
- * SettingsSheet, ShareSheet, StatusUpdatePrompt, and the guestbook
- * (ActivityFeed within ShareView).
+ * SettingsSheet.
  *
- * These are the 8 functional features that had zero gauntlet coverage.
- * All are data-entry forms or display components — no safety-critical
+ * These are the functional features that had zero gauntlet coverage.
+ * All are data-entry forms or display components â€” no safety-critical
  * timer logic. But they're the polish features users actually interact
  * with.
  */
@@ -18,7 +17,7 @@ import * as helpers from './helpers';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'https://contractions.ashbi.ca/';
+const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:8765/';
 
 // ---- ChecklistSheet ----
 
@@ -43,7 +42,7 @@ test('checklist: hospital bag checklist opens, checks items, persists across rel
   await bagCard.click({ force: true });
   await page.waitForTimeout(1_000);
 
-  // Verify the sheet opened — should have checklist items
+  // Verify the sheet opened â€” should have checklist items
   const sheetBody = (await page.locator('body').textContent()) || '';
   const hasChecklistItems = /pack|bag|car seat|charger|snack|water|phone/i.test(sheetBody);
   expect(hasChecklistItems, 'Checklist sheet should show hospital bag items').toBe(true);
@@ -209,30 +208,4 @@ test('settings: settings sheet opens with all controls', async ({ page }) => {
   expect(body, 'Settings should show app version').toContain(`Olive v${version}`);
   // Should have theme / time format toggle text
   expect(body, 'Settings should have time format or theme options').toMatch(/format|theme|dark|24.?h/i);
-});
-
-// ---- StatusUpdatePrompt ----
-
-test('status: status update prompt opens, posts a status', async ({ page }) => {
-  await page.goto(BASE_URL, { waitUntil: 'domcontentloaded' });
-  await helpers.waitForApp(page);
-  await page.evaluate(() => {
-    localStorage.setItem('olive:onboarded', '1');
-    localStorage.setItem('olive:backup-reminder-dismissed', '1');
-  });
-  await page.reload({ waitUntil: 'domcontentloaded' });
-  await helpers.waitForApp(page);
-  await page.waitForTimeout(1_000);
-
-  // Status updates are posted via the tag/label icon in the header
-  const statusBtn = page.locator('button[aria-label*="status" i], button[aria-label*="update" i]').first();
-  if ((await statusBtn.count()) === 0) {
-    test.skip(true, 'Status update button not visible');
-    return;
-  }
-  await statusBtn.click({ force: true });
-  await page.waitForTimeout(1_000);
-
-  const body = (await page.locator('body').textContent()) || '';
-  expect(body.length, 'Status prompt should appear').toBeGreaterThan(20);
 });

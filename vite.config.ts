@@ -12,42 +12,17 @@ const pkg = JSON.parse(
   readFileSync(fileURLToPath(new URL('./package.json', import.meta.url)), 'utf8'),
 )
 const APP_VERSION = JSON.stringify(pkg.version)
-const configuredRelayUrl = process.env.VITE_RELAY_URL?.trim()
-const relayUrl = configuredRelayUrl || 'https://relay.ashbi.ca'
-const relayOrigin = new URL(relayUrl).origin
 
 export default defineConfig({
   plugins: [
     tailwindcss(),
     react(),
-    {
-      name: 'olive-relay-csp',
-      transformIndexHtml(html) {
-        return html.replace(
-          "connect-src 'self' https://relay.ashbi.ca",
-          `connect-src 'self' ${relayOrigin}`,
-        )
-      },
-    },
   ],
   base: '/',
   build: {
     // Production source maps expose the full client source tree to anyone
     // who can fetch the asset. Keep them disabled for the public build.
     sourcemap: false,
-    // Split pdf-lib into its own chunk so the ShareView's memory-book
-    // download doesn't bloat the entrypoint for the 90% of users who
-    // never open a share link. Entry ~428KB → ~30KB after this.
-    // Rolldown accepts a function (id) => chunk name; null returns
-    // the module to default chunking.
-    rollupOptions: {
-      output: {
-        manualChunks(id: string): string | null {
-          if (id.includes('node_modules/pdf-lib')) return 'pdf-lib';
-          return null;
-        },
-      },
-    },
   },
   server: { port: 5173, host: true },
   define: {
