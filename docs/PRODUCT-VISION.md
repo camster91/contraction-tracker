@@ -1,17 +1,17 @@
 # Olive product vision
 
-Status: approved product direction. Last updated: 2026-08-08.
+Status: approved product direction. Last updated: 2026-09-23.
 
 ## North star
 
-Olive is a calm, private coordination companion for the final weeks of
+Olive is a calm, private companion for the final weeks of
 pregnancy, birth day, and the first 12 postpartum weeks. It helps the expecting
-parent, partner, and care team stay aligned without attempting diagnosis or
+parent stay prepared and organized without attempting diagnosis or
 replacing professional care.
 
 The product should answer one question in a stressful moment:
 
-> What does this family need to remember, record, share, or do next?
+> What does this family need to remember, record, or do next?
 
 ## Primary user
 
@@ -19,10 +19,10 @@ The expecting or recovering parent is the owner of the record and the primary
 user. Olive should remain useful with one hand, at 3 a.m., without an account,
 without connectivity, and without first configuring a family workspace.
 
-Partners and invited support people are companion users. They can receive
-specific responsibilities and see only the information the record owner
-chooses to share. A care professional is a recipient of concise, factual
-summaries—not an Olive account holder in the initial product.
+Support people help through the parent, not through the app: responsibilities
+and care information are visible in Olive so the parent can show or hand them
+off directly. A care professional is a recipient of concise, factual
+summaries—not an Olive account holder.
 
 ## Product pillars
 
@@ -36,7 +36,7 @@ summaries—not an Olive account holder in the initial product.
 ### Birth day
 
 - Preserve Olive's one-tap contraction timer as the fastest primary action.
-- Coordinate partner actions and lightweight status updates.
+- Keep practical responsibilities visible so a support person knows what to do next.
 - Turn the family's own records into an objective care-team handoff.
 - Keep all timing language observational and provider-configurable.
 
@@ -59,8 +59,8 @@ summaries—not an Olive account holder in the initial product.
    everything the app knows.
 2. **Local first.** Core preparation, timing, notes, and exports work without a
    network connection or account.
-3. **Sharing is deliberate.** Nothing leaves the device until the owner creates
-   a share, and every shared category is visible before sending.
+3. **Private by default.** Nothing leaves the device; the only way data goes
+   anywhere is the owner's own export through the system share sheet.
 4. **The parent remains in control.** Olive does not infer pregnancy status,
    diagnose labor, or silently change the care plan.
 5. **Facts before interpretation.** Summaries report user-entered instructions,
@@ -103,5 +103,5 @@ Olive succeeds when:
 - the parent can show or share essential care information while offline;
 - a care-team summary contains objective, correctly scoped information;
 - an interrupted action resumes without losing data;
-- a user can understand exactly what will be shared and revoke it;
+- a user can export the complete record and take it anywhere;
 - postpartum use feels supportive without increasing cognitive load.

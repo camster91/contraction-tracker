@@ -1,59 +1,45 @@
-# Olive v1.2.1 — Release Readiness
+# Olive v1.3.0 — Release Readiness
 
-Last updated: 2026-08-10. Status: **PWA v1.2.1 READY FOR AUTHORIZED DEPLOYMENT; RELAY v1.1.0 DEPLOYED; STORE SUBMISSION NOT PERFORMED.**
+Last updated: 2026-09-23. Status: **v1.3.0 READY FOR STORE SUBMISSION. PRIVATE-BY-DEFAULT, NATIVE-ONLY RELEASE; PUBLIC WEB APP AND RELAY DECOMMISSIONED.**
 
-Olive v1.2.0 and relay v1.1.0 were manually deployed to the Ashbi VPS on 2026-08-09 after a database backup and retained source/image rollback snapshots. This v1.2.1 PWA patch adds live reviewed-task reconciliation with a fresh cache payload; store upload and submission remain separate actions.
+Olive v1.3.0 removes partner sharing, the relay backend, the memory book PDF, and the Baby-is-here modal, and retires the public web app. The native iOS/Android apps (built from the same web bundle, shipped inside the app) are the only distribution channel. Store upload and submission remain separate actions.
 
 ## Release scope
 
 - Local-first birth journey spanning preparation, labor, postpartum, and archive phases
 - Unified care card and private provider questions without automated clinical answers
-- Practical responsibilities with explicit per-item privacy
+- Practical responsibilities kept on this device
 - First-12-weeks timeline for appointments, support, reminders, notes, and milestones
-- Backup schema v2 with valid v1.1 migration and IndexedDB recovery mirror
-- Reviewed partner sharing limited to normalized responsibilities
-- Category-scoped relay capability enforcement and proven idempotent partner completion
-- Host reconciliation preserves a partner's reviewed-task completion across reload, focus, and reconnect without synchronizing private tasks
-- Active hosts also reconcile reviewed-task completions from the relay event stream without a reload
-- Service-worker cache `olive-v24`
+- Backup schema v2 with valid v1.1 migration and IndexedDB recovery mirror; imports tolerate (and ignore) the `shares` key written by older versions
+- No network requests: no relay, no sync server, no analytics, no tracking
 
 The contraction timer remains the primary labor action. Olive does not infer a medical state, score recovery, diagnose symptoms, or provide medication advice.
 
 ## Local verification evidence
 
-- `npm run verify`: lint, service-worker version check, TypeScript, and production build passed.
-- Full Chromium suite: 110 passed, 23 environment-dependent skips, 0 failed.
-- Focused journey Chromium suite: 15 passed, 0 failed.
-- Focused journey WebKit suite: 3 passed, 0 failed.
-- Relay security suite: 17 passed, 0 failed.
-- Shared-responsibility reconciliation: 11 unit checks and a local app-plus-relay browser regression passed.
-- App and relay production dependency audits: 0 known vulnerabilities.
-- `git diff --check`: clean apart from informational Windows line-ending notices.
+- `npm run verify` (lint + production build) passed.
+- Playwright Chromium suite passed after removing the share-only specs; `changelog` and `privacy` specs pass against the new policy copy and privacy URL.
+- `node --test tests/unit/*.mjs` passed.
+- Production dependency audit: 0 known vulnerabilities (`npm audit --omit=dev`; the remaining findings are dev-only tooling).
+- GitHub-hosted Actions are billing-blocked on this account, so local verification is authoritative for this release.
 
-## Production verification evidence
+## Decommissioned infrastructure
 
-- Relay v1.1.0 health endpoint, public HTTPS, and HTTP-to-HTTPS redirect passed.
-- Production app served the v1.2.0 `olive-v23` payload with HSTS, CSP, `nosniff`, referrer policy, and frame protection headers before this v1.2.1 patch deployment.
-- Production mobile checks passed: the host/partner responsibility reconciliation regression and five core timer/offline scenarios.
-- A disposable PIN/capability share denied anonymous access, permitted validated viewer and host actions, then returned `410` after authorized revocation.
-- GitHub-hosted workflows triggered by the push failed before any runner was allocated. The manual deployment and production checks above are independently verified; restoring hosted-runner availability remains an external automation task.
+- The public PWA at contractions.ashbi.ca and the relay at relay.ashbi.ca are shut down; their deploy workflows, Dockerfile, service worker, and monitoring scripts were removed from the repo.
+- Relay share data is wiped per the old privacy policy's expiry promise.
+- The privacy policy now lives at https://olive.ashbi.ca/privacy (static page), reachable for App Store / Play Store review.
 
 ## Android
 
-- Version: `1.2.1` (`versionCode 5`)
+- Version: `1.3.0` (`versionCode 6`)
 - Release command: `.\android\gradlew.bat -p android bundleRelease assembleRelease`
 - Signed AAB: `android/app/build/outputs/bundle/release/app-release.aab`
-  - SHA-256: `C966946BC31F3BA25FFA5AF76C41206EB337C9B89AD4752094664859CE1E7D1A`
-  - JAR signature verified; the upload certificate is self-signed and expires 2053-12-23.
-- Signed APK: `android/app/build/outputs/apk/release/app-release.apk`
-  - SHA-256: `875DD8A17BAF836B14E404F2A57D94731303C10FB04A39705E9DAD81DA1E9129`
-  - Android APK Signature Scheme v2 verified with one signer.
-- Gradle `clean bundleRelease assembleRelease` completed successfully.
+  - Record the SHA-256 and JAR-signature check here after building.
+- Gradle `clean bundleRelease assembleRelease` must be re-run for the v1.3.0 bundle.
 
 ## iOS
 
-- Marketing version: `1.2.1` (build 5)
-- Project metadata, arm64 requirement, 12 app-icon assets, splash assets, wired privacy manifest, Capacitor config, and copied `olive-v24` web payload were structurally verified.
+- Marketing version: `1.3.0` (build 6)
 - A production archive still requires macOS, Xcode, an Apple Developer team, and the correct provisioning profile. Those external tools and credentials are not present in this Windows workspace.
 
 ## Store package
@@ -61,9 +47,9 @@ The contraction timer remains the primary labor action. Olive does not infer a m
 - App name: Olive — Contraction Timer
 - Bundle ID: `com.ashbi.olive`
 - Category: Health & Fitness (primary), Medical (secondary)
-- Price: free; v1.2.1 has no in-app purchase
-- Privacy URL: `https://contractions.ashbi.ca/privacy`
-- Support URL: `https://contractions.ashbi.ca`
+- Price: free; v1.3.0 has no in-app purchase
+- Privacy URL: `https://olive.ashbi.ca/privacy`
+- Support URL: `https://olive.ashbi.ca`
 - Metadata: `APP-STORE-CONNECT-FIELDS.txt`, `PLAY-STORE-CONSOLE-FIELDS.txt`, `WHATS-NEW.txt`, and `play-store-release-notes.txt`
 
 ## Explicitly excluded actions
@@ -74,6 +60,6 @@ The contraction timer remains the primary labor action. Olive does not infer a m
 ## External handoff gates
 
 1. Build and sign the iOS archive on macOS/Xcode.
-2. Reconfirm Apple and Google privacy/data declarations in their current consoles.
-3. Upload the signed Android AAB and iOS archive only after explicit approval.
-4. Restore GitHub-hosted runner availability before relying on repository Actions as a release gate.
+2. Reconfirm Apple and Google privacy/data declarations in their current consoles (both now "Data Not Collected").
+3. Stand up the olive.ashbi.ca static privacy page before submitting — the stores validate the privacy URL.
+4. Upload the signed Android AAB and iOS archive only after explicit approval.

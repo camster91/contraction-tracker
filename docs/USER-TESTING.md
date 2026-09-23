@@ -10,7 +10,7 @@ Best testers (in priority order):
 2. **Anyone currently pregnant or recently gave birth** — they have the
    lived experience to spot UX issues
 3. **Anyone who's been a birth partner** (dad, mom, doula, sister) —
-   they understand the partner-sharing flow
+   they know what a support person needs to see at a glance
 4. **Anyone tech-savvy with iPhones or Android** — they'll find crashes
 
 What you DON'T need: a software engineer or a tester by profession.
@@ -45,9 +45,8 @@ trying to time their contractions.
 4. **The 5-1-1 alert timing** — when it fires, is the message clear?
    Is the timing right? (Real labor + this app: a tester should tap
    3+ contractions in 5 minutes apart and see the alert.)
-5. **Sharing with partner** — does the partner view show real-time
-   updates? Open the share link on a second device while timing
-   contractions on the first device.
+5. **Backup and restore** — export a backup on one device, import it on
+   another, and confirm everything carries over.
 6. **Edge cases** — what if you go back to the app 4 hours after
    starting a contraction? What if your phone dies mid-contraction?
    What if you uninstall and reinstall?
@@ -66,7 +65,7 @@ If a tester reports a bug, ask for:
 Device: [iPhone 13, Pixel 7, etc.]
 OS: [iOS 17.4, Android 14, etc.]
 App version: 1.0.0 (visible in Settings)
-What were you doing: [starting a contraction, sharing, etc.]
+What were you doing: [starting a contraction, exporting a backup, etc.]
 What you expected: [the timer to start]
 What happened: [nothing happened, or screen froze, etc.]
 Screenshot: [attached]
@@ -86,7 +85,7 @@ Within 1 hour of receiving feedback:
 |-----|-----------|--------------|
 | Day 1-2 | Install + first-time UX | Family members (non-pregnant, fresh eyes) |
 | Day 3-4 | Real contractions (timed, not real labor) | Bianca + 1 pregnant friend |
-| Day 5-6 | Partner sharing | Tester + their partner on 2 devices |
+| Day 5-6 | Backup, restore, and care summary handoff | Tester + a second device |
 | Day 7 | Edge cases / battery / multi-day | Long-term tester |
 
 If a critical bug is found on Day 1-3, ship a hotfix before the 15th

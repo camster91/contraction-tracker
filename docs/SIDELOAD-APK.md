@@ -60,7 +60,7 @@ Some Android devices have Quick Share (Samsung, Xiaomi) or Nearby Share (Pixel).
 4. Tap the History button (if available) → see the recorded contraction
 5. Check the Settings sheet → see "Backup" card with the new Olive branding
 6. Quit the app, reopen → contraction is still there (localStorage persistence works)
-7. Test on cellular data → the share-with-partner flow should work via relay.ashbi.ca
+7. Turn on airplane mode → timer, history, and journey tools all still work (the app makes no network requests)
 
 ## What the test data looks like (for testers)
 

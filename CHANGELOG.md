@@ -1,5 +1,14 @@
 # Olive — Changelog
 
+## v1.3.0 (September 2026) — Private-by-default, native-only release
+
+- Retired the public web app; Olive is now distributed only through the App Store and Play Store.
+- Removed partner sharing and its relay server. Nothing leaves your device — no sync server, no session codes, no network requests from the app.
+- Removed the memory book PDF and the Baby-is-here celebration modal, which were part of the sharing flow.
+- Kept every local feature: the one-tap labor timer, sessions, birth journey, care card, provider questions, responsibilities, hospital bag and exams, voice control, backups, and the care summary handoff.
+- Backups exported by older versions still import; a carried-over `shares` key is ignored.
+- Privacy policy: https://olive.ashbi.ca/privacy
+
 ## v1.2.0 (August 2026) — Birth journey release
 
 - Expanded Olive into a local-first companion spanning preparation, labor, and the first 12 weeks postpartum.
