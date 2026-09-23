@@ -23,7 +23,6 @@ type Props = {
   onActiveChange: (id: string) => void;
   onClose: () => void;
   onOpenPeople: () => void;
-  onOpenShare: (sessionId: string) => void;
   onViewSession: (session: Session) => void;
 };
 
@@ -33,7 +32,6 @@ export default function SessionsSheet({
   onActiveChange,
   onClose,
   onOpenPeople,
-  onOpenShare,
   onViewSession,
 }: Props) {
   const [sessions, setSessions] = useState<Session[]>(() => getSessions());
@@ -203,14 +201,6 @@ export default function SessionsSheet({
                   </div>
                 </button>
                 <div className="flex items-center gap-0.5">
-                  <button
-                    onClick={() => onOpenShare(s.id)}
-                    className="p-1.5 text-ink-400 active:text-rose-300 transition-colors"
-                    aria-label="Share"
-                    title="Share with someone"
-                  >
-                    <Users className="w-3.5 h-3.5" />
-                  </button>
                   {s.endedAt && (
                     <button
                       onClick={() => onViewSession(s)}

@@ -2,14 +2,8 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
-import ShareView from './components/ShareView.tsx'
 import { CapacitorInit } from './components/CapacitorInit.tsx'
 import ErrorBoundary from './components/ErrorBoundary.tsx'
-
-// If the URL has `?share=CODE`, render the read-only share view instead of
-// the full app. Single-device mode today; multi-device realtime sync would
-// require a backend relay (the data model is shaped for that).
-const shareCode = new URLSearchParams(window.location.search).get('share')
 
 // Preload the most critical fonts so the browser fetches them in parallel
 // with the JS bundle instead of discovering them only after CSS parses.
@@ -38,7 +32,7 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary>
       <CapacitorInit />
-      {shareCode ? <ShareView code={shareCode} /> : <App />}
+      <App />
     </ErrorBoundary>
   </StrictMode>,
 )

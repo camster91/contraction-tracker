@@ -31,7 +31,7 @@ export default function ResponsibilitiesPanel({ journey, onChange }: {
     <div>
       <h3 className="font-display text-xl text-ink-50">Responsibilities</h3>
       <p className="text-[11px] text-ink-400 leading-relaxed mt-1 mb-4">
-        Keep practical support visible. Responsibilities stay private until you explicitly share them.
+        Keep practical support visible. Responsibilities stay on this device.
       </p>
       <form onSubmit={add} className="rounded-2xl border border-ink-200/25 bg-ink-100/5 p-3 space-y-3">
         <label className="block text-[11px] text-ink-300">
@@ -68,7 +68,7 @@ export default function ResponsibilitiesPanel({ journey, onChange }: {
                 <div className="min-w-0 flex-1">
                   <div className={`text-sm ${item.completedAt ? 'text-ink-400 line-through' : 'text-ink-100'}`}>{item.title}</div>
                   <div className="flex gap-2 mt-1.5 text-[10px] uppercase tracking-wide text-ink-500">
-                    <span>{assignee?.name ?? 'Unassigned'}</span><span>{item.private ? 'Private' : 'Ready to share'}</span>
+                    <span>{assignee?.name ?? 'Unassigned'}</span>
                   </div>
                 </div>
                 <button type="button" onClick={() => onChange(deleteResponsibility(journey, item.id))}
@@ -81,11 +81,6 @@ export default function ResponsibilitiesPanel({ journey, onChange }: {
                 className="mt-3 min-h-[36px] rounded-lg border border-ink-200/25 px-3 py-1.5 text-xs text-ink-300 flex items-center gap-1.5">
                 {item.completedAt ? <RotateCcw className="w-3.5 h-3.5" /> : <Check className="w-3.5 h-3.5" />}
                 {item.completedAt ? 'Reopen responsibility' : 'Mark complete'}
-              </button>
-              <button type="button"
-                onClick={() => onChange(updateResponsibility(journey, item.id, { private: !item.private }))}
-                className="mt-2 min-h-[44px] rounded-lg border border-ink-200/25 px-3 py-1.5 text-xs text-ink-300">
-                {item.private ? 'Include in a reviewed partner share' : 'Keep private'}
               </button>
             </article>
           );
