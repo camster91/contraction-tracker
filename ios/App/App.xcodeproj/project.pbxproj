@@ -16,7 +16,32 @@
 		504EC30F1FED79650016851F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 504EC30E1FED79650016851F /* Assets.xcassets */; };
 		504EC3121FED79650016851F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 504EC3101FED79650016851F /* LaunchScreen.storyboard */; };
 		50B271D11FEDC1A000F3C39B /* public in Resources */ = {isa = PBXBuildFile; fileRef = 50B271D01FEDC1A000F3C39B /* public */; };
+
+		B11111111111111111111110 /* OliveBridgeViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B11111111111111111111101 /* OliveBridgeViewController.swift */; };
+		B11111111111111111111111 /* OliveLiveActivityPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = B11111111111111111111102 /* OliveLiveActivityPlugin.swift */; };
+		B11111111111111111111112 /* OliveTimerAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = B11111111111111111111103 /* OliveTimerAttributes.swift */; };
+		B11111111111111111111113 /* OliveLiveActivityWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = B11111111111111111111105 /* OliveLiveActivityWidget.swift */; };
+		B11111111111111111111114 /* OliveTimerAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = B11111111111111111111103 /* OliveTimerAttributes.swift */; };
+		B11111111111111111111115 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = B11111111111111111111107 /* Localizable.xcstrings */; };
+		B11111111111111111111129 /* OliveLiveActivity.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = B11111111111111111111120 /* OliveLiveActivity.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		B11111111111111111111135 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B11111111111111111111132 /* WidgetKit.framework */; };
+		B11111111111111111111136 /* ActivityKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B11111111111111111111133 /* ActivityKit.framework */; };
 /* End PBXBuildFile section */
+
+
+/* Begin PBXCopyFilesBuildPhase section */
+		B11111111111111111111128 /* Embed App Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				B11111111111111111111129 /* OliveLiveActivity.appex in Embed App Extensions */,
+			);
+			name = "Embed App Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		2FAD9762203C412B000D30F8 /* config.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = config.xml; sourceTree = "<group>"; };
@@ -30,6 +55,16 @@
 		50B271D01FEDC1A000F3C39B /* public */ = {isa = PBXFileReference; lastKnownFileType = folder; path = public; sourceTree = "<group>"; };
 		6CA84EFAB4E00D13EC78D7B7 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = App/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		958DCC722DB07C7200EA8C5F /* debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = debug.xcconfig; path = ../debug.xcconfig; sourceTree = SOURCE_ROOT; };
+
+		B11111111111111111111101 /* OliveBridgeViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OliveBridgeViewController.swift; sourceTree = "<group>"; };
+		B11111111111111111111102 /* OliveLiveActivityPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OliveLiveActivityPlugin.swift; sourceTree = "<group>"; };
+		B11111111111111111111103 /* OliveTimerAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OliveTimerAttributes.swift; sourceTree = "<group>"; };
+		B11111111111111111111105 /* OliveLiveActivityWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OliveLiveActivityWidget.swift; sourceTree = "<group>"; };
+		B11111111111111111111106 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		B11111111111111111111107 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
+		B11111111111111111111120 /* OliveLiveActivity.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = OliveLiveActivity.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		B11111111111111111111132 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		B11111111111111111111133 /* ActivityKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ActivityKit.framework; path = System/Library/Frameworks/ActivityKit.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -41,6 +76,16 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+
+		B11111111111111111111123 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B11111111111111111111135 /* WidgetKit.framework in Frameworks */,
+				B11111111111111111111136 /* ActivityKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -49,6 +94,7 @@
 			children = (
 				958DCC722DB07C7200EA8C5F /* debug.xcconfig */,
 				504EC3061FED79650016851F /* App */,
+				B11111111111111111111104 /* OliveLiveActivity */,
 				504EC3051FED79650016851F /* Products */,
 				6CA84EFAB4E00D13EC78D7B7 /* PrivacyInfo.xcprivacy */,
 			);
@@ -58,6 +104,7 @@
 			isa = PBXGroup;
 			children = (
 				504EC3041FED79650016851F /* App.app */,
+				B11111111111111111111120 /* OliveLiveActivity.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -67,6 +114,9 @@
 			children = (
 				50379B222058CBB4000EE86E /* capacitor.config.json */,
 				504EC3071FED79650016851F /* AppDelegate.swift */,
+				B11111111111111111111101 /* OliveBridgeViewController.swift */,
+				B11111111111111111111102 /* OliveLiveActivityPlugin.swift */,
+				B11111111111111111111103 /* OliveTimerAttributes.swift */,
 				504EC30B1FED79650016851F /* Main.storyboard */,
 				504EC30E1FED79650016851F /* Assets.xcassets */,
 				504EC3101FED79650016851F /* LaunchScreen.storyboard */,
@@ -75,6 +125,17 @@
 				50B271D01FEDC1A000F3C39B /* public */,
 			);
 			path = App;
+			sourceTree = "<group>";
+		};
+
+		B11111111111111111111104 /* OliveLiveActivity */ = {
+			isa = PBXGroup;
+			children = (
+				B11111111111111111111105 /* OliveLiveActivityWidget.swift */,
+				B11111111111111111111106 /* Info.plist */,
+				B11111111111111111111107 /* Localizable.xcstrings */,
+			);
+			path = OliveLiveActivity;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -87,10 +148,12 @@
 				504EC3001FED79650016851F /* Sources */,
 				504EC3011FED79650016851F /* Frameworks */,
 				504EC3021FED79650016851F /* Resources */,
+				B11111111111111111111128 /* Embed App Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				B11111111111111111111131 /* PBXTargetDependency */,
 			);
 			name = App;
 			packageProductDependencies = (
@@ -99,6 +162,24 @@
 			productName = App;
 			productReference = 504EC3041FED79650016851F /* App.app */;
 			productType = "com.apple.product-type.application";
+		};
+
+		B11111111111111111111121 /* OliveLiveActivity */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B11111111111111111111127 /* Build configuration list for PBXNativeTarget "OliveLiveActivity" */;
+			buildPhases = (
+				B11111111111111111111122 /* Sources */,
+				B11111111111111111111123 /* Frameworks */,
+				B11111111111111111111124 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = OliveLiveActivity;
+			productName = OliveLiveActivity;
+			productReference = B11111111111111111111120 /* OliveLiveActivity.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
@@ -133,9 +214,21 @@
 			projectRoot = "";
 			targets = (
 				504EC3031FED79650016851F /* App */,
+				B11111111111111111111121 /* OliveLiveActivity */,
 			);
 		};
 /* End PBXProject section */
+
+
+/* Begin PBXContainerItemProxy section */
+		B11111111111111111111130 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 504EC2FC1FED79650016851F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = B11111111111111111111121;
+			remoteInfo = OliveLiveActivity;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXResourcesBuildPhase section */
 		504EC3021FED79650016851F /* Resources */ = {
@@ -152,6 +245,15 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+
+		B11111111111111111111124 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B11111111111111111111115 /* Localizable.xcstrings in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -160,10 +262,32 @@
 			buildActionMask = 2147483647;
 			files = (
 				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
+				B11111111111111111111110 /* OliveBridgeViewController.swift in Sources */,
+				B11111111111111111111111 /* OliveLiveActivityPlugin.swift in Sources */,
+				B11111111111111111111112 /* OliveTimerAttributes.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+
+		B11111111111111111111122 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B11111111111111111111113 /* OliveLiveActivityWidget.swift in Sources */,
+				B11111111111111111111114 /* OliveTimerAttributes.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+
+/* Begin PBXTargetDependency section */
+		B11111111111111111111131 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = B11111111111111111111121 /* OliveLiveActivity */;
+			targetProxy = B11111111111111111111130 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
 		504EC30B1FED79650016851F /* Main.storyboard */ = {
@@ -338,6 +462,57 @@
 			};
 			name = Release;
 		};
+
+		B11111111111111111111125 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGNING_REQUIRED = NO;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 6;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = OliveLiveActivity/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.3.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ashbi.olive.OliveLiveActivity;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		B11111111111111111111126 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGNING_REQUIRED = NO;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 6;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = OliveLiveActivity/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.3.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ashbi.olive.OliveLiveActivity;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -355,6 +530,16 @@
 			buildConfigurations = (
 				504EC3171FED79650016851F /* Debug */,
 				504EC3181FED79650016851F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+
+		B11111111111111111111127 /* Build configuration list for PBXNativeTarget "OliveLiveActivity" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B11111111111111111111125 /* Debug */,
+				B11111111111111111111126 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

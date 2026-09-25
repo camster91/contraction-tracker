@@ -1,0 +1,40 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "live_activity.open_to_stop" : {
+      "comment" : "Instruction shown beside the running contraction timer in the Live Activity.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Olive to stop"
+          }
+        },
+        "fr-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvrez Olive pour arrêter"
+          }
+        }
+      }
+    },
+    "live_activity.timer_title" : {
+      "comment" : "Title shown while a contraction is actively being timed.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Contraction in progress"
+          }
+        },
+        "fr-CA" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Contraction en cours"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

@@ -21,8 +21,6 @@ import {
   Users2,
   Cog,
   Stethoscope,
-  Mic,
-  MicOff,
   Clock,
 } from 'lucide-react';
 import {
@@ -79,7 +77,8 @@ import {
   type MuteSchedule,
 } from './lib/settings';
 import { useUndo } from './lib/undo';
-import { isVoiceSupported, startListening, stopListening, getPendingVoiceStop } from './lib/voice';
+import { stopListening } from './lib/voice';
+import { syncNativeTimerNotification } from './lib/nativeTimer';
 import Timeline from './components/Timeline';
 import FrequencyChart from './components/FrequencyChart';
 import SessionsSheet from './components/SessionsSheet';
@@ -177,7 +176,7 @@ export default function App() {
   const [showPeople, setShowPeople] = useState(false);
   const [sessions, setSessions] = useState<Session[]>(() => getSessions());
   const [activeSessionId, setActiveId] = useState<string>(() => getActiveSessionId());
-  const [voiceActive, setVoiceActive] = useState(false);
+
 
   // Viewing an ended session read-only (without switching active session)
   const [viewingSessionId, setViewingSessionId] = useState<string | null>(null);
@@ -228,8 +227,8 @@ export default function App() {
     const raw = localStorage.getItem(BACKUP_REMINDER_KEY);
     return raw ? JSON.parse(raw) : null;
   });
-  const showBackupBanner = !(dismissedBannerAt && Date.now() - dismissedBannerAt < 24 * 60 * 60 * 1000)
-    && contractions.filter((c) => c.end).length > 0; // don't bug brand-new users with 0 finished contractions
+  // Auto-backup already runs. Never cover the Start button during labor.
+  const showBackupBanner = false;
 
   // Onboarding tooltip steps: null = dismissed, 0/1/2 = step
   const [onboardingStep, setOnboardingStep] = useState<number | null>(() => {
@@ -410,6 +409,11 @@ export default function App() {
   }, [current, contractions]);
 
   useEffect(() => {
+    const running = current && !current.end ? current.start : null;
+    void syncNativeTimerNotification(running);
+  }, [current]);
+
+  useEffect(() => {
     // Persistent tick — uses rAF for smooth display but only fires setState
     // when the second actually changes. This prevents 60fps re-renders when
     // the display value is the same (which is 59 out of 60 frames).
@@ -499,11 +503,7 @@ export default function App() {
     // Voice readout of the contraction we just finished
     const dur = durationSeconds(finished);
     speak(`That was ${formatDurationSpoken(dur)}.`);
-    setEditingId(finished.id);
-    setIntensityDraft('');
-    setNoteDraft('');
-    setTagsDraft(getTags(finished));
-    setPainLocationsDraft(finished.painLocations ?? []);
+    // Do not open intensity/pain/tags after Stop — next Start must stay one tap away.
     // Save the state *before* this contraction was added so undo can remove it
     undo.push({
       kind: 'stop',
@@ -709,18 +709,6 @@ export default function App() {
   const handleMuteToggle = () => {
     unlockAudio();
     setMutedState((m) => !m);
-  };
-
-  const handleVoiceToggle = () => {
-    setVoiceActive((v) => {
-      if (v) {
-        stopListening();
-        return false;
-      } else {
-        startListening(handleStart, handleStop);
-        return true;
-      }
-    });
   };
 
   const handleShare = async () => {
@@ -1250,21 +1238,7 @@ export default function App() {
           >
             <Cog className="w-4 h-4" strokeWidth={1.75} />
           </button>
-          {/* Voice control — mic for hands-free start/stop */}
-          {isVoiceSupported() && (
-            <button
-              onClick={handleVoiceToggle}
-              className={`p-2 rounded-lg transition-colors relative ${voiceActive ? 'text-rose-300 bg-rose-300/10 animate-pulse-subtle' : 'text-ink-300 active:text-rose-300'}`}
-              aria-label={voiceActive ? 'Voice listening — tap to stop' : 'Voice control — tap to enable'}
-              title={voiceActive ? 'Voice on' : 'Voice off'}
-            >
-              {voiceActive ? <Mic className="w-4 h-4" strokeWidth={1.75} /> : <MicOff className="w-4 h-4" strokeWidth={1.75} />}
-              {/* Pending stop indicator — small amber dot when 2-tap confirm is pending */}
-              {voiceActive && getPendingVoiceStop() && (
-                <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
-              )}
-            </button>
-          )}
+          {/* Voice is off the labor screen: Web Speech inside Capacitor is unreliable at 3am. */}
         </div>
 
         {/* Tooltip — drops down from the saved indicator */}
@@ -1449,7 +1423,7 @@ export default function App() {
           {!current ? (
             <button
               onClick={handleStart}
-              className="w-full min-h-[180px] rounded-3xl bg-gradient-to-br from-rose-300 via-rose-400 to-rose-500 text-plum-950 active:scale-[0.99] transition-transform duration-150 animate-breathe-soft flex flex-col items-center justify-center px-6 py-8"
+              className="w-full min-h-[180px] rounded-3xl bg-gradient-to-br from-rose-300 via-rose-400 to-rose-500 text-plum-950 active:scale-[0.99] transition-transform duration-150 flex flex-col items-center justify-center px-6 py-8"
             >
               <div className="w-14 h-14 rounded-full bg-plum-950/10 backdrop-blur-sm flex items-center justify-center mb-3">
                 <Play className="w-6 h-6" fill="currentColor" strokeWidth={0} />
@@ -1579,13 +1553,12 @@ export default function App() {
           <Onboarding onDismiss={() => setOnboardingStep(null)} />
         )}
 
-        {!current && onboardingStep === null && (
+        {!current && finished.length === 0 && onboardingStep === null && (
           <TodayPanel journey={journey} onOpen={() => setShowJourney(true)} buttonRef={journeyOpenerRef} />
         )}
 
-        {/* Keep the labor surface focused. The timer is primary; planning
-            and records stay one deliberate tap away. */}
-        <div className="mb-4 space-y-2">
+        {/* Keep the labor surface focused. Hide extras while a contraction is running. */}
+        {!current && <div className="mb-4 space-y-2">
           <div className="grid grid-cols-2 gap-2">
             <button
               type="button"
@@ -1627,7 +1600,7 @@ export default function App() {
               />
             </div>
           )}
-        </div>
+        </div>}
 
         {/* Friends banner — reduced; now handled by carousel */}
         {/* Hospital bag pill — reduced; now handled by carousel */}
