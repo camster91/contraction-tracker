@@ -1,99 +1,80 @@
-# Olive — Birth Journey Companion
+# Olive: Birth Journey Companion
 
-A calm, private companion for the final weeks of pregnancy, birth day, and the first 12 postpartum weeks. Olive's shipped core is an offline-first contraction timer with a local birth journey, distributed as native iOS/Android apps built with Capacitor. No account is required.
+A calm, private contraction timer and birth companion for iOS and Android. Offline-first, no account, no tracking.
 
-**Privacy policy:** [olive.ashbi.ca/privacy](https://olive.ashbi.ca/privacy) · **Release pricing:** free.
+![Olive](store-assets/play-feature-graphic-1024x500-v2.png)
 
-**Product direction:** Olive helps the expecting parent and care team stay prepared without attempting diagnosis or replacing professional care. See [`docs/PRODUCT-VISION.md`](docs/PRODUCT-VISION.md).
+## What it does
 
----
+Olive supports the final weeks of pregnancy, the day of birth, and the first 12 postpartum weeks. Its core is a one-tap contraction timer built to be usable at 3 a.m. with one hand: a large, high-contrast display, optional voice control, and a care plan that uses the timing instructions from the user's own care team. Around the timer sits a local birth journey: care card, questions for the provider, a hospital bag checklist and a postpartum timeline.
+
+Olive does not attempt diagnosis or replace professional care. Timing patterns never automatically "diagnose" labor; the app only surfaces the instructions the user saved. Everything is stored on the device, and the app makes no network requests of its own.
 
 ## Features
 
-### Core Tracking
-- One-tap start/stop for each contraction
-- Duration and interval tracking per contraction
-- Provider-configurable timing reminders, with non-diagnostic language
-- Full contraction history with timestamps
-- One-tap objective care summary for calls, messages, or email
+**Contraction tracking**
+- One-tap start and stop, with duration and interval for every contraction
+- Full history with timestamps, sessions, tags and a frequency chart
+- Undo for accidental taps
+- Screen wake lock so the timer stays visible, plus haptic feedback on native builds
 
-### Birth Journey
-- Care card, provider questions, and practical responsibilities, all on-device
-- Postpartum first-12-weeks timeline
-- Hospital bag checklist with pre-loaded items
-
-### Voice Control
-- Start and stop timers by speaking — hands-free when you can't reach your phone
-- Audio processed on-device via Web Speech API; no voice data leaves your device
-
-### User-Controlled Care Plan
-- Save the interval, duration, and sustained-window instructions from your care team
+**Care plan**
+- Save the interval, duration and sustained-window instructions from your care team
 - Store a care-team name and phone number for a direct call action when the saved pattern appears
-- Timing patterns never automatically diagnose labor
+- One-tap objective care summary to share by call, message or email
 
-### Designed for the Moment
-- Large, high-contrast timer visible across the room
-- Core timer and history work entirely offline
-- No account required — open and start
-- Preparation and record-keeping tools stay behind a single disclosure during labor
+**Birth journey**
+- Care card, provider questions and practical responsibilities
+- Hospital bag checklist with pre-loaded items
+- Postpartum first-12-weeks timeline
 
----
+**Voice control**
+- Start and stop the timer by speaking, using the on-device Web Speech API
 
-## Privacy
+**Privacy**
+- No ads, no analytics, no third-party SDKs, no account
+- Data stays on the device (localStorage, mirrored to IndexedDB so a storage wipe does not lose history)
+- Backups and summaries leave the device only through the system share sheet, when the user chooses
 
-- **No ads, no analytics, no third-party SDKs.**
-- Everything you record stays on your device. Olive makes no network requests and sends nothing to any server.
-- Backups and care summaries leave the device only through your own system share sheet, when you choose.
-- Voice control runs entirely on-device; no voice recordings are transmitted.
-- Full privacy policy at [olive.ashbi.ca/privacy](https://olive.ashbi.ca/privacy).
-
----
-
-## Tech Stack
+## Tech stack
 
 | Layer | Technology |
 |---|---|
-| App | React 19 + TypeScript + Vite + Tailwind CSS |
-| Native | Capacitor 8 (iOS + Android) |
-| Version | 1.3.0 |
+| App | React 19, TypeScript, Vite 8 |
+| Styling | Tailwind CSS 4, Fraunces and Inter (self-hosted via Fontsource), lucide-react icons |
+| Native | Capacitor 8 (iOS + Android): app, haptics, splash screen, status bar |
+| Storage | localStorage mirrored to IndexedDB, BroadcastChannel cross-tab sync |
+| Testing | Playwright end-to-end suite, Node unit tests |
+| Quality | ESLint, TypeScript build check |
 
----
+## Getting started
 
-## Repository
-
-| Repo | URL |
-|---|---|
-| App | github.com/camster91/contraction-tracker |
-
----
-
-## Getting Started
-
-### Run locally (development)
+Requires Node 22 or newer.
 
 ```bash
 git clone https://github.com/camster91/contraction-tracker.git
 cd contraction-tracker
 npm install
-npm run dev
-# Open http://localhost:5173 — the app runs in any modern browser
+npm run dev          # http://localhost:5173, runs in any modern browser
 ```
 
-### Build for production
+### Scripts
 
-```bash
-npm run build
-# Outputs to dist/ — the web bundle the native apps ship
-```
+| Command | What it does |
+|---|---|
+| `npm run dev` | Vite dev server |
+| `npm run build` | Type-check and build to `dist/` (the bundle the native apps ship) |
+| `npm run typecheck` | TypeScript build check |
+| `npm run lint` | ESLint |
+| `npm run verify` | Lint and build |
+| `npm run preview` | Preview the production build |
 
 ### Native iOS
 
 ```bash
 npm run build
 npx cap sync ios
-cd ios/App
-open App.xcworkspace
-# Then build & run in Xcode as usual
+open ios/App/App.xcworkspace
 ```
 
 ### Native Android
@@ -102,39 +83,37 @@ open App.xcworkspace
 npm run build
 npx cap sync android
 cd android
-./gradlew assembleRelease   # APK at app/build/outputs/apk/release/
-./gradlew bundleRelease      # AAB at app/build/outputs/bundle/release/
+./gradlew assembleRelease   # APK
+./gradlew bundleRelease     # AAB
 ```
 
----
+## Testing
 
-## Deploy
+```bash
+npm run test:e2e     # build, then run the Playwright suite on an iPhone 14 profile
+```
 
-Olive is distributed through the App Store and Google Play only; there is no public web deployment. The `dist/` web build exists because the Capacitor apps bundle it locally.
+The Playwright suite covers timer logic and edge cases, overnight "3 a.m." scenarios, voice keywords, wake lock, backup and restore, the privacy page, accessibility, and the birth journey screens.
 
-The GitHub-hosted workflow runners are currently unavailable, so hosted Actions are not used as the release gate — verify locally with `npm run verify` and the Playwright suite.
+## Project structure
 
----
+```
+src/
+├── App.tsx          # Main timer screen and app shell
+├── components/      # Sheets and panels: history, sessions, settings, journey, care card, checklist
+├── lib/             # Contractions, sessions, storage (IndexedDB), backup, voice, wake lock, audio, sync
+├── hooks/           # Modal dialog handling
+└── messages/        # UI copy
+tests/
+├── e2e/             # Playwright specs
+└── unit/            # Journey and backup unit tests
+android/  ios/       # Capacitor native projects
+```
 
-## Version History
+## Documentation
 
-| Version | Notes |
-|---|---|
-| 1.3.0 | Private-by-default, native-only release: partner sharing, relay, memory book, and the public web app removed |
-| 1.1.0 | Provider-specific care-plan reminders, objective care summary, non-diagnostic pattern language, user-controlled status, and focused labor-mode hierarchy |
-| 1.2.1 | Live reviewed-responsibility reconciliation for hosts, including the active app session |
-| 1.2.0 | Local-first birth journey, care card, provider questions, partner responsibilities, postpartum timeline, backup migration, and reviewed category-scoped sharing |
-| 1.0.1 | Secure capability-based sharing, offline reload recovery, accessibility release fixes, and production security headers |
-| 1.0.0 | First Olive release with SSE live sync, voice control, multi-device sharing, and memory book PDF |
-| 2.0.4 | Last version under the old name — SSE reconnect backoff, voice de-dup, state auto-progress |
-| 2.0.0 | Initial Capacitor iOS + Android native app setup |
+- [Product vision](docs/PRODUCT-VISION.md)
+- [Privacy policy](docs/privacy-policy.md)
+- [Changelog](CHANGELOG.md)
 
----
-
-## License
-
-Proprietary. Not open source. All rights reserved.
-
----
-
-*Built by [camster91](https://github.com/camster91) — for Bianca, who is having Olive right now.*
+Olive is distributed as native iOS and Android apps; there is no public web deployment.
