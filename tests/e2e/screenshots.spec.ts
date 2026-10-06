@@ -79,7 +79,8 @@ for (const shot of SHOTS) {
         });
         localStorage.setItem('contraction-tracker:v1', JSON.stringify({ contractions }));
         localStorage.setItem('contraction-tracker:care-plan', JSON.stringify({
-          providerName: 'North Star Midwives',
+          enabled: true,
+          providerName: 'Example care team',
           providerPhone: '+1 416 555 0142',
           intervalMinutes: 5,
           durationSeconds: 60,

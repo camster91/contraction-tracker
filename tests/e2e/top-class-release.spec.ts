@@ -61,7 +61,7 @@ test('a sustained saved pattern exposes the user-provided care-team action', asy
   await page.addInitScript(({ key, records }) => {
     localStorage.setItem(key, JSON.stringify({ contractions: records }));
     localStorage.setItem('contraction-tracker:care-plan', JSON.stringify({
-      providerName: 'North Star Midwives',
+      enabled: true, providerName: 'North Star Midwives',
       providerPhone: '+1 416 555 0142',
       intervalMinutes: 5,
       durationSeconds: 60,

@@ -1,6 +1,7 @@
 // Cervical exam log sheet — "Hospital" tab in the header.
 import { useState } from 'react';
 import { X, Plus, Trash2, Stethoscope } from 'lucide-react';
+import { toast } from '../lib/toast';
 import { addExam, deleteExam, getExams, type CervicalExam } from '../lib/hospital';
 import { isHour12Preferred } from '../lib/contractions';
 import { useModalDialog } from '../hooks/useModalDialog';
@@ -23,13 +24,14 @@ export default function HospitalSheet({ sessionId, onClose }: Props) {
   const [notes, setNotes] = useState('');
 
   const handleAdd = () => {
-    addExam(sessionId, {
+    const exam = addExam(sessionId, {
       time: new Date().toISOString(),
       dilationCm: dilation,
       effacementPct: effacement,
       station,
       notes: notes.trim() || undefined,
     });
+    if (!exam) { toast.error('Could not save this exam. Free up space and try again.'); return; }
     setExams(getExams(sessionId));
     setAdding(false);
     setNotes('');

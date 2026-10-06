@@ -1,3 +1,5 @@
+import { csvCell } from './csv.ts';
+
 // Pure contraction math — no React, no DOM. Easy to reason about, easy to test.
 //
 // DATA MODEL: backward-compatible additive evolution only.
@@ -34,6 +36,7 @@ export type Contraction = {
   start: string;
   /** ISO timestamp when the contraction ended, or null if still in progress */
   end: string | null;
+  source?: 'timer' | 'manual';
   /** optional intensity 1-10 */
   intensity?: number | null;
   /** optional note */
@@ -131,6 +134,7 @@ export function formatElapsed(totalSeconds: number): string {
 }
 
 export type ContractionReminderPlan = {
+  enabled?: boolean;
   providerName: string;
   providerPhone: string;
   intervalMinutes: number;
@@ -148,6 +152,7 @@ export function isCarePlanPattern(
   plan: ContractionReminderPlan,
   now: number = Date.now(),
 ): boolean {
+  if (plan.enabled !== true) return false;
   const finished = contractions
     .filter((c) => c.end)
     .sort((a, b) => a.start.localeCompare(b.start));
@@ -280,4 +285,16 @@ export function buildCareSummary(
     lines.push(`• ${details.join(' · ')}`);
   }
   return lines.join('\n');
+}
+
+export function buildContractionsCsv(contractions: Contraction[], now = Date.now()): string {
+  const sorted = [...contractions].sort((a, b) => a.start.localeCompare(b.start));
+  const rows = [['id', 'session_id', 'source', 'start', 'end', 'duration_seconds', 'interval_seconds', 'intensity', 'note', 'tags', 'pain_locations']];
+  sorted.forEach((c, i) => rows.push([
+    c.id, c.sessionId || 'primary', c.source || 'timer', c.start, c.end || '',
+    String(durationSeconds(c, now)), i ? String(intervalSeconds(sorted[i - 1], c)) : '',
+    c.intensity == null ? '' : String(c.intensity), c.note || '',
+    (c.tags || []).join('; '), (c.painLocations || []).join('; '),
+  ]));
+  return rows.map((row) => row.map(csvCell).join(',')).join('\r\n') + '\r\n';
 }

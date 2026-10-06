@@ -1,5 +1,8 @@
 name: gauntlet
 
+permissions:
+  contents: read
+
 on:
   push:
     branches: [main, feature/**]
@@ -29,7 +32,7 @@ jobs:
         run: npm ci
 
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install --with-deps chromium webkit
 
       - name: Typecheck e2e tests
         run: ./node_modules/.bin/tsc -p tests/tsconfig.json
@@ -38,7 +41,7 @@ jobs:
         run: npm run build
 
       - name: Run gauntlet
-        run: npx playwright test --project='iPhone 14 (chromium)' --reporter=github,html,line
+        run: npx playwright test --reporter=github,html,line
 
       - name: Upload HTML report
         if: always()
@@ -54,6 +57,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: test-results
-          path: playwright-report/test-results/
+          path: test-results/
           retention-days: 7
           if-no-files-found: ignore

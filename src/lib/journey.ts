@@ -473,14 +473,14 @@ export function getJourney(): JourneyDocument {
   return normalized;
 }
 
-export function saveJourney(value: JourneyDocument): JourneyDocument {
+export function saveJourney(value: JourneyDocument): boolean {
   const normalized = normalizeJourney(value, new Date().toISOString(), value.profile.id);
   const json = JSON.stringify(normalized);
   try {
     localStorage.setItem(JOURNEY_STORAGE_KEY, json);
     try { localStorage.setItem(`${JOURNEY_STORAGE_KEY}::shadow`, json); } catch { /* best effort */ }
-  } catch { /* existing in-memory data remains usable */ }
-  return normalized;
+    return true;
+  } catch { return false; }
 }
 
 function createJourneyId(): string {

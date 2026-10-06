@@ -1,3 +1,5 @@
+import { Capacitor } from '@capacitor/core';
+import { exportTextFile } from './lib/exportFile';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Play,
@@ -41,7 +43,7 @@ import {
   secondsSinceLastFinish,
   setHour12Preferred,
 } from './lib/contractions';
-import { load, save, uid, isQuotaExceeded, clearQuotaExceeded } from './lib/storage';
+import { load, save, commitLocalStorageBatch, uid, isQuotaExceeded, clearQuotaExceeded } from './lib/storage';
 import { autoBackup, autoBackupJourney, loadAutoBackup, saveCurrentToIdb, clearCurrentFromIdb, loadCurrentBackup } from './lib/idb';
 import {
   buildBackup,
@@ -79,8 +81,8 @@ import {
 import { useUndo } from './lib/undo';
 import { stopListening } from './lib/voice';
 import { syncNativeTimerNotification } from './lib/nativeTimer';
-import Timeline from './components/Timeline';
-import FrequencyChart from './components/FrequencyChart';
+import ManualContractionSheet from './components/ManualContractionSheet';
+import { withClockTime, withEndOffset } from './lib/contractionTime';
 import SessionsSheet from './components/SessionsSheet';
 import PeopleSheet from './components/PeopleSheet';
 import ChecklistSheet from './components/ChecklistSheet';
@@ -93,7 +95,6 @@ import ToastHost from './components/ToastHost';
 import { toast } from './lib/toast';
 import {
   contractionsInSession,
-  createSession,
   getSessions,
   getActiveSessionId,
   getPeople,
@@ -101,7 +102,7 @@ import {
   type Session,
   type Person,
 } from './lib/sessions';
-import { getChecklist, packedCount, saveChecklist, type ChecklistItem } from './lib/checklist';
+import { getChecklist, packedCount, type ChecklistItem } from './lib/checklist';
 import { getExams, type CervicalExam } from './lib/hospital';
 import Onboarding from './components/Onboarding';
 import TagFilter from './components/TagFilter';
@@ -129,6 +130,7 @@ const BACKUP_REMINDER_KEY = 'contraction-tracker:backup-dismissed';
 
 type Stored = {
   contractions: Contraction[];
+  savedAt?: string;
 };
 
 function formatDurationSpoken(totalSeconds: number): string {
@@ -144,21 +146,25 @@ function pluralContraction(n: number): string {
 }
 
 export default function App() {
-  const [contractions, setContractions] = useState<Contraction[]>(() => {
+  const [initialHistory] = useState(() => {
     const stored = load<Stored>(STORAGE_KEY, { contractions: [] });
     // Validate: ensure contractions is an array, each has at least id + start
     if (!Array.isArray(stored.contractions)) {
-      setDataDamagedToast(true);
-      return [];
+      return { contractions: [] as Contraction[], damaged: true };
     }
     const valid = stored.contractions.filter((c: any) => c && typeof c.id === 'string' && typeof c.start === 'string');
-    if (valid.length < stored.contractions.length) {
-      setDataDamagedToast(true);
-    }
-    return valid;
+    return { contractions: valid, damaged: valid.length < stored.contractions.length };
   });
+  const [contractions, setContractions] = useState<Contraction[]>(initialHistory.contractions);
   const [current, setCurrent] = useState<Contraction | null>(() => load(SESSION_KEY, null));
+  const [recoveryLoaded, setRecoveryLoaded] = useState(false);
   const [now, setNow] = useState(Date.now());
+  const timerButtonRef = useRef<HTMLButtonElement>(null);
+  const previousTimer = useRef(current);
+  useEffect(() => {
+    if (Boolean(previousTimer.current) !== Boolean(current)) timerButtonRef.current?.focus();
+    previousTimer.current = current;
+  }, [current]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [intensityDraft, setIntensityDraft] = useState<string>('');
   const [noteDraft, setNoteDraft] = useState<string>('');
@@ -172,6 +178,7 @@ export default function App() {
   const [tagFilter, setTagFilter] = useState<string | null>(null);
   const [tagsDraft, setTagsDraft] = useState<string[]>([]);
   const [showSettings, setShowSettings] = useState(false);
+  const [showManual, setShowManual] = useState(false);
   const [showSessions, setShowSessions] = useState(false);
   const [showPeople, setShowPeople] = useState(false);
   const [sessions, setSessions] = useState<Session[]>(() => getSessions());
@@ -204,7 +211,7 @@ export default function App() {
   // is enough — React re-renders and all the formatted clocks update.)
 
   // Data integrity toast — shown when corrupted data was detected and recovered
-  const [dataDamagedToast, setDataDamagedToast] = useState(false);
+  const [dataDamagedToast, setDataDamagedToast] = useState(initialHistory.damaged);
   const [quotaToast, setQuotaToast] = useState(false);
 
   // Pending restore: when IDB has a saved current timer that localStorage doesn't have,
@@ -223,7 +230,7 @@ export default function App() {
   const journeyOpenerRef = useRef<HTMLButtonElement>(null);
 
   // Backup reminder — show if not dismissed recently and there is data to lose
-  const [dismissedBannerAt, setDismissedBannerAt] = useState<number | null>(() => {
+  const [, setDismissedBannerAt] = useState<number | null>(() => {
     const raw = localStorage.getItem(BACKUP_REMINDER_KEY);
     return raw ? JSON.parse(raw) : null;
   });
@@ -271,7 +278,7 @@ export default function App() {
     if (isQuotaExceeded()) {
       setQuotaToast(true);
     }
-  }, [contractions, current]);
+  }, [contractions, current, recoveryLoaded]);
 
   // Clear quota flag when user dismisses the toast or successfully exports.
   const handleDismissQuota = () => {
@@ -322,35 +329,36 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [current]);
 
-  // On first mount: if localStorage is empty but IndexedDB has a backup, restore it.
-  // Also check for a solo current-timer backup (separate from the full backup).
+  // Read recovery copies before any effects mirror the initial local state.
   useEffect(() => {
     let mounted = true;
     (async () => {
       try {
-        const localStored = load<Stored>(STORAGE_KEY, { contractions: [] });
-        if (localStored.contractions.length > 0) {
-          setSavedAt(new Date());
-          return;
-        }
-        const backup = await loadAutoBackup<Contraction>();
-        if (mounted && backup && backup.contractions.length > 0) {
-          setContractions(backup.contractions);
-          if (backup.current) setCurrent(backup.current);
+        const local = load<Stored>(STORAGE_KEY, { contractions: [] });
+        const [backup, timer] = await Promise.all([
+          loadAutoBackup<Contraction>(), loadCurrentBackup<Contraction>(),
+        ]);
+        if (!mounted) return;
+        if (backup && Array.isArray(backup.contractions) &&
+            (local.contractions.length === 0 ||
+             (Date.parse(backup.savedAt ?? '') > Date.parse(local.savedAt ?? '1970-01-01')))) {
+          const merged = new Map(local.contractions.map((c) => [c.id, c]));
+          for (const c of backup.contractions) {
+            if (c && typeof c.id === 'string' && Number.isFinite(Date.parse(c.start))) merged.set(c.id, c);
+          }
+          setContractions([...merged.values()].sort((a, b) => a.start.localeCompare(b.start)));
+          if (merged.size > local.contractions.length) setDataDamagedToast(true);
           if (backup.savedAt) setSavedAt(new Date(backup.savedAt));
         }
-        // Check for a standalone current timer backup (no history in localStorage,
-        // but an in-progress timer may have been saved by the 5s interval loop).
-        if (mounted && localStored.contractions.length === 0) {
-          const timerBackup = await loadCurrentBackup<Contraction>();
-          if (mounted && timerBackup && timerBackup.current && !timerBackup.current.end) {
-            setPendingRestore(timerBackup.current);
-            setPendingRestoreAt(timerBackup.savedAt);
-          }
+        const candidate = timer?.current ?? backup?.current;
+        if (!load(SESSION_KEY, null) && candidate && !candidate.end &&
+            typeof candidate.id === 'string' && Number.isFinite(Date.parse(candidate.start)) &&
+            Date.parse(candidate.start) <= Date.now()) {
+          setPendingRestore(candidate);
+          setPendingRestoreAt(timer?.savedAt ?? backup?.savedAt ?? null);
         }
-      } catch {
-        /* IDB not available; localStorage is the only copy */
-      }
+      } catch { /* Local storage remains available when IndexedDB is unavailable. */ }
+      finally { if (mounted) setRecoveryLoaded(true); }
     })();
     return () => { mounted = false; };
   }, []);
@@ -358,6 +366,7 @@ export default function App() {
   // Backup current timer to IndexedDB every 5s while it is running.
   // This guards against localStorage wipe (iOS tab kill, quota pressure).
   useEffect(() => {
+    if (!recoveryLoaded || pendingRestore) return;
     if (!current || current.end) {
       clearCurrentFromIdb().catch(() => {});
       return;
@@ -366,7 +375,7 @@ export default function App() {
       saveCurrentToIdb(current).catch(() => {});
     }, 5_000);
     return () => clearInterval(id);
-  }, [current]);
+  }, [current, recoveryLoaded, pendingRestore]);
 
   // BroadcastChannel sync — keep other tabs up to date when data changes
   useEffect(() => {
@@ -384,7 +393,8 @@ export default function App() {
 
   // Save to localStorage + mirror to IndexedDB on every change.
   useEffect(() => {
-    save(STORAGE_KEY, { contractions });
+    if (!recoveryLoaded) return;
+    save(STORAGE_KEY, { contractions, savedAt: new Date().toISOString() });
     autoBackup(contractions, current).then((ok) => {
       if (ok) setSavedAt(new Date());
     });
@@ -394,19 +404,20 @@ export default function App() {
     // decremented before React's useEffect ran) so the guard never
     // actually fired; it was dead code.
     broadcastContractions(contractions);
-  }, [contractions, current]);
+  }, [contractions, current, recoveryLoaded]);
   useEffect(() => {
-    saveJourney(journey);
+    if (!saveJourney(journey)) toast.error('Could not save your journey. Export a backup before closing Olive.');
     autoBackupJourney(journey).catch(() => {});
   }, [journey]);
 
   useEffect(() => {
+    if (!recoveryLoaded) return;
     save(SESSION_KEY, current);
     autoBackup(contractions, current).then((ok) => {
       if (ok) setSavedAt(new Date());
     });
     broadcastCurrent(current);
-  }, [current, contractions]);
+  }, [current, contractions, recoveryLoaded]);
 
   useEffect(() => {
     const running = current && !current.end ? current.start : null;
@@ -483,7 +494,7 @@ export default function App() {
     if (current && !current.end) return;
     // iOS: the start tap counts as a user gesture, so the audio context can unlock here
     unlockAudio();
-    setCurrent({ id: uid(), start: new Date().toISOString(), end: null, intensity: null });
+    setCurrent({ id: uid(), start: new Date().toISOString(), end: null, intensity: null, sessionId: activeSessionId, source: 'timer' });
     chimeStart();
     enableWakeLock();
     // Tactile feedback — vital when phone is in a pillow or screen is dim
@@ -512,6 +523,47 @@ export default function App() {
       current: null,
     });
   };
+
+  const shortenLast = (seconds: number) => {
+    const last = [...contractions].reverse().find((c) => c.end);
+    if (!last?.end) return;
+    const changed = withEndOffset(last, -seconds);
+    if (!changed) { toast.error('That adjustment would create an invalid duration.'); return; }
+    setContractions((prev) => prev.map((c) => (c.id === last.id ? { ...c, ...changed } : c)));
+  };
+
+  const startRef = useRef(handleStart);
+  const stopRef = useRef(handleStop);
+  startRef.current = handleStart;
+  stopRef.current = handleStop;
+
+  useEffect(() => {
+    let cancelled = false;
+    let remove: (() => void) | undefined;
+    const run = (url: string) => {
+      try {
+        const parsed = new URL(url);
+        if (parsed.protocol !== 'olive:') return;
+        const action = parsed.host || parsed.pathname.replace(/^\//, '');
+        if (action === 'start') startRef.current();
+        if (action === 'stop') stopRef.current();
+      } catch {
+        /* not an olive link */
+      }
+    };
+    void import('@capacitor/app').then(async ({ App }) => {
+      if (cancelled) return;
+      const sub = await App.addListener('appUrlOpen', (event) => run(event.url));
+      remove = () => { void sub.remove(); };
+      if (cancelled) { remove(); return; }
+      const launch = await App.getLaunchUrl();
+      if (!cancelled && launch?.url) run(launch.url);
+    }).catch(() => {});
+    return () => {
+      cancelled = true;
+      remove?.();
+    };
+  }, []);
 
   // PiP video element is created in handleEnterPip (kept inline; no need
   // for a ref because the cleanup happens in a useEffect-free closure).
@@ -713,6 +765,11 @@ export default function App() {
 
   const handleShare = async () => {
     const text = buildCareSummary(contractions, carePlan, now);
+    if (Capacitor.isNativePlatform()) {
+      try { await exportTextFile(text, 'olive-care-summary.txt', 'text/plain', 'Olive care summary'); }
+      catch { toast.error('Could not share the care summary. Please try again.'); }
+      return;
+    }
     const file = new File([text], `olive-care-summary-${new Date().toISOString().split('T')[0]}.txt`, { type: 'text/plain' });
     if (navigator.canShare?.({ files: [file] })) {
       try {
@@ -742,15 +799,9 @@ export default function App() {
     }
   };
 
-  const handleDownload = () => {
-    const text = buildSummary(contractions);
-    const blob = new Blob([text], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `contractions-${new Date().toISOString().split('T')[0]}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
+  const handleDownload = async () => {
+    try { await exportTextFile(buildSummary(contractions), `contractions-${new Date().toISOString().slice(0, 10)}.txt`, 'text/plain', 'Olive care summary'); }
+    catch { toast.error('Could not export the care summary. Please try again.'); }
   };
 
   // ---- Backup export ----
@@ -775,8 +826,8 @@ export default function App() {
       checklists,
       journey,
     });
-    downloadBackup(data);
-    rotateBackup(data);
+    try { await downloadBackup(data); rotateBackup(data); }
+    catch { toast.error('Could not export the backup. Please try again.'); }
   };
 
   // ---- Backup import ----
@@ -806,7 +857,6 @@ export default function App() {
       for (const s of sessions) {
         existingExams.set(s.id, new Map(getExams(s.id).map((x) => [x.id, x])));
       }
-      const { writeExams } = await import('./lib/hospital');
       for (const s of sessions) {
         existingChecklists.set(s.id, new Map(getChecklist(s.id).map((i) => [i.id, i])));
       }
@@ -819,19 +869,27 @@ export default function App() {
         checklists: existingChecklists,
       });
 
-      // Apply merged data
-      setContractions([...existingContractions.values()]);
-      setSessions([...existingSessions.values()]);
-      const { setPeople } = await import('./lib/sessions');
-      setPeople([...existingPeople.values()]);
-      setJourney(mergeJourney(journey, migrated.journey));
-
-      // Persist exams and checklists
-      for (const [sid, examMap] of existingExams) {
-        writeExams(sid, [...examMap.values()]);
-      }
-      for (const [sid, itemMap] of existingChecklists) {
-        saveChecklist(sid, [...itemMap.values()]);
+      const nextContractions = [...existingContractions.values()];
+      const nextSessions = [...existingSessions.values()];
+      const nextPeople = [...existingPeople.values()];
+      const nextJourney = mergeJourney(journey, migrated.journey);
+      const entries = [
+        { key: STORAGE_KEY, value: JSON.stringify({ contractions: nextContractions }), shadow: true },
+        { key: 'contraction-tracker:sessions', value: JSON.stringify(nextSessions), shadow: true },
+        { key: 'contraction-tracker:people', value: JSON.stringify(nextPeople), shadow: true },
+        { key: 'olive:journey:v1', value: JSON.stringify(nextJourney), shadow: true },
+      ];
+      for (const [sid, exams] of existingExams) entries.push({ key: `contraction-tracker:cervical-exams:${sid}`, value: JSON.stringify([...exams.values()]), shadow: true });
+      for (const [sid, items] of existingChecklists) entries.push({ key: `contraction-tracker:checklist:${sid}`, value: JSON.stringify([...items.values()]), shadow: true });
+      if (!commitLocalStorageBatch(entries)) throw new Error('Storage could not save this backup. Your previous data has been retained.');
+      setContractions(nextContractions);
+      setSessions(nextSessions);
+      setJourney(nextJourney);
+      const importedTimer = migrated.current as Contraction | null;
+      if (!current && importedTimer && typeof importedTimer.id === 'string' && !importedTimer.end &&
+          Number.isFinite(Date.parse(importedTimer.start)) && Date.parse(importedTimer.start) <= Date.now()) {
+        setPendingRestore(importedTimer);
+        setPendingRestoreAt(migrated.savedAt);
       }
       setBackupError(null);
       toast.success(
@@ -866,6 +924,11 @@ export default function App() {
       checklists,
       journey,
     });
+    if (Capacitor.isNativePlatform()) {
+      try { await downloadBackup(data); }
+      catch { toast.error('Could not share the backup. Please try again.'); }
+      return;
+    }
     const json = JSON.stringify(data, null, 2);
     const blob = new Blob([json], { type: 'application/json' });
     const date = new Date().toISOString().split('T')[0];
@@ -905,26 +968,10 @@ export default function App() {
       setContractions(migrated);
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
-  const lastFinished = finished[finished.length - 1];
-  const prevFinished = finished[finished.length - 2];
-  const lastDuration = lastFinished ? durationSeconds(lastFinished, now) : 0;
-  const lastInterval = lastFinished && prevFinished ? intervalSeconds(prevFinished, lastFinished) : null;
-  const avgDuration = finished.length
-    ? Math.round(finished.reduce((acc, c) => acc + durationSeconds(c, now), 0) / finished.length)
-    : 0;
-  const gaps = finished.slice(1).map((c, i) => intervalSeconds(finished[i], c));
-  const avgGap = gaps.length ? Math.round(gaps.reduce((a, b) => a + b, 0) / gaps.length) : null;
   const showAlert = isCarePlanPattern(contractions, carePlan, now);
 
   // Care-plan progress: count recent contractions near the saved duration.
-  const onTrackCount = useMemo(() => {
-    const finished = contractions.filter((c) => c.end).sort((a, b) => a.start.localeCompare(b.start));
-    const windowStart = now - carePlan.windowMinutes * 60 * 1000;
-    const recent = finished.filter((c) => new Date(c.start).getTime() >= windowStart);
-    if (recent.length < 3) return null;
-    return recent.filter((c) => durationSeconds(c, now) >= carePlan.durationSeconds * 0.75).length;
-  }, [contractions, now, carePlan.durationSeconds, carePlan.windowMinutes]);
-  const showOnTrack = !showAlert && onTrackCount !== null && onTrackCount >= 3;
+
   const currentElapsed = current && !current.end ? durationSeconds(current, now) : 0;
   const secondsSinceFinish = secondsSinceLastFinish(contractions, now);
   const firstStart = finished[0]?.start;
@@ -1099,7 +1146,7 @@ export default function App() {
 
       {/* Hidden file input for backup import */}
       {backupError && (
-        <div className="fixed bottom-20 inset-x-5 z-50 mx-auto max-w-sm rounded-xl border border-red-400/30 bg-red-400/10 px-4 py-3 text-xs text-red-200 animate-fade-in shadow-[0_4px_24px_-8px_rgba(248,113,113,0.3)] flex items-center gap-2">
+        <div role="alert" className="fixed bottom-20 inset-x-5 z-50 mx-auto max-w-sm rounded-xl border border-red-400/30 bg-red-400/10 px-4 py-3 text-xs text-red-200 animate-fade-in shadow-[0_4px_24px_-8px_rgba(248,113,113,0.3)] flex items-center gap-2">
           <span className="flex-1">{backupError}</span>
           <button onClick={() => setBackupError(null)} className="text-red-300 font-medium">Dismiss</button>
         </div>
@@ -1115,6 +1162,18 @@ export default function App() {
       />
 
       {/* Settings sheet — bottom overlay */}
+      {showManual && (
+        <ManualContractionSheet
+          onClose={() => setShowManual(false)}
+          onSave={(start, end) => {
+            setContractions((prev) =>
+              [...prev, { id: uid(), start, end, intensity: null, sessionId: activeSessionId, source: 'manual' as const }].sort((a, b) => a.start.localeCompare(b.start)),
+            );
+            setShowManual(false);
+          }}
+        />
+      )}
+
       {showSettings && (
         <SettingsSheet
           bigText={bigText}
@@ -1200,14 +1259,14 @@ export default function App() {
       )}
 
       {/* Header */}
-      <header className="flex-shrink-0 px-5 pt-5 pb-3 flex items-center justify-between relative">
+      <header className="flex-shrink-0 px-5 pt-5 pb-3 flex flex-wrap gap-2 items-center justify-between relative">
         <button
           onClick={() => {
             setShowSessions((s) => !s);
             setShowSettings(false);
             setShowBackupInfo(false);
           }}
-          className="flex items-center gap-2 active:opacity-70"
+          className="min-h-11 flex items-center gap-2 active:opacity-70"
           aria-label="Sessions"
         >
           <Heart className="w-5 h-5 text-rose-300 fill-rose-300/20" strokeWidth={1.5} />
@@ -1232,7 +1291,7 @@ export default function App() {
           {/* Settings */}
           <button
             onClick={() => setShowSettings((s) => !s)}
-            className="p-2 rounded-lg text-ink-300 active:text-rose-300 active:bg-ink-100/10 transition-colors"
+            className="min-h-11 min-w-11 p-2 rounded-lg text-ink-300 active:text-rose-300 active:bg-ink-100/10 transition-colors"
             aria-label="Settings"
             title="Settings"
           >
@@ -1302,7 +1361,7 @@ export default function App() {
             {carePlan.providerPhone && (
               <a
                 href={`tel:${carePlan.providerPhone.replace(/[^+\d]/g, '')}`}
-                className="mt-2 inline-flex min-h-11 items-center rounded-xl bg-rose-300 px-4 py-2 text-xs font-semibold text-plum-950"
+                className="mt-2 inline-flex min-h-11 items-center whitespace-nowrap rounded-xl bg-rose-300 px-4 py-2 text-xs font-semibold text-plum-950"
               >
                 Call {carePlan.providerName || 'care provider'}
               </a>
@@ -1314,22 +1373,6 @@ export default function App() {
             >
               Stop reminding
             </button>
-          </div>
-        </div>
-      )}
-
-      {/* Objective early-pattern indicator. It reports only recorded timing
-          and leaves all care decisions with the user and their care team. */}
-      {showOnTrack && (
-        <div className="flex-shrink-0 mx-5 mb-3 rounded-2xl border border-sage-300/40 bg-sage-300/10 px-4 py-3 flex items-start gap-3 animate-fade-in">
-          <div className="w-8 h-8 rounded-full bg-sage-300/15 flex items-center justify-center flex-shrink-0">
-            <Shield className="w-4 h-4 text-sage-300" strokeWidth={2} />
-          </div>
-          <div>
-            <div className="text-sm font-semibold text-sage-200 font-display">Pattern building</div>
-            <div className="text-xs text-ink-300 mt-0.5 leading-relaxed">
-              {onTrackCount} of {finished.filter((c) => new Date(c.start).getTime() >= now - carePlan.windowMinutes*60*1000).length} contractions in the last {carePlan.windowMinutes} minutes lasted near your saved {carePlan.durationSeconds}-second reminder. Keep tracking; Olive will notify you if the full saved timing pattern appears.
-            </div>
           </div>
         </div>
       )}
@@ -1400,7 +1443,7 @@ export default function App() {
                 localStorage.setItem(BACKUP_REMINDER_KEY, JSON.stringify(Date.now()));
                 setDismissedBannerAt(Date.now());
               }}
-              className="flex-1 text-xs font-semibold bg-sage-300/20 active:bg-sage-300/30 text-sage-100 rounded-lg px-3 py-2 transition-colors min-h-[36px]"
+              className="flex-1 text-xs font-semibold bg-sage-300/20 active:bg-sage-300/30 text-sage-100 rounded-lg px-3 py-2 transition-colors min-h-[44px]"
             >
               Back up now
             </button>
@@ -1409,7 +1452,7 @@ export default function App() {
                 localStorage.setItem(BACKUP_REMINDER_KEY, JSON.stringify(Date.now()));
                 setDismissedBannerAt(Date.now());
               }}
-              className="text-xs text-ink-400 active:text-ink-200 rounded-lg px-3 py-2 min-h-[36px] border border-ink-200/20"
+              className="text-xs text-ink-400 active:text-ink-200 rounded-lg px-3 py-2 min-h-[44px] border border-ink-200/20"
             >
               Not now
             </button>
@@ -1422,6 +1465,7 @@ export default function App() {
         <div className="pt-2 pb-6">
           {!current ? (
             <button
+              ref={timerButtonRef}
               onClick={handleStart}
               className="w-full min-h-[180px] rounded-3xl bg-gradient-to-br from-rose-300 via-rose-400 to-rose-500 text-plum-950 active:scale-[0.99] transition-transform duration-150 flex flex-col items-center justify-center px-6 py-8"
             >
@@ -1438,7 +1482,7 @@ export default function App() {
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-2 h-2 rounded-full bg-rose-300 animate-pulse-live" />
                 <div className="text-[10px] uppercase tracking-[0.25em] text-rose-300 font-semibold">
-                  In progress
+                  <span role="status">In progress</span>
                 </div>
                 {document.pictureInPictureEnabled && !document.pictureInPictureElement && (
                   <button
@@ -1487,7 +1531,7 @@ export default function App() {
                 <span>{isWakeLockHeld() ? 'Screen will stay on' : 'Screen may dim — tap to keep awake'}</span>
               </div>
               <button
-                onClick={handleStop}
+                ref={timerButtonRef} onClick={handleStop}
                 className="mt-5 bg-ink-50 active:bg-ink-100 text-plum-950 rounded-full px-7 py-2.5 flex items-center gap-2 font-semibold text-sm transition-colors"
               >
                 <Square className="w-3.5 h-3.5" fill="currentColor" strokeWidth={0} />
@@ -1545,6 +1589,19 @@ export default function App() {
                 ? 'First one recorded. Keep tracking and follow the instructions from your care team.'
                 : `${pluralContraction(finished.length)} logged · started ${formatElapsed(totalLogElapsedSec)} ago`}
             </div>
+            <div className="flex items-center gap-1.5 mt-3 text-[10px] text-ink-500">
+              <span>Stopped late?</span>
+              {[10, 30].map((sec) => (
+                <button
+                  key={sec}
+                  type="button"
+                  onClick={() => shortenLast(sec)}
+                  className="px-2 py-1 rounded-full border border-ink-300/30 text-ink-300"
+                >
+                  −{sec}s
+                </button>
+              ))}
+            </div>
           </div>
         )}
 
@@ -1557,8 +1614,8 @@ export default function App() {
           <TodayPanel journey={journey} onOpen={() => setShowJourney(true)} buttonRef={journeyOpenerRef} />
         )}
 
-        {/* Keep the labor surface focused. Hide extras while a contraction is running. */}
-        {!current && <div className="mb-4 space-y-2">
+        {/* Prepare-only. Once labor has a contraction, this stays off the screen. */}
+        {!current && finished.length === 0 && <div className="mb-4 space-y-2">
           <div className="grid grid-cols-2 gap-2">
             <button
               type="button"
@@ -1566,7 +1623,7 @@ export default function App() {
               aria-expanded={showMoreTools}
               aria-controls="olive-more-tools"
               aria-label={showMoreTools ? 'Hide more tools' : 'More tools'}
-              className="rounded-2xl border border-ink-200/30 bg-ink-100/5 px-4 py-3 flex items-center justify-center gap-2 min-h-[76px] text-ink-300 active:bg-ink-100/10 transition-colors"
+              className="col-span-2 rounded-2xl border border-ink-200/30 bg-ink-100/5 px-4 py-3 flex items-center justify-center gap-2 min-h-[76px] text-ink-300 active:bg-ink-100/10 transition-colors"
             >
               <Plus className={`w-4 h-4 transition-transform ${showMoreTools ? 'rotate-45' : ''}`} />
               <span className="text-[11px] font-medium">{showMoreTools ? 'Fewer tools' : 'More tools'}</span>
@@ -1582,12 +1639,7 @@ export default function App() {
                 label="New session"
                 sub="Start fresh"
                 onClick={() => {
-                  const name = prompt('Name this session (e.g. Day 2):');
-                  if (name) {
-                    const session = createSession(name);
-                    setActiveId(session.id);
-                    setSessions(getSessions());
-                  }
+                  setShowSessions(true);
                 }}
                 accent="sage"
               />
@@ -1605,39 +1657,16 @@ export default function App() {
         {/* Friends banner — reduced; now handled by carousel */}
         {/* Hospital bag pill — reduced; now handled by carousel */}
 
-        {/* Live stats */}
-        {finished.length > 0 && (
-          <div className="grid grid-cols-2 gap-3 mb-6">
-            <StatCard label="Last" value={formatDuration(lastDuration)} sub={lastFinished ? formatClock(lastFinished.start) : undefined} />
-            <StatCard
-              label="Last gap"
-              value={lastInterval !== null ? formatDuration(lastInterval) : '—'}
-              sub="since previous"
-            />
-            <StatCard label="Average" value={formatDuration(avgDuration)} sub={`${finished.length} total`} />
-            <StatCard
-              label="Average gap"
-              value={avgGap !== null ? formatDuration(avgGap) : '—'}
-              sub="between starts"
-            />
-          </div>
-        )}
-
-        {/* Timeline visualization */}
-        {finished.length >= 2 && (
-          <div className="mb-6 animate-fade-in">
-            <div className="text-[10px] uppercase tracking-[0.2em] text-ink-400 font-semibold mb-2.5 ml-1">
-              Pattern
-            </div>
-            <Timeline contractions={finished} />
-          </div>
-        )}
-
-        {/* Frequency chart */}
-        {finished.length >= 2 && (
-          <div className="mb-6 animate-fade-in">
-            <FrequencyChart contractions={finished} now={now} />
-          </div>
+        {!current && (
+          <button
+            type="button"
+            aria-label="Add missed contraction"
+            onClick={() => setShowManual(true)}
+            className="mb-4 inline-flex items-center gap-1.5 text-[11px] text-ink-400 active:text-rose-300 rounded-full border border-ink-200/30 bg-ink-100/5 px-3 py-1.5 min-h-[44px] transition-colors"
+          >
+            <Plus className="w-3.5 h-3.5" strokeWidth={1.75} />
+            Forgot to tap? Add it
+          </button>
         )}
 
         {/* History list */}
@@ -1704,11 +1733,9 @@ export default function App() {
                               onClick={() => {
                                 const target = contractions.find((c) => c.id === editingId);
                                 if (!target || !target.end) return;
-                                const d = new Date(target.end);
-                                d.setSeconds(d.getSeconds() + sec);
-                                setContractions((prev) =>
-                                  prev.map((x) => x.id === editingId ? { ...x, end: d.toISOString() } : x),
-                                );
+                                const changed = withEndOffset(target, sec);
+                                if (!changed) { toast.error('That adjustment would create an invalid duration.'); return; }
+                                setContractions((prev) => prev.map((x) => x.id === editingId ? { ...x, ...changed } : x));
                               }}
                               className="px-2 py-0.5 rounded-full border border-ink-300/30 text-ink-400 active:bg-rose-300/10 active:text-rose-300 active:border-rose-300/40 transition-colors"
                             >
@@ -1784,23 +1811,19 @@ export default function App() {
                     ) : (
                       <div className="flex items-center justify-between">
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-baseline gap-2">
+                          <div className="flex items-baseline gap-2 flex-wrap">
+                            {c.source === 'manual' && <span className="text-xs text-ink-300">Manual</span>}
                             <span className="flex items-center gap-1.5">
                               <input
                                 type="time"
                                 step="1"
                                 value={c.start ? `${String(new Date(c.start).getHours()).padStart(2,'0')}:${String(new Date(c.start).getMinutes()).padStart(2,'0')}:${String(new Date(c.start).getSeconds()).padStart(2,'0')}` : ''}
                                 onChange={(e) => {
-                                  const parts = e.target.value.split(':');
-                                  if (parts.length < 2) return;
-                                  const d = new Date(c.start);
-                                  d.setHours(Number(parts[0]), Number(parts[1]));
-                                  if (parts[2]) d.setSeconds(Number(parts[2]));
-                                  setContractions((prev) =>
-                                    prev.map((x) => x.id === c.id ? { ...x, start: d.toISOString() } : x),
-                                  );
+                                  const changed = withClockTime(c, 'start', e.target.value);
+                                  if (!changed) { toast.error('Start must be before the end, within four hours, and not in the future.'); return; }
+                                  setContractions((prev) => prev.map((x) => x.id === c.id ? { ...x, ...changed } : x));
                                 }}
-                                className="font-display text-sm font-medium text-ink-50 bg-transparent border-none outline-none focus:underline focus:text-rose-300 w-[4rem] cursor-pointer"
+                                className="font-display text-sm font-medium text-ink-50 bg-transparent border-none outline-none focus:underline focus:text-rose-300 w-[6.5rem] pr-0 tabular-nums cursor-pointer"
                                 aria-label="Edit start time"
                               />
                             </span>
@@ -1814,27 +1837,19 @@ export default function App() {
                                 step="1"
                                 value={c.end ? `${String(new Date(c.end).getHours()).padStart(2,'0')}:${String(new Date(c.end).getMinutes()).padStart(2,'0')}:${String(new Date(c.end).getSeconds()).padStart(2,'0')}` : ''}
                                 onChange={(e) => {
-                                  if (!c.end) return;
-                                  const parts = e.target.value.split(':');
-                                  if (parts.length < 2) return;
-                                  const d = new Date(c.end);
-                                  d.setHours(Number(parts[0]), Number(parts[1]));
-                                  if (parts[2]) d.setSeconds(Number(parts[2]));
-                                  setContractions((prev) =>
-                                    prev.map((x) => x.id === c.id ? { ...x, end: d.toISOString() } : x),
-                                  );
+                                  const changed = withClockTime(c, 'end', e.target.value);
+                                  if (!changed) { toast.error('End must be after the start, within four hours, and not in the future.'); return; }
+                                  setContractions((prev) => prev.map((x) => x.id === c.id ? { ...x, ...changed } : x));
                                 }}
-                                className="font-display text-sm font-medium text-ink-300 bg-transparent border-none outline-none focus:underline focus:text-rose-300 w-[4rem] cursor-pointer"
+                                className="font-display text-sm font-medium text-ink-300 bg-transparent border-none outline-none focus:underline focus:text-rose-300 w-[6.5rem] pr-0 tabular-nums cursor-pointer"
                                 aria-label="Edit end time"
                               />
                             </span>
-                            {c.intensity ? (
-                              <span className="text-[10px] uppercase tracking-wider text-ink-400 font-semibold">
-                                · {c.intensity}/10
-                              </span>
-                            ) : null}
                           </div>
                           <div className="text-xs text-ink-400 mt-0.5 flex items-center gap-1.5 flex-wrap">
+                            {c.intensity ? (
+                              <span>intensity {c.intensity}/10</span>
+                            ) : null}
                             {interval !== null && (
                               <span>{formatDuration(interval)} apart</span>
                             )}
@@ -2022,16 +2037,3 @@ function PeopleCard({ onClick }: { onClick: () => void }) {
     />
   );
 }
-
-function StatCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
-  return (
-    <div className="rounded-2xl border border-ink-200/30 bg-gradient-to-br from-ink-100/[0.04] to-transparent px-3.5 py-3">
-      <div className="text-[10px] uppercase tracking-[0.18em] text-ink-400 font-semibold">{label}</div>
-      <div className="font-display text-2xl font-light text-ink-50 tabular-nums mt-1 leading-none">
-        {value}
-      </div>
-      {sub && <div className="text-[10px] text-ink-500 mt-1.5 tracking-wide">{sub}</div>}
-    </div>
-  );
-}
-

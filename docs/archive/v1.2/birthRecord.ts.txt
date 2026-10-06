@@ -1,0 +1,60 @@
+export type BirthUnitSystem = 'imperial' | 'metric';
+
+export type BirthMeasurements = {
+  weightLbs: number | null;
+  weightKg: number | null;
+  lengthIn: number | null;
+  lengthCm: number | null;
+};
+
+export type BirthMeasurementInput = {
+  unitSystem: BirthUnitSystem;
+  weight: string;
+  ounces: string;
+  length: string;
+};
+
+export type BirthMeasurementResult =
+  | { ok: true; measurements: BirthMeasurements }
+  | { ok: false; field: 'weight' | 'ounces' | 'length' };
+
+const round = (value: number, places: number) => Number(value.toFixed(places));
+const optionalNumber = (value: string): number | null => value.trim() === '' ? null : Number(value);
+
+/**
+ * Validates broad data-entry limits and derives both unit representations.
+ * These limits catch typos; they are not clinical ranges or assessments.
+ */
+export function buildBirthMeasurements(input: BirthMeasurementInput): BirthMeasurementResult {
+  const weight = optionalNumber(input.weight);
+  const ounces = optionalNumber(input.ounces);
+  const length = optionalNumber(input.length);
+
+  if (weight !== null && (!Number.isFinite(weight) || weight <= 0 || weight > (input.unitSystem === 'imperial' ? 30 : 15))) {
+    return { ok: false, field: 'weight' };
+  }
+  if (input.unitSystem === 'imperial' && ounces !== null && (!Number.isFinite(ounces) || ounces < 0 || ounces >= 16)) {
+    return { ok: false, field: 'ounces' };
+  }
+  if (length !== null && (!Number.isFinite(length) || length <= 0 || length > (input.unitSystem === 'imperial' ? 40 : 100))) {
+    return { ok: false, field: 'length' };
+  }
+
+  if (input.unitSystem === 'imperial') {
+    if (ounces !== null && weight === null) return { ok: false, field: 'weight' };
+    const pounds = weight === null ? null : weight + (ounces ?? 0) / 16;
+    return { ok: true, measurements: {
+      weightLbs: pounds === null ? null : round(pounds, 4),
+      weightKg: pounds === null ? null : round(pounds * 0.45359237, 4),
+      lengthIn: length === null ? null : round(length, 4),
+      lengthCm: length === null ? null : round(length * 2.54, 4),
+    } };
+  }
+
+  return { ok: true, measurements: {
+    weightLbs: weight === null ? null : round(weight / 0.45359237, 4),
+    weightKg: weight === null ? null : round(weight, 4),
+    lengthIn: length === null ? null : round(length / 2.54, 4),
+    lengthCm: length === null ? null : round(length, 4),
+  } };
+}

@@ -6,6 +6,7 @@ import {
   normalizeJourney,
   type JourneyDocument,
 } from './journey.ts';
+import { exportTextFile } from './exportFile.ts';
 
 export type BackupDataV1 = {
   version: 1;
@@ -87,16 +88,9 @@ export function migrateBackup(
 }
 
 /** Trigger a browser download of the backup JSON file. */
-export function downloadBackup(data: BackupData): void {
-  const json = JSON.stringify(data, null, 2);
-  const blob = new Blob([json], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
+export async function downloadBackup(data: BackupData): Promise<void> {
   const date = new Date().toISOString().split('T')[0];
-  a.href = url;
-  a.download = `olive-backup-${date}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
+  await exportTextFile(JSON.stringify(data, null, 2), `olive-backup-${date}.json`, 'application/json', 'Olive backup');
 }
 
 /** Read and parse a backup file selected by the user. */

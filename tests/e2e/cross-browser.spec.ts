@@ -82,7 +82,8 @@ test('cross-browser: short clusters stay observational in every engine', async (
   await page.waitForTimeout(3_000);
 
   const body = (await page.locator('body').textContent()) || '';
-  expect(body).toMatch(/Frequent contractions|Pattern building/);
+  expect(body).toContain('3 contractions logged');
+  expect(body).not.toMatch(/Frequent contractions|Pattern building/);
   expect(body).not.toContain('Saved care-plan reminder');
   expect(body).not.toMatch(/active labor|time to call/i);
 });

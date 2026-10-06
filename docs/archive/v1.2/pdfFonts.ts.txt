@@ -1,0 +1,60 @@
+import type { PDFDocument, PDFFont, PDFPage, RGB } from 'pdf-lib';
+import latinRegularUrl from '@fontsource/noto-sans-arabic/files/noto-sans-arabic-latin-400-normal.woff?url';
+import latinBoldUrl from '@fontsource/noto-sans-arabic/files/noto-sans-arabic-latin-700-normal.woff?url';
+import arabicRegularUrl from '@fontsource/noto-sans-arabic/files/noto-sans-arabic-arabic-400-normal.woff?url';
+import arabicBoldUrl from '@fontsource/noto-sans-arabic/files/noto-sans-arabic-arabic-700-normal.woff?url';
+
+export type PdfFontSet = {
+  latin: PDFFont;
+  latinBold: PDFFont;
+  arabic: PDFFont;
+  arabicBold: PDFFont;
+};
+
+const ARABIC_SCRIPT = /[\u0600-\u06ff\u0750-\u077f\u08a0-\u08ff\ufb50-\ufdff\ufe70-\ufeff]/u;
+
+async function readFont(url: string): Promise<ArrayBuffer> {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`Could not load the PDF font (${response.status}).`);
+  return response.arrayBuffer();
+}
+
+export async function embedPdfFonts(doc: PDFDocument): Promise<PdfFontSet> {
+  const { default: fontkit } = await import('@pdf-lib/fontkit');
+  doc.registerFontkit(fontkit);
+  const [latinRegularBytes, latinBoldBytes, arabicRegularBytes, arabicBoldBytes] = await Promise.all([
+    readFont(latinRegularUrl),
+    readFont(latinBoldUrl),
+    readFont(arabicRegularUrl),
+    readFont(arabicBoldUrl),
+  ]);
+  const [latin, latinBold, arabic, arabicBold] = await Promise.all([
+    doc.embedFont(latinRegularBytes, { subset: true }),
+    doc.embedFont(latinBoldBytes, { subset: true }),
+    doc.embedFont(arabicRegularBytes, { subset: true }),
+    doc.embedFont(arabicBoldBytes, { subset: true }),
+  ]);
+  return { latin, latinBold, arabic, arabicBold };
+}
+
+export function drawUnicodePdfText(
+  page: PDFPage,
+  value: string,
+  options: { x: number; y: number; size: number; color: RGB; fonts: PdfFontSet; bold?: boolean },
+): void {
+  const runs = [...value].reduce<Array<{ arabic: boolean; text: string }>>((result, character) => {
+    const arabic = ARABIC_SCRIPT.test(character);
+    const last = result[result.length - 1];
+    if (last?.arabic === arabic) last.text += character;
+    else result.push({ arabic, text: character });
+    return result;
+  }, []);
+  let x = options.x;
+  for (const run of runs) {
+    const font = run.arabic
+      ? (options.bold ? options.fonts.arabicBold : options.fonts.arabic)
+      : (options.bold ? options.fonts.latinBold : options.fonts.latin);
+    page.drawText(run.text, { x, y: options.y, size: options.size, font, color: options.color });
+    x += font.widthOfTextAtSize(run.text, options.size);
+  }
+}

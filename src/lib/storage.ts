@@ -59,20 +59,49 @@ export function load<T>(key: string, fallback: T): T {
   return fallback;
 }
 
-let quotaExceeded = false;
-export function isQuotaExceeded(): boolean { return quotaExceeded; }
-export function clearQuotaExceeded(): void { quotaExceeded = false; }
+const failedKeys = new Set<string>();
+export function isQuotaExceeded(): boolean { return failedKeys.size > 0; }
+export function clearQuotaExceeded(): void { failedKeys.clear(); }
 
-export function save(key: string, data: unknown) {
-  const json = JSON.stringify(data);
+export function save(key: string, data: unknown): boolean {
   try {
+    const json = JSON.stringify(data);
     localStorage.setItem(key, json);
-    quotaExceeded = false; // successful write clears the flag
+    failedKeys.delete(key);
     // Mirror to shadow after every successful write — survives partial corruption
     try { localStorage.setItem(`${key}::shadow`, json); } catch { /* ignore */ }
+    return true;
   } catch {
     // quota or serialization issue — surface to the user
-    quotaExceeded = true;
+    failedKeys.add(key);
+    return false;
+  }
+}
+
+/** Commit an import before changing UI state; roll back every touched key on failure. */
+export function commitLocalStorageBatch(entries: { key: string; value: string; shadow?: boolean }[]): boolean {
+  const original = new Map<string, string | null>();
+  try {
+    for (const entry of entries) {
+      for (const key of entry.shadow ? [entry.key, `${entry.key}::shadow`] : [entry.key]) {
+        if (!original.has(key)) original.set(key, localStorage.getItem(key));
+      }
+    }
+    for (const entry of entries) {
+      localStorage.setItem(entry.key, entry.value);
+      if (entry.shadow) localStorage.setItem(`${entry.key}::shadow`, entry.value);
+    }
+    for (const entry of entries) failedKeys.delete(entry.key);
+    return true;
+  } catch {
+    for (const [key, value] of original) {
+      try {
+        if (value === null) localStorage.removeItem(key);
+        else if (localStorage.getItem(key) !== value) localStorage.setItem(key, value);
+      } catch { failedKeys.add(key); }
+    }
+    for (const entry of entries) failedKeys.add(entry.key);
+    return false;
   }
 }
 

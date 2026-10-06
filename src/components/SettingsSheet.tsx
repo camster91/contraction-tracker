@@ -61,7 +61,8 @@ export default function SettingsSheet({
         <div className="flex-1 overflow-y-auto px-5 pb-6">
           <div className="flex items-center gap-2 mb-3">
             <Cog className="w-4 h-4 text-ink-300" strokeWidth={1.75} />
-            <div className="text-sm font-semibold text-ink-50 font-display">Settings</div>
+            <div className="flex-1 text-sm font-semibold text-ink-50 font-display">Settings</div>
+            <button type="button" aria-label="Close settings" onClick={onClose} className="min-h-11 min-w-11 rounded-lg text-ink-200">Close</button>
           </div>
 
           <div className="border-t border-ink-200/20 mt-3 pt-3">
@@ -96,6 +97,11 @@ export default function SettingsSheet({
               maxLength={30}
               className="w-full bg-ink-100/5 border border-ink-200/30 rounded-xl px-3 py-2 text-base text-ink-50 placeholder:text-ink-500 focus:outline-none focus:border-rose-300/50"
             />
+            <label className="flex items-center gap-3 py-3">
+              <input type="checkbox" checked={carePlan.enabled}
+                onChange={(event) => onCarePlanChange({ ...carePlan, enabled: event.target.checked })} />
+              Enable my saved care-team timing reminder
+            </label>
             <div className="grid grid-cols-3 gap-2 mt-3">
               <CarePlanNumberField
                 id="care-plan-interval"
@@ -132,9 +138,10 @@ export default function SettingsSheet({
             <span className="text-sm text-ink-200">Big text</span>
             <button
               role="switch"
+              aria-label="Big text"
               aria-checked={bigText}
               onClick={() => setBigTextState((v) => !v)}
-              className={`w-10 h-6 rounded-full transition-colors ${bigText ? 'bg-rose-300/60' : 'bg-ink-100/20'}`}
+                className={`w-10 h-6 rounded-full transition-colors ${bigText ? 'bg-rose-300/60' : 'bg-ink-100/20'}`}
             >
               <span
                 className={`block w-5 h-5 rounded-full bg-ink-50 shadow transition-transform ${bigText ? 'translate-x-5' : 'translate-x-0.5'}`}
@@ -150,6 +157,7 @@ export default function SettingsSheet({
               </span>
               <button
                 role="switch"
+                aria-label="Quiet hours"
                 aria-checked={muteSchedule.enabled}
                 onClick={() =>
                   setMuteScheduleState((s) => ({ ...s, enabled: !s.enabled }))
@@ -165,6 +173,7 @@ export default function SettingsSheet({
               <div className="flex items-center gap-2 mt-2 text-xs text-ink-400">
                 <span>From</span>
                 <select
+                  aria-label="Quiet hours start time"
                   value={muteSchedule.startHour}
                   onChange={(e) =>
                     setMuteScheduleState((s) => ({ ...s, startHour: Number(e.target.value) }))
@@ -177,6 +186,7 @@ export default function SettingsSheet({
                 </select>
                 <span>to</span>
                 <select
+                  aria-label="Quiet hours end time"
                   value={muteSchedule.endHour}
                   onChange={(e) =>
                     setMuteScheduleState((s) => ({ ...s, endHour: Number(e.target.value) }))
@@ -203,6 +213,7 @@ export default function SettingsSheet({
               {(['calm', 'cool'] as const).map((v) => (
                 <button
                   key={v}
+                  aria-pressed={themeVariant === v}
                   onClick={() => setThemeVariant(v)}
                   className={`text-[11px] px-3 py-1.5 rounded-lg font-medium transition-colors ${
                     themeVariant === v
@@ -225,6 +236,7 @@ export default function SettingsSheet({
               {([false, true] as const).map((v) => (
                 <button
                   key={String(v)}
+                  aria-pressed={hour12 === v}
                   onClick={() => setHour12(v)}
                   className={`text-[11px] px-3 py-1.5 rounded-lg font-medium transition-colors ${
                     hour12 === v

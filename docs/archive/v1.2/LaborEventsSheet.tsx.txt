@@ -1,0 +1,112 @@
+import { useMemo, useState } from 'react';
+import { Download, Plus, Trash2, X } from 'lucide-react';
+import { useModalDialog } from '../hooks/useModalDialog';
+import { buildLaborEventsCsv, getLaborEvents, LABOR_EVENT_KINDS, saveLaborEvents, type LaborEvent, type LaborEventKind } from '../lib/laborEvents';
+import { uid } from '../lib/storage';
+import { t, type MessageKey } from '../lib/i18n';
+
+type Props = { sessionId: string; onClose: () => void };
+
+const EVENT_MESSAGE_KEYS: Record<LaborEventKind, MessageKey> = {
+  waters: 'events.waters',
+  'care-team': 'events.careTeam',
+  'left-home': 'events.leftHome',
+  arrived: 'events.arrived',
+  note: 'events.note',
+};
+
+function eventLabel(kind: LaborEventKind): string {
+  return t(EVENT_MESSAGE_KEYS[kind]);
+}
+
+function toLocalInput(iso = new Date().toISOString()): string {
+  const date = new Date(iso);
+  return new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
+}
+
+export default function LaborEventsSheet({ sessionId, onClose }: Props) {
+  const dialogRef = useModalDialog(onClose);
+  const [allEvents, setAllEvents] = useState<LaborEvent[]>(getLaborEvents);
+  const [kind, setKind] = useState<LaborEventKind>('waters');
+  const [occurredAt, setOccurredAt] = useState(toLocalInput);
+  const [note, setNote] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const events = useMemo(() => allEvents.filter((event) => event.sessionId === sessionId).sort((a, b) => b.occurredAt.localeCompare(a.occurredAt)), [allEvents, sessionId]);
+
+  const commit = (next: LaborEvent[]) => {
+    if (!saveLaborEvents(next)) {
+      setError(t('feedback.storageWriteFailed'));
+      return false;
+    }
+    setAllEvents(next);
+    setError(null);
+    return true;
+  };
+
+  const add = () => {
+    const timestamp = new Date(occurredAt);
+    if (!Number.isFinite(timestamp.getTime()) || timestamp.getTime() > Date.now() + 60_000) {
+      setError(t('events.invalidTime'));
+      return;
+    }
+    if (kind === 'note' && !note.trim()) {
+      setError(t('events.noteRequired'));
+      return;
+    }
+    const now = new Date().toISOString();
+    if (!commit([...allEvents, { id: uid(), sessionId, kind, occurredAt: timestamp.toISOString(), note: note.trim() || undefined, createdAt: now }])) return;
+    setNote('');
+    setOccurredAt(toLocalInput());
+    setError(null);
+  };
+
+  const updateTime = (id: string, localValue: string) => {
+    const timestamp = new Date(localValue);
+    if (!Number.isFinite(timestamp.getTime()) || timestamp.getTime() > Date.now() + 60_000) return;
+    commit(allEvents.map((event) => event.id === id ? { ...event, occurredAt: timestamp.toISOString() } : event));
+  };
+
+  const download = () => {
+    const blob = new Blob([buildLaborEventsCsv(events)], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `olive-labor-events-${new Date().toISOString().slice(0, 10)}.csv`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return <>
+    <div className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm" onClick={onClose} aria-hidden="true" />
+    <section ref={dialogRef} role="dialog" aria-modal="true" aria-label={t('events.title')} tabIndex={-1} className="fixed bottom-0 inset-x-0 z-50 max-h-[90vh] overflow-y-auto rounded-t-3xl border-t border-ink-200/20 bg-plum-950">
+      <div className="mx-auto max-w-md px-5 pb-8 pt-4">
+        <div className="mb-4 flex items-start justify-between gap-4">
+          <div><h2 className="font-display text-xl text-ink-50">{t('events.title')}</h2><p className="mt-1 text-xs leading-relaxed text-ink-400">{t('events.safety')}</p></div>
+          <button onClick={onClose} aria-label={t('events.close')} className="min-h-11 min-w-11 rounded-xl text-ink-300"><X className="mx-auto h-5 w-5" /></button>
+        </div>
+        <div className="space-y-3 rounded-2xl border border-ink-200/25 bg-ink-100/5 p-4">
+          <label className="block text-xs font-semibold text-ink-300">{t('events.event')}
+            <select aria-label={t('events.event')} value={kind} onChange={(e) => setKind(e.target.value as LaborEventKind)} className="mt-1 min-h-12 w-full rounded-xl border border-ink-200/30 bg-plum-900 px-3 text-base text-ink-50">
+              {LABOR_EVENT_KINDS.map((value) => <option key={value} value={value}>{eventLabel(value)}</option>)}
+            </select>
+          </label>
+          <label className="block text-xs font-semibold text-ink-300">{t('events.time')}
+            <input aria-label={t('events.eventTime')} type="datetime-local" value={occurredAt} onChange={(e) => setOccurredAt(e.target.value)} className="mt-1 min-h-12 w-full rounded-xl border border-ink-200/30 bg-plum-900 px-3 text-base text-ink-50" />
+          </label>
+          <label className="block text-xs font-semibold text-ink-300">{t('events.optionalNote')}
+            <input aria-label={t('events.optionalNote')} value={note} maxLength={240} onChange={(e) => setNote(e.target.value)} className="mt-1 min-h-12 w-full rounded-xl border border-ink-200/30 bg-plum-900 px-3 text-base text-ink-50" />
+          </label>
+          {error && <p role="alert" className="text-xs text-rose-200">{error}</p>}
+          <button type="button" onClick={add} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-rose-300 font-semibold text-plum-950"><Plus className="h-4 w-4" /> {t('events.add')}</button>
+        </div>
+        {events.length > 0 && <div className="mt-5">
+          <div className="mb-2 flex items-center justify-between"><h3 className="text-xs font-semibold uppercase tracking-[0.15em] text-ink-400">{t('events.timeline')}</h3><button onClick={download} className="flex min-h-11 items-center gap-1.5 rounded-xl px-3 text-xs text-ink-300"><Download className="h-4 w-4" /> {t('events.csv')}</button></div>
+          <ul className="space-y-2">{events.map((event) => <li key={event.id} className="rounded-2xl border border-ink-200/25 p-3">
+            <div className="flex items-start gap-2"><div className="min-w-0 flex-1"><div className="font-semibold text-ink-100">{eventLabel(event.kind)}</div>{event.note && <p className="mt-1 break-words text-sm text-ink-300">{event.note}</p>}<label className="mt-2 block text-[10px] uppercase tracking-wide text-ink-500">{t('events.occurredAt')}<input aria-label={t('events.timeFor', { event: eventLabel(event.kind) })} type="datetime-local" value={toLocalInput(event.occurredAt)} onChange={(e) => updateTime(event.id, e.target.value)} className="mt-1 min-h-11 w-full rounded-xl border border-ink-200/25 bg-plum-900 px-2 text-sm normal-case tracking-normal text-ink-200" /></label></div>
+              <button aria-label={t('events.deleteLabel', { event: eventLabel(event.kind) })} onClick={() => { if (confirm(t('events.deleteConfirm'))) commit(allEvents.filter((item) => item.id !== event.id)); }} className="min-h-11 min-w-11 rounded-xl text-ink-400 active:text-rose-300"><Trash2 className="mx-auto h-4 w-4" /></button>
+            </div></li>)}</ul>
+        </div>}
+      </div>
+    </section>
+  </>;
+}

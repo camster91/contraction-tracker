@@ -1,3 +1,5 @@
+> Historical planning/evidence. Current v1.3.0 scope and release gates are in [RELEASE-PLAN.md](RELEASE-PLAN.md). Do not use this file as current submission approval or artifact evidence.
+
 # Sideload the Olive APK to an Android device for testing
 
 The signed universal APK is ready for sideloading on real Android

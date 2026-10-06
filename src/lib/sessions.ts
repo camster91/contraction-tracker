@@ -46,12 +46,13 @@ function readJSON<T>(key: string, fallback: T): T {
   return fallback;
 }
 
-function writeJSON(key: string, value: unknown) {
+function writeJSON(key: string, value: unknown): boolean {
   try {
     const json = JSON.stringify(value);
     localStorage.setItem(key, json);
     try { localStorage.setItem(`${key}::shadow`, json); } catch { /* ignore */ }
-  } catch { /* quota or serialization issue */ }
+    return true;
+  } catch { return false; }
 }
 
 // ---- Sessions ----
@@ -91,7 +92,7 @@ export function getSessions(): Session[] {
 }
 
 export function setSessions(sessions: Session[]) {
-  writeJSON(SESSIONS_KEY, sessions);
+  return writeJSON(SESSIONS_KEY, sessions);
 }
 
 export function getActiveSessionId(): string {
@@ -102,7 +103,7 @@ export function setActiveSessionId(id: string) {
   localStorage.setItem(ACTIVE_SESSION_KEY, id);
 }
 
-export function createSession(name: string): Session {
+export function createSession(name: string): Session | null {
   const sessions = getSessions();
   const session: Session = {
     id: `sess-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
@@ -110,7 +111,7 @@ export function createSession(name: string): Session {
     startedAt: new Date().toISOString(),
     endedAt: null,
   };
-  setSessions([...sessions, session]);
+  if (!setSessions([...sessions, session])) return null;
   return session;
 }
 
@@ -132,16 +133,16 @@ export function getPeople(): Person[] {
 }
 
 export function setPeople(people: Person[]) {
-  writeJSON(PEOPLE_KEY, people);
+  return writeJSON(PEOPLE_KEY, people);
 }
 
-export function addPerson(input: Omit<Person, 'id' | 'createdAt'>): Person {
+export function addPerson(input: Omit<Person, 'id' | 'createdAt'>): Person | null {
   const person: Person = {
     ...input,
     id: `p-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
     createdAt: new Date().toISOString(),
   };
-  setPeople([...getPeople(), person]);
+  if (!setPeople([...getPeople(), person])) return null;
   return person;
 }
 

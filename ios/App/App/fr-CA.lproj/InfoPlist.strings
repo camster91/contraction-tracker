@@ -1,0 +1,4 @@
+"NSMicrophoneUsageDescription" = "Olive utilise le microphone uniquement lorsque vous activez les commandes mains libres du minuteur de contractions.";
+"NSCameraUsageDescription" = "Olive utilise l’appareil photo uniquement lorsque vous choisissez une photo à prévisualiser et à publier pour les personnes qui ont votre lien de partage.";
+"NSPhotoLibraryUsageDescription" = "Olive accède à votre photothèque uniquement lorsque vous choisissez une photo à prévisualiser et à publier pour les personnes qui ont votre lien de partage.";
+"NSSpeechRecognitionUsageDescription" = "Olive utilise le service de reconnaissance vocale de votre appareil lorsque vous activez les commandes mains libres du minuteur.";

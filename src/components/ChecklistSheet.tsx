@@ -2,6 +2,7 @@
 import { useState, useRef } from 'react';
 import { X, Check, Plus, GripVertical, Trash2 } from 'lucide-react';
 import { getChecklist, toggleChecklistItem, packedCount, saveChecklist, type ChecklistItem } from '../lib/checklist';
+import { toast } from '../lib/toast';
 import { uid } from '../lib/storage';
 import { useModalDialog } from '../hooks/useModalDialog';
 
@@ -19,7 +20,7 @@ export default function ChecklistSheet({ sessionId, onClose }: Props) {
   const dragOverItem = useRef<string | null>(null);
 
   const handleToggle = (itemId: string) => {
-    toggleChecklistItem(sessionId, itemId);
+    if (!toggleChecklistItem(sessionId, itemId)) { toast.error('Could not save this checklist. Free up space and try again.'); return; }
     setItems(getChecklist(sessionId));
   };
 
@@ -31,7 +32,7 @@ export default function ChecklistSheet({ sessionId, onClose }: Props) {
       packed: false,
     };
     const next = [...items, item];
-    saveChecklist(sessionId, next);
+    if (!saveChecklist(sessionId, next)) { toast.error('Could not save this checklist. Free up space and try again.'); return; }
     setItems(next);
     setNewText('');
     setAdding(false);
@@ -39,7 +40,7 @@ export default function ChecklistSheet({ sessionId, onClose }: Props) {
 
   const handleDelete = (itemId: string) => {
     const next = items.filter((i) => i.id !== itemId);
-    saveChecklist(sessionId, next);
+    if (!saveChecklist(sessionId, next)) { toast.error('Could not save this checklist. Free up space and try again.'); return; }
     setItems(next);
   };
 
@@ -59,7 +60,7 @@ export default function ChecklistSheet({ sessionId, onClose }: Props) {
     const next = [...items];
     const [moved] = next.splice(from, 1);
     next.splice(to, 0, moved);
-    saveChecklist(sessionId, next);
+    if (!saveChecklist(sessionId, next)) { toast.error('Could not save this checklist. Free up space and try again.'); return; }
     setItems(next);
     dragItem.current = null;
     dragOverItem.current = null;

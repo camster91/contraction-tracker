@@ -115,3 +115,9 @@ html.big-text .font-display.text-xl {
 .animate-pulse-live {
   animation: pulse-live 1.6s ease-in-out infinite;
 }
+
+/* History time fields: hide the native clock-picker indicator — it
+   overlapped the digits at 4rem width and made rows look garbled. */
+input[type='time']::-webkit-calendar-picker-indicator {
+  display: none;
+}

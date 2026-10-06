@@ -1,0 +1,27 @@
+export type SharedSessionState = 'prenatal' | 'labor' | 'postpartum' | 'archived';
+
+export function getSharedStateCopy(state: string, contractionCount: number): { title: string; detail: string } {
+  switch (state as SharedSessionState) {
+    case 'labor':
+      return {
+        title: 'Shared status: Labor',
+        detail: `${contractionCount} contraction${contractionCount === 1 ? '' : 's'} recorded in this shared session. This status is selected in Olive and is not a diagnosis.`,
+      };
+    case 'postpartum':
+      return {
+        title: 'Shared status: Postpartum',
+        detail: 'Selected in Olive by the person sharing this session. It is not a clinical assessment.',
+      };
+    case 'archived':
+      return {
+        title: 'Shared status: Archived',
+        detail: 'This shared session is read-only.',
+      };
+    case 'prenatal':
+    default:
+      return {
+        title: 'Shared status: Preparing',
+        detail: 'No contractions are recorded in this shared session yet. This status is not a clinical assessment.',
+      };
+  }
+}

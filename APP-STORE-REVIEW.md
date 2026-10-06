@@ -1,92 +1,24 @@
-# App Store Review — what Apple's reviewers will check
+# Olive v1.3.0 Apple review readiness
 
-Olive is a Health & Fitness app that uses no special permissions.
-Below is a release-readiness checklist against Apple's App Store Review
-Guidelines. Passing a local check does not guarantee App Review approval.
+**Apple acceptance is unverified.** An unsigned archive cannot pass Apple signing or upload validation. The local app builds, but the final signed candidate still requires native-device testing and App Store Connect processing. Follow `SUBMISSION-CHECKLIST.md`.
 
-## Privacy
+## Prepared behavior
 
-| Requirement | Olive | Notes |
-|-------------|-------|-------|
-| Privacy policy URL | ✅ `https://olive.ashbi.ca/privacy` | Live, branded page |
-| App Store Privacy Policy field | ✅ Set to above URL | In `submission-checklist.md` |
-| App Privacy Details (App Store Connect) | ⚠️ Manual step | Declare Data Not Collected; use `APP-STORE-CONNECT-FIELDS.txt` |
-| PrivacyInfo.xcprivacy | ✅ Present | Mandatory since May 2024 |
-| Permission strings | ⚠️ Verify natively | Voice control can require microphone permission on the target platform |
-| Data sold to third parties | ✅ No | Privacy policy states that data is not sold or licensed |
-| Data used for tracking | ✅ No | "Zero analytics, zero tracking, zero third-party data collectors" |
-| Children under 13 | ✅ Compliant | Privacy policy explicitly states not for children under 13 |
+Olive records user-entered contractions and private birth-journey information. No account is required. Timing reminders are disabled by default and must be enabled with care-team instructions; they report observed timing and do not diagnose labor or determine that waiting is safe. The timer, local backup and care summary work without a relay. The current UI does not offer speech recognition, partner share links or a memory-book PDF.
 
-## Functionality
+The app includes a Live Activity extension; signatures, team and entitlements must be validated on the signed artifact. Native exports use the platform share sheet and a temporary cache file. Offline and browser journeys help identify bugs but do not certify native sharing, notifications or lock-screen behavior.
 
-| Requirement | Olive | Notes |
-|-------------|-------|-------|
-| App does what its description says | ✅ | Contraction timer for expecting parents, exactly as described |
-| All buttons/links functional | ✅ | Gauntlet tested every interactive element |
-| No placeholder content | ✅ | v1.3.0 has no "coming soon" pages |
-| Stable performance | ✅ | Local release suite passed after the v1.3.0 removals |
-| No crashes on launch | ✅ | v1.3.0 verified locally across Chromium and focused WebKit paths |
-| Memory leaks | ⚠️ | Cannot fully verify headless; user testing recommended |
-| Battery usage | ⚠️ | Wake Lock API is requested but not held indefinitely |
+## Privacy preparation
 
-## Content
+The source privacy manifest declares no off-device data collection or tracking and lists the required reasons for UserDefaults and FileTimestamp access. Inspect the manifests bundled by Capacitor dependencies in the actual archive. Confirm App Store privacy answers from that binary and the published privacy policy. User-selected file exports may leave the device through another app; the policy must explain that clearly.
 
-| Requirement | Olive | Notes |
-|-------------|-------|-------|
-| App icon present at all sizes | ✅ | 12/12 iOS icon sizes generated |
-| Launch screen | ✅ | 6 splash images (light + dark, 1x/2x/3x) |
-| Screenshots at required sizes | ✅ | 4 screenshots at 4 sizes (6.7"/6.1"/5.5"/12.9") |
-| App description accurate | ✅ | store-listing.md matches actual features |
-| What's New release notes | ✅ | WHATS-NEW.txt + CHANGELOG.md |
-| Category correct | ✅ | Health & Fitness (primary) + Medical (secondary) |
-| Age rating accurate | ✅ | 12+ (no objectionable content, no gambling) |
-| Support URL works | ✅ | https://olive.ashbi.ca |
-| Marketing URL (optional) | ✅ | (none provided) |
+## Outstanding review evidence
 
-## Legal
+- Paid Apple team, profiles, signed IPA and validation/upload receipt.
+- Physical iPhone/iPad journeys, VoiceOver, enlarged text, battery/background behavior and Live Activity actions.
+- Native backup export/import and recovery on devices, including denied permissions/storage failure.
+- Current published support/privacy pages and actual console declarations/questionnaires.
+- Final screenshots reconciled to the processed binary, accurate metadata and English-only scope.
+- Review of care-team reminder wording and observed usability evidence tracked in issues #69/#70/#60.
 
-| Requirement | Olive | Notes |
-|-------------|-------|-------|
-| Export compliance | ✅ | App makes no network requests; no encryption beyond platform defaults |
-| Trademarks clear | ✅ | "Olive" cleared via search (no major conflicts in health/fitness) |
-| Bundle ID preserved | ✅ | `com.ashbi.olive` (was Luna) — used for rebrand, not user-visible |
-| Versioning clear | ✅ | 1.3.0 marketing version, build 6 |
-| Third-party content licensed | ✅ | App is original, no third-party assets |
-| Music/audio | ✅ | No bundled music or audio content |
-
-## Build / Signing
-
-| Requirement | Olive | Notes |
-|-------------|-------|-------|
-| Production-signed IPA | ⚠️ | Build script ready (`./scripts/build-ios.sh`), needs Xcode license accept + Apple Team ID |
-| arm64 architecture | ✅ | UIRequiredDeviceCapabilities = arm64 (was armv7, fixed) |
-| Code signing | ⚠️ | Code is correct, needs your Apple Developer Team |
-| Provisioning profile | ⚠️ | Generated by Xcode on first build with your team |
-
-## What Apple reviewers will specifically test
-
-1. **Install and launch** — they will install via TestFlight or App Store, see if it crashes. (We have 0 crashes in the gauntlet.)
-2. **Privacy policy** — they will click the URL. Make sure it resolves. ✓
-3. **All advertised features** — they will check the description against the app. (Contraction timer, birth journey, hospital bag, privacy all live.)
-4. **No misleading claims** — they will check the description for medical claims. Olive says "We are not a medical device" type language is in the privacy policy.
-5. **Data collection** — they will compare the app's behavior with the App Privacy Details. Declare "Data Not Collected" as described in `APP-STORE-CONNECT-FIELDS.txt`; the app makes no network requests.
-
-## Likely questions from reviewers (if any)
-
-- **"Why is this Health & Fitness, not Medical?"** — Olive records user-entered timing. Saved timing reminders report observations, do not diagnose labor, and leave decisions with the user and their care team.
-- **"Do you collect any health data on your server?"** — No. The app makes no network requests; there is no server. Everything stays on the device.
-- **"How is voice input processed?"** — Olive uses the browser or operating system's speech-recognition service. Processing can be local or provider-hosted; Olive does not store the audio or transmit it anywhere.
-
-## What to do when Apple rejects
-
-If Apple rejects (rare for a utility like this), the most common reasons are:
-
-1. **"We noticed that your app requires the user to register..."** — N/A, no registration.
-2. **"Your privacy policy does not address..."** — Rare, the policy is comprehensive.
-3. **"The following APIs require usage descriptions..."** — N/A, no special APIs.
-4. **"Your app crashes on iPad"** — Need to test on real iPad. Gauntlet covers iPhone 14 Pro Max.
-5. **"Your screenshots don't match the actual app"** — All 20 screenshots are Playwright-generated from the live app. They show the actual app.
-
-## Resubmit timeline
-
-If rejected, fix and resubmit. Apple typically responds within 24-48 hours. The "Expedited Review" can be requested via https://developer.apple.com/contact/app-store/?topic=appeal (cite a real bug or app crash) and is usually granted within 24-72 hours.
+No claim is made that Apple has approved the name/trademark, age rating, legal declarations, device matrix, or medical wording. App Review is a separate decision after technical validation.

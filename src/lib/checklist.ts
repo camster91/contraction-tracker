@@ -44,23 +44,24 @@ function freshItems(): ChecklistItem[] {
 /** Get the current checklist for a session, materializing defaults if missing. */
 export function getChecklist(sessionId: string): ChecklistItem[] {
   const existing = readRaw(sessionId);
-  if (existing && existing.length > 0) return existing;
+  if (existing) return existing;
   const fresh = freshItems();
   saveChecklist(sessionId, fresh);
   return fresh;
 }
 
-export function saveChecklist(sessionId: string, items: ChecklistItem[]) {
+export function saveChecklist(sessionId: string, items: ChecklistItem[]): boolean {
   try {
     localStorage.setItem(KEY(sessionId), JSON.stringify(items));
     try { localStorage.setItem(`${KEY(sessionId)}::shadow`, JSON.stringify(items)); } catch { /* ignore */ }
-  } catch { /* quota */ }
+    return true;
+  } catch { return false; }
 }
 
 export function toggleChecklistItem(sessionId: string, itemId: string) {
   const items = getChecklist(sessionId);
   const next = items.map((i) => (i.id === itemId ? { ...i, packed: !i.packed } : i));
-  saveChecklist(sessionId, next);
+  return saveChecklist(sessionId, next);
 }
 
 export function packedCount(items: ChecklistItem[]): number {

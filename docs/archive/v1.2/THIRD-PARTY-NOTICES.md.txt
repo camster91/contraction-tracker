@@ -1,0 +1,8 @@
+# Third-party notices
+
+Olive includes and embeds the following open-source fonts and libraries in generated memory-book PDFs:
+
+- Noto Sans Arabic, distributed through `@fontsource/noto-sans-arabic` 5.3.0 under the SIL Open Font License 1.1. Copyright belongs to the Noto Sans Arabic contributors.
+- `@pdf-lib/fontkit`, distributed under the MIT License. Copyright belongs to its contributors.
+
+The complete license text for each dependency is included in its installed package and source distribution.

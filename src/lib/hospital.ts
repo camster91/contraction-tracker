@@ -27,12 +27,13 @@ function readRaw(sessionId: string): CervicalExam[] {
   return [];
 }
 
-function writeRaw(sessionId: string, exams: CervicalExam[]) {
+function writeRaw(sessionId: string, exams: CervicalExam[]): boolean {
   try {
     const json = JSON.stringify(exams);
     localStorage.setItem(KEY(sessionId), json);
     try { localStorage.setItem(`${KEY(sessionId)}::shadow`, json); } catch { /* ignore */ }
-  } catch { /* quota */ }
+    return true;
+  } catch { return false; }
 }
 
 export function getExams(sessionId: string): CervicalExam[] {
@@ -40,17 +41,17 @@ export function getExams(sessionId: string): CervicalExam[] {
 }
 
 export function writeExams(sessionId: string, exams: CervicalExam[]) {
-  writeRaw(sessionId, exams);
+  return writeRaw(sessionId, exams);
 }
 
-export function addExam(sessionId: string, input: Omit<CervicalExam, 'id' | 'sessionId'>): CervicalExam {
+export function addExam(sessionId: string, input: Omit<CervicalExam, 'id' | 'sessionId'>): CervicalExam | null {
   const exams = getExams(sessionId);
   const exam: CervicalExam = {
     ...input,
     id: `exam-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
     sessionId,
   };
-  writeRaw(sessionId, [...exams, exam]);
+  if (!writeRaw(sessionId, [...exams, exam])) return null;
   return exam;
 }
 

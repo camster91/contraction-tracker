@@ -3,6 +3,7 @@
 // past and current labor sessions.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { toast } from '../lib/toast';
 import { Plus, Square, Trash2, Users, ArrowLeft, Play, Eye } from 'lucide-react';
 import {
   PRIMARY_SESSION_ID,
@@ -51,6 +52,7 @@ export default function SessionsSheet({
 
   const handleCreate = () => {
     const sess = createSession(name);
+    if (!sess) { toast.error('Could not save this session. Free up space and try again.'); return; }
     setSessions(getSessions());
     switchTo(sess.id);
     setCreating(false);

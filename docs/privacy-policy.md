@@ -27,7 +27,6 @@ None of this data ever leaves your device. Olive contains no sync server and no 
 ### What you explicitly hand out
 
 - **Backups and care summaries.** "Export backup", "Send via…", and the care summary action use your device's own system share sheet. The file or text goes directly to whichever app you choose (Mail, AirDrop, Messages). Olive has no visibility into where it goes and does not transmit it anywhere itself.
-- **Voice control.** If you enable voice control, Olive uses the speech-recognition service supplied by your operating system. Processing may occur on-device or through that platform's speech service, depending on the device and settings. Olive does not record, retain, or transmit voice audio.
 
 ### No analytics, no tracking
 
@@ -52,12 +51,12 @@ Olive contains no advertising or sponsored content.
 ## Data retention
 
 - **All data** is stored on your device only. You can delete it at any time by deleting items in the app, uninstalling the app, or clearing the app's local storage from your device settings.
-- **No cloud storage** of session data is performed by Olive. If you back up your device via iCloud, Google Drive, or any other platform, your Olive data may be included in that backup. That is a function of your device settings, not Olive.
+- **No cloud storage** of session data is performed by Olive. Android system backups exclude Olive’s local records. iOS device backups may include local records according to your device settings; keep your device and backup account secure.
 - **Files you export** are ordinary files in whichever destination you chose through the system share sheet; Olive retains no copy.
 
 ## Data sharing with third parties
 
-Olive sends data to no advertising, analytics, crash-reporting, or other third-party services. There is no server component. The only ways data leaves your device are the ones you initiate yourself: exporting a backup file or care summary through the system share sheet, and — if you enable voice control — your platform's own speech-recognition service.
+Olive sends data to no advertising, analytics, crash-reporting, or other third-party services. There is no server component. The only ways data leaves your device are the ones you initiate yourself: exporting a backup file or care summary through the system share sheet, through apps you choose.
 
 ## Children's privacy
 
@@ -67,7 +66,7 @@ Olive is not designed for use by children under 13. We do not collect data from 
 
 You own your data. At any time, you can:
 
-- **Delete all data** by deleting items in the app, uninstalling it, or clearing app storage from your device settings. Because nothing ever left the device, deleting it in the app is complete deletion.
+- **Delete all data** by deleting items in the app, uninstalling it, or clearing app storage from your device settings. Remove any exported files separately from the locations or apps where you saved or sent them.
 - **Export your data** as a JSON backup file at any time.
 - **Request help** through the support channel listed below.
 

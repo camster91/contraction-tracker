@@ -4,4 +4,8 @@
     <string name="title_activity_main">Olive</string>
     <string name="package_name">com.ashbi.olive</string>
     <string name="custom_url_scheme">com.ashbi.olive</string>
+    <string name="timer_notification_channel">Active contraction timer</string>
+    <string name="timer_notification_channel_description">Shows elapsed time while a contraction is being timed</string>
+    <string name="timer_notification_title">Contraction in progress</string>
+    <string name="timer_notification_body">Tap to return to Olive and stop the timer</string>
 </resources>

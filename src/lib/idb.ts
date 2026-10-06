@@ -9,6 +9,20 @@ const DB_VERSION = 1;
 const STORE = 'history';
 const KEY = 'latest';
 
+export async function clearAllIdbData(): Promise<boolean> {
+  if (typeof indexedDB === 'undefined') return true;
+  const db = await openDB();
+  if (!db) return false;
+  return new Promise((resolve) => {
+    try {
+      const tx = db.transaction(STORE, 'readwrite');
+      tx.objectStore(STORE).clear();
+      tx.oncomplete = () => resolve(true);
+      tx.onabort = tx.onerror = () => resolve(false);
+    } catch { resolve(false); }
+  });
+}
+
 type BackupRecord = {
   version: number;
   savedAt: string;

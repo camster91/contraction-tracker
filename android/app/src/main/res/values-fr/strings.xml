@@ -1,0 +1,11 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Olive</string>
+    <string name="title_activity_main">Olive</string>
+    <string name="package_name">com.ashbi.olive</string>
+    <string name="custom_url_scheme">com.ashbi.olive</string>
+    <string name="timer_notification_channel">Minuteur de contraction actif</string>
+    <string name="timer_notification_channel_description">Affiche le temps écoulé pendant le chronométrage d’une contraction</string>
+    <string name="timer_notification_title">Contraction en cours</string>
+    <string name="timer_notification_body">Touchez pour revenir à Olive et arrêter le minuteur</string>
+</resources>

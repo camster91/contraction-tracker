@@ -38,12 +38,13 @@ export default function PeopleSheet({ onClose, finished = [] }: Props) {
 
   const handleAdd = () => {
     if (!name.trim()) return;
-    addPerson({
+    const person = addPerson({
       name: name.trim(),
       relationship,
       phone: phone.trim() || undefined,
       email: email.trim() || undefined,
     });
+    if (!person) { toast.error('Could not save this contact. Free up space and try again.'); return; }
     setPeople(getPeople());
     setAdding(false);
     setName('');

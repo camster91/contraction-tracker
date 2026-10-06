@@ -31,6 +31,7 @@ test('audio: chimeAlert is called when the sustained saved reminder triggers', a
 
   // Seed a sustained 55-minute pattern. A short cluster must not trigger.
   await page.evaluate(() => {
+    localStorage.setItem('contraction-tracker:care-plan', JSON.stringify({ enabled: true, intervalMinutes: 5, durationSeconds: 60, windowMinutes: 60 }));
     const now = Date.now();
     const contractions = Array.from({ length: 11 }, (_, i) => 55 - i * 5).map((min, i) => ({
       id: `audio-${i}`,
