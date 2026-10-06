@@ -1,239 +1,140 @@
-# App Store Connect — pre-filled fields for Olive v1.3.0
-# Copy/paste from here into App Store Connect. Each section is exactly
-# what the field expects, with no extra formatting.
+# App Store Connect — Olive v1.3.0 fields
+Prepared locally; not uploaded or entered in a console.
 
-────────────────────────────────────────────────────────────────────────
+
 APP NAME
 ────────────────────────────────────────────────────────────────────────
 Olive — Contraction Timer
 
 
-────────────────────────────────────────────────────────────────────────
 SUBTITLE (max 30 chars, used in search results)
 ────────────────────────────────────────────────────────────────────────
 Private labor timer
-[second option below under DESCRIPTION if you prefer]
 
 
-────────────────────────────────────────────────────────────────────────
 BUNDLE ID
 ────────────────────────────────────────────────────────────────────────
 com.ashbi.olive
-[auto-filled from your Apple Developer account]
 
 
-────────────────────────────────────────────────────────────────────────
-SKU (your choice, used in reporting)
+SKU
 ────────────────────────────────────────────────────────────────────────
 olive-contract-timer-v1
-[any unique string, can't be changed after first submission]
 
 
+VERSION / BUILD
 ────────────────────────────────────────────────────────────────────────
+1.3.0 / 6 (confirm build number is unused before upload)
+
+
 USER ACCESS (for App Review)
 ────────────────────────────────────────────────────────────────────────
-All functionality is available without special access.
-No login, no account, no network requests. All data stays on the device.
+No account or sign-in is required. Core timing and saved records work offline. Users may open support/privacy links or explicitly export files to a chosen destination.
 
 
-────────────────────────────────────────────────────────────────────────
 PRIMARY CATEGORY
 ────────────────────────────────────────────────────────────────────────
 Health & Fitness
 
 
-────────────────────────────────────────────────────────────────────────
 SECONDARY CATEGORY (optional)
 ────────────────────────────────────────────────────────────────────────
-Medical
+Medical — confirm in the console before submission
 
 
-────────────────────────────────────────────────────────────────────────
 PRICE
 ────────────────────────────────────────────────────────────────────────
-Free (no IAP, no subscription)
+Free. No in-app purchases or subscription.
 
 
-────────────────────────────────────────────────────────────────────────
 AVAILABILITY
 ────────────────────────────────────────────────────────────────────────
-All territories where App Store operates (select "All" in pricing)
+Owner selects intended territories in the console; no availability is claimed.
 
 
-────────────────────────────────────────────────────────────────────────
 PRIVACY POLICY URL
 ────────────────────────────────────────────────────────────────────────
-https://olive.ashbi.ca/privacy
+https://olive.ashbi.ca/privacy/
 
 
-────────────────────────────────────────────────────────────────────────
 SUPPORT URL
 ────────────────────────────────────────────────────────────────────────
 https://olive.ashbi.ca/support/
 
 
+MARKETING URL (optional)
 ────────────────────────────────────────────────────────────────────────
-MARKETING URL (optional — not used)
-────────────────────────────────────────────────────────────────────────
-(leave blank)
+Leave blank until a current marketing page is published.
 
 
-────────────────────────────────────────────────────────────────────────
-SUBTITLE (max 30 chars)
-────────────────────────────────────────────────────────────────────────
-Birth journey and labor
-
-
-────────────────────────────────────────────────────────────────────────
 PROMOTIONAL TEXT (max 170 chars, editable anytime)
 ────────────────────────────────────────────────────────────────────────
-A private birth journey and a calm labor timer — everything stays on your device, no account needed.
+Time contractions, keep a private history and save your care-team reminders. Core tools work offline, with no account required.
 
 
-────────────────────────────────────────────────────────────────────────
 DESCRIPTION (max 4000 chars)
 ────────────────────────────────────────────────────────────────────────
-Olive is a private birth-journey companion with the contraction timer you open at 3am when nothing else feels calm. One tap starts the timer. The screen stays awake so you can see the numbers. When the contraction ends, tap again. Your records are saved locally; export a backup before changing devices.
+Olive is a private contraction timer and birth-journey organizer. Tap Start when a contraction begins and Stop when it ends. Review the recorded duration and interval, add a missed contraction, or correct an earlier entry.
 
-Real labor is hard to time. You're focused on breathing, your partner is timing on their phone, and neither of you is sure when the last one started. Olive is designed for that moment.
+YOUR TIMING, IN ONE PLACE
+Record contraction timing, optional intensity, notes and tags. Review a factual history and export a care summary when you want to share it.
 
-Before and after labor, Olive keeps a private care card, provider questions, practical responsibilities, and a factual first-12-weeks postpartum timeline. You choose the phase, and everything stays on your phone.
+YOUR CARE TEAM'S PLAN
+Timing reminders are off by default. Enter instructions from your own care team and choose whether to enable a saved reminder. Olive reports observed timing; it does not diagnose labor or tell you whether it is safe to wait.
 
-WHAT IT DOES
-• One-tap Start/Stop timer — no menus, no settings, just a big button
-• Requests that the screen stays on while timing, when your device permits it
-• Provider-configurable timing reminders with an optional care-team call action
-• Hospital bag checklist with pre-loaded items
-• Contraction history with intensity (1-10), tags, and pain location
-• Per-contraction notes
-• Optional reminders based on timing instructions you enter from your care team
-• One-file backup and restore for your full history
-• Care summary handoff to your provider, right from the timer screen
+BEFORE AND AFTER LABOR
+Keep a private care card, questions for your provider, practical responsibilities, a hospital-bag checklist and postpartum notes. Log exam measurements reported to you by your care team without interpreting progress.
 
-DESIGNED FOR REAL LABOR
-• Quiet interface — no flashing colors, no alarmist messaging
-• User-controlled care-plan reminder with clear limitations and provider handoff
-• Works offline — the timer doesn't need a network connection
-• The screen stays awake while timing when your device permits it
-• Self-hosted fonts, instant load, dark mode first
+LOCAL AND OFFLINE
+Core timing and records work offline. No account, ads or analytics are required. Olive stores your records on your device and does not send them to the developer. Export a backup before changing devices or uninstalling the app. Files you choose to save or share may leave the device through the destination you select.
 
-PRIVATE BY DEFAULT
-Everything you record — contractions, journey details, notes, care-team contacts — stays on your device. Olive makes no network requests, has no account system, and contains zero analytics, zero tracking, and no advertising or analytics SDKs. See https://olive.ashbi.ca/privacy for the full policy.
+Olive organizes your observations and notes. It does not replace professional care. Follow your care team's instructions and contact them when you have concerns.
 
-Built by a dad for his wife. Now for you.
+Privacy: https://olive.ashbi.ca/privacy/
 
 
-────────────────────────────────────────────────────────────────────────
 KEYWORDS (max 100 chars, comma-separated, no spaces in keywords)
 ────────────────────────────────────────────────────────────────────────
-contraction,timer,labor,contractions,pregnancy,midwife,partner,birthing,breathing,olive
+contraction,timer,labor,pregnancy,midwife,birth,care,interval,duration,notes
 
 
-────────────────────────────────────────────────────────────────────────
 APP PRIVACY (Data Types section)
 ────────────────────────────────────────────────────────────────────────
-Select "Data Not Collected." As of v1.3.0 the app makes no network
-requests and sends nothing off-device. All data (contraction history,
-journey details, notes, contacts) is stored locally and never
-transmitted.
-
-If Apple's form asks you to confirm: there is no collection, no
-tracking, and no third-party data sharing. The OS-level share sheet
-(used only when the user explicitly taps "Send via…" or the care
-summary action) hands files directly to apps the user chooses; Olive
-never sees where they go.
-
-Confirm all answers against the current App Store Connect definitions
-before submission.
+Prepared answer: Data Not Collected by the developer. No tracking or analytics. User-selected exports and support communications must be considered under the current Apple definitions. Confirm against the signed binary and published policy; this draft is not a completed declaration.
 
 
-────────────────────────────────────────────────────────────────────────
 APP PRIVACY (Tracking section)
 ────────────────────────────────────────────────────────────────────────
-Do you or your third-party partners collect data using the IDFA
-or any other tracking technology for tracking purposes?
-→ No, we do not track users.
+No tracking. Confirm the final binary and dependencies before completing the form.
 
 
-────────────────────────────────────────────────────────────────────────
 SCREENSHOTS (drag-drop into this order)
 ────────────────────────────────────────────────────────────────────────
-Order matters — first 1-3 appear in search results.
-
-1. 01-hero-timer.png  (the main timer)
-2. 02-contraction-active.png  (timing a contraction)
-3. 03-history.png  (history view)
-4. 04-add-missed.png  (manual entry for a missed contraction)
-5. 05-care-plan-reminder.png  (saved care-plan reminder)
-
-Source: store-assets/screenshots/6.7_iphone/ in the repo (browser-generated v1.3.0 candidate, 2026-10-05; reconcile with the signed device build before upload). The old 04-share shot is deleted — the share feature was removed.
+01-hero-timer.png
+02-contraction-active.png
+03-history.png
+04-add-missed.png
+05-care-plan-reminder.png
+Use the appropriate Apple-size folder, not the Play phone set. These are browser-generated candidates pending signed-device reconciliation.
 
 
+APP REVIEW NOTES
 ────────────────────────────────────────────────────────────────────────
-APP ICON
+See docs/TESTFLIGHT-FIELDS.md for beta description, what to test and reviewer instructions. No reviewer account is needed.
+
+
+CONTACT
 ────────────────────────────────────────────────────────────────────────
-1024x1024 master: store-assets/app-icon-1024.png
-Smaller sizes (auto-generated by Xcode) are already in the Assets catalog.
+Cameron Ashley
+cameron@ashbi.ca
+Phone: owner must supply directly in App Store Connect; no number is invented.
 
 
+AGE / EXPORT / REGULATED STATUS
 ────────────────────────────────────────────────────────────────────────
-APP REVIEW INFORMATION (the notes for the reviewer)
+Complete the current questionnaires from the final app and owner facts. Do not infer a rating, trader status, legal classification or encryption exemption from this draft.
+
+
+UPLOAD ARTIFACT
 ────────────────────────────────────────────────────────────────────────
-Tester account:
-  None — no login required.
-
-How to test the app:
-  1. Open Olive
-  2. Tap "Start" (the big button)
-  3. Wait a few seconds
-  4. Tap "Stop"
-  5. The contraction is saved to the history
-
-To test the care-plan reminder:
-  1. Open Settings, save the timing instructions, and explicitly enable the saved care-team timing reminder.
-  2. Enter a care-team name and phone number.
-  3. Record a sustained pattern matching the saved interval, duration, and window.
-  4. Olive shows an observational reminder and the saved call action; it does not diagnose labor.
-
-To test backup and restore:
-  1. Record a few contractions, then Settings → "Export backup".
-  2. "Send via…" hands the file to any app the reviewer chooses.
-  3. "Import from backup" restores it.
-
-Notes for reviewer:
-  - The app makes no network requests. Everything, including backups,
-    stays on the device unless the reviewer explicitly exports a file.
-  - The app uses the open-source libraries listed in its packaged dependencies.
-  - Supports iOS 15+; Live Activities require iOS 16.2+. Physical-device verification is pending; do not claim a tested device matrix.
-
-Contact: cameron@ashbi.ca
-
-
-────────────────────────────────────────────────────────────────────────
-EXPORT COMPLIANCE
-────────────────────────────────────────────────────────────────────────
-Is your app designed to use encryption or does it contain or
-access encryption?
-→ No. The app contains no encryption functionality and makes no
-  network requests; all data stays on the device.
-
-Does your app qualify for any of the exemptions provided in
-Category 5, Part 2 of the U.S. Export Administration Regulations?
-→ Yes / not applicable — see above.
-
-Documentation (if needed): None required.
-
-
-────────────────────────────────────────────────────────────────────────
-CONTENT RIGHTS (Government-related content)
-────────────────────────────────────────────────────────────────────────
-No government-related content.
-
-
-────────────────────────────────────────────────────────────────────────
-ADS / TRACKING / CONTENT
-────────────────────────────────────────────────────────────────────────
-Contains ads: No
-In-app purchases: No
-Uses tracking: No
-All content is suitable for all ages.
+A newly signed, inspected IPA with matching source identity. The existing unsigned xcarchive cannot be uploaded. Record the actual hash and processing receipt.

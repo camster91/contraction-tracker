@@ -14,6 +14,8 @@ const groups = new Map([
   ['5.5_iphone', [1242, 2208]],
   ['12.9_ipad', [2048, 2732]],
   ['play_phone', [1080, 1920]],
+  ['play_tablet_7', [1440, 2560]],
+  ['play_tablet_10', [1800, 3200]],
 ]);
 const shots = ['01-hero-timer', '02-contraction-active', '03-history', '04-add-missed', '05-care-plan-reminder'];
 for (const [group, dimensions] of groups) {

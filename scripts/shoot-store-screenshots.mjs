@@ -4,6 +4,7 @@
 // Usage: node scripts/shoot-store-screenshots.mjs [--out store-assets/screenshots]
 
 import { mkdirSync } from 'node:fs';
+import path from 'node:path';
 import { chromium } from 'playwright';
 
 const root = new URL('..', import.meta.url).pathname;
@@ -14,9 +15,15 @@ const PROFILES = {
   iphone55: { dir: '5.5_iphone', W: 414, H: 736, DSF: 3 },
   ipad129: { dir: '12.9_ipad', W: 1024, H: 1366, DSF: 2 },
   play: { dir: 'play_phone', W: 360, H: 640, DSF: 3 },
+  playTablet7: { dir: 'play_tablet_7', W: 720, H: 1280, DSF: 2 },
+  playTablet10: { dir: 'play_tablet_10', W: 900, H: 1600, DSF: 2 },
 };
+if (!PROFILES[profile]) throw new Error(`Unknown screenshot profile: ${profile}`);
 const { dir, W, H, DSF } = PROFILES[profile];
-const out = `${new URL('../store-assets/screenshots/', import.meta.url).pathname}${dir}/`;
+const outFlag = process.argv.indexOf('--out');
+const outputRoot = outFlag >= 0 ? process.argv[outFlag + 1] : path.join(root, 'store-assets/screenshots');
+if (!outputRoot || outputRoot.startsWith('--')) throw new Error('--out requires a directory');
+const out = `${path.resolve(outputRoot, dir)}/`;
 mkdirSync(out, { recursive: true });
 
 const minutesAgo = (m) => new Date(Date.now() - m * 60_000).toISOString();

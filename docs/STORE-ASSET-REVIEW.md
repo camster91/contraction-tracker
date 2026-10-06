@@ -1,40 +1,40 @@
-> Historical planning/evidence. Current v1.3.0 scope and release gates are in [RELEASE-PLAN.md](RELEASE-PLAN.md). Do not use this file as current submission approval or artifact evidence.
+# Olive v1.3.0 prepared asset inventory
 
-# Olive store asset review
+Updated 2026-10-05. Local preparation, not signed-device capture, clinical approval, store upload or acceptance.
 
-Status: reproducible screenshot candidate generated and visually reviewed locally; final signed-binary reconciliation remains open.
+## Assets
 
-Review date: 2026-08-28  
-Generator: `tests/e2e/screenshots-store.spec.ts`  
-Durable output: `store-assets/`
+- iOS icon: opaque 1024x1024 PNG, byte-identical to the frozen native marketing icon.
+- Play icon: opaque 512x512 PNG; current matching artwork.
+- Play feature graphic: opaque 1024x500 PNG with crisp Olive wordmark and existing brand colors.
+- 35 raw UI screenshot candidates: five states in seven size groups.
+- Captions/alt text, canonical listing JSON, clean Apple/Play copy sheets, English release notes and TestFlight fields.
+- Prepared static privacy/support pages and current device/user/professional review protocols.
 
-## Generation evidence
+| Folder | Pixels | Intended slot |
+|---|---|---|
+| `6.7_iphone` | 1290x2796 | Apple large Dynamic Island iPhone |
+| `6.1_iphone` | 1179x2556 | Apple smaller Dynamic Island iPhone |
+| `5.5_iphone` | 1242x2208 | Apple legacy Home-button iPhone |
+| `12.9_ipad` | 2048x2732 | Apple 13-inch or compatible 12.9-inch iPad slot |
+| `play_phone` | 1080x1920 | Play phone |
+| `play_tablet_7` | 1440x2560 | Play 7-inch tablet candidate |
+| `play_tablet_10` | 1800x3200 | Play 10-inch tablet candidate |
 
-- 25 of 25 screenshot captures passed after a production web build: 20 Apple-size candidates plus a dedicated five-image Google Play set.
-- Five states were captured at each configured size: idle timer, active timer, contraction history, summary-first sharing, and saved care-plan reminder.
-- The generator now opens the actual sharing dialog and asserts it is visible before capture.
-- Seeded history uses the current numeric intensity schema, dismisses the backup prompt, and scrolls the history into the viewport.
-- Generated Apple candidate sizes are 1290x2796, 1170x2532, 1242x2208, and 2048x2732. The dedicated Play set is 1080x1920 because the 1290x2796 Apple image exceeds Google Play's maximum 2:1 long-edge ratio.
-- The opaque 1024x1024 Apple icon, opaque 512x512 Play icon, and opaque 1024x500 Play feature graphic are repository-owned and checked alongside the screenshots by `npm run check:store-assets`.
-- `store-assets/captions.json` maps each screenshot state to a concise non-diagnostic headline and accessibility description. The asset verifier requires all five entries, enforces length limits, and rejects known diagnostic/reassurance language.
-- iOS, Android/PWA, and store presentation now use the same existing heart mark; the stale iOS-only olive-branch artwork was removed from every iOS icon size.
-- Current requirements were reconciled against Apple App Store Connect screenshot specifications and Google Play preview-asset guidance on 2026-08-28.
+Order: idle timer, active contraction, history, add-missed form, saved care-plan reminder. Examples use fabricated records and an example care team. No screenshot of removed partner links or memory-book PDF is included. Stale `-v2` artwork is excluded from the upload package; original repository files remain preserved.
 
-Authoritative references:
+## Provenance and validation
 
-- Apple: https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications/
-- Google Play: https://support.google.com/googleplay/android-developer/answer/9866151
+Runtime candidate: `23487cf7f7effd041c43ec728648332c0e950a1b`. Tablet candidates were rendered from that frozen production build with the current screenshot script at its actual responsive widths. Existing phone/iPad candidates were prepared against the same runtime in this session. These are Chromium renders with browser feature availability; the floating-timer control/native chrome may differ on a physical native build. Reconcile every selected image with the signed build before upload.
 
-## Visual review
+`node scripts/check-store-assets.mjs` checks expected PNG dimensions, opacity, five-state captions and iOS icon identity. `node scripts/check-store-metadata.mjs` checks source/listing consistency. The package manifest adds per-file SHA-256 and render/scope labels. Generated example reminder values are not a universal clinical threshold. Reminders require opt-in in the app.
 
-The phone candidates clearly show the primary timer, live timing, factual history, summary-first privacy boundary, and care-team handoff. No diagnostic or all-clear claim appears in the reviewed frames.
+Current format references:
 
-The initial 12.9-inch iPad candidates exposed excessive unused horizontal space because the application remained phone-width. A deliberate 672px tablet canvas now passes portrait and landscape visual review in `TABLET-UX-AUDIT.md`. Store candidates still require regeneration from the final signed build and physical iPad validation.
+- https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications/
+- https://support.google.com/googleplay/android-developer/answer/9866151
+- https://developer.apple.com/help/app-store-connect/test-a-beta-version/provide-test-information/
 
-## Open release gates
+## Final gates
 
-- [x] Retain iPad support with a deliberate wider single-column tablet canvas; see `TABLET-UX-AUDIT.md`.
-- [ ] Complete human review of the drafted, automatically validated marketing captions without obscuring product state or safety language.
-- [ ] Capture from, or reproduce against, the exact signed TestFlight and Play internal-testing binaries.
-- [ ] Record immutable source revision, artifact identifiers, screenshot hashes, reviewer, and review date.
-- [ ] Upload only after the clinical/store-copy review and explicit release approval.
+Match images to the processed signed build and actual console slots; review copy with the requested independent reviewers. Verify public privacy/support pages, actual declarations and owner contact details. Optional preview videos are not required for this package; do not synthesize footage of unverified native behavior. No Wear OS, watchOS, TV, automotive, French or public web app listing is prepared for this release.
