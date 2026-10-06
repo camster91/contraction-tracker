@@ -128,8 +128,9 @@ Q: Is all of the user data collected by your app encrypted in transit?
 A: Not applicable — no data is collected or transmitted.
 
 Q: Do you provide a way for users to request that their data be deleted?
-A: Yes. Users can delete local data in the app at any time; since
-   nothing leaves the device, deletion in the app is complete deletion.
+A: Local records are removed by uninstalling Olive or clearing app storage.
+   Users must separately remove any backups or summaries they exported.
+   There is no server account or remotely collected data to delete.
 
 Q: Is your app designed for children?
 A: No, the app is for expecting parents (18+).

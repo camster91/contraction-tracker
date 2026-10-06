@@ -166,7 +166,7 @@ Order matters — first 1-3 appear in search results.
 4. 04-add-missed.png  (manual entry for a missed contraction)
 5. 05-care-plan-reminder.png  (saved care-plan reminder)
 
-Source: store-assets/screenshots/6.7_iphone/ in the repo (fresh v1.3.0 UI, 2026-09-25). The old 04-share shot is deleted — the share feature was removed.
+Source: store-assets/screenshots/6.7_iphone/ in the repo (browser-generated v1.3.0 candidate, 2026-10-05; reconcile with the signed device build before upload). The old 04-share shot is deleted — the share feature was removed.
 
 
 ────────────────────────────────────────────────────────────────────────
@@ -190,7 +190,7 @@ How to test the app:
   5. The contraction is saved to the history
 
 To test the care-plan reminder:
-  1. Open Settings and save the timing instructions provided by the reviewer's care team.
+  1. Open Settings, save the timing instructions, and explicitly enable the saved care-team timing reminder.
   2. Enter a care-team name and phone number.
   3. Record a sustained pattern matching the saved interval, duration, and window.
   4. Olive shows an observational reminder and the saved call action; it does not diagnose labor.
