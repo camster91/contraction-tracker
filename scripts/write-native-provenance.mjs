@@ -2,7 +2,7 @@
 
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
-import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -17,6 +17,12 @@ if (git('status', '--porcelain')) {
 }
 
 const files = [];
+// Capacitor sync adds these empty compatibility files when no Cordova plugins
+// are installed. Include them before hashing so the native payload matches.
+for (const name of ['cordova.js', 'cordova_plugins.js']) {
+  const destination = path.join(dist, name);
+  if (!existsSync(destination)) writeFileSync(destination, '');
+}
 const visit = (directory) => {
   for (const name of readdirSync(directory).sort()) {
     const absolute = path.join(directory, name);
