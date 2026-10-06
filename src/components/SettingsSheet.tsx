@@ -65,74 +65,7 @@ export default function SettingsSheet({
             <button type="button" aria-label="Close settings" onClick={onClose} className="min-h-11 min-w-11 rounded-lg text-ink-200">Close</button>
           </div>
 
-          <div className="border-t border-ink-200/20 mt-3 pt-3">
-            <div className="text-[10px] uppercase tracking-[0.15em] text-ink-400 font-semibold mb-1.5">
-              Care-plan reminder
-            </div>
-            <p className="text-[10px] text-ink-500 leading-relaxed mb-3">
-              Save the timing instructions given by your care team. Olive reports observed timing only and does not diagnose labor.
-            </p>
-            <label htmlFor="care-provider-input" className="block text-[11px] text-ink-300 mb-1">
-              Care provider or team
-            </label>
-            <input
-              id="care-provider-input"
-              type="text"
-              value={carePlan.providerName}
-              onChange={(event) => onCarePlanChange({ ...carePlan, providerName: event.target.value })}
-              placeholder="e.g. North Star Midwives"
-              maxLength={80}
-              className="w-full bg-ink-100/5 border border-ink-200/30 rounded-xl px-3 py-2 text-sm text-ink-50 placeholder:text-ink-500 focus:outline-none focus:border-rose-300/50"
-            />
-            <label htmlFor="care-provider-phone" className="block text-[11px] text-ink-300 mb-1 mt-3">
-              Care provider phone
-            </label>
-            <input
-              id="care-provider-phone"
-              type="tel"
-              inputMode="tel"
-              value={carePlan.providerPhone}
-              onChange={(event) => onCarePlanChange({ ...carePlan, providerPhone: event.target.value })}
-              placeholder="e.g. +1 416 555 0142"
-              maxLength={30}
-              className="w-full bg-ink-100/5 border border-ink-200/30 rounded-xl px-3 py-2 text-base text-ink-50 placeholder:text-ink-500 focus:outline-none focus:border-rose-300/50"
-            />
-            <label className="flex items-center gap-3 py-3">
-              <input type="checkbox" checked={carePlan.enabled}
-                onChange={(event) => onCarePlanChange({ ...carePlan, enabled: event.target.checked })} />
-              Enable my saved care-team timing reminder
-            </label>
-            <div className="grid grid-cols-3 gap-2 mt-3">
-              <CarePlanNumberField
-                id="care-plan-interval"
-                label="Contractions every (minutes)"
-                value={carePlan.intervalMinutes}
-                min={2}
-                max={15}
-                onChange={(value) => onCarePlanChange({ ...carePlan, intervalMinutes: value })}
-              />
-              <CarePlanNumberField
-                id="care-plan-duration"
-                label="Lasting at least (seconds)"
-                value={carePlan.durationSeconds}
-                min={30}
-                max={180}
-                onChange={(value) => onCarePlanChange({ ...carePlan, durationSeconds: value })}
-              />
-              <CarePlanNumberField
-                id="care-plan-window"
-                label="For at least (minutes)"
-                value={carePlan.windowMinutes}
-                min={15}
-                max={180}
-                onChange={(value) => onCarePlanChange({ ...carePlan, windowMinutes: value })}
-              />
-            </div>
-            <div className="mt-2 text-[10px] text-sage-300">
-              Every {carePlan.intervalMinutes} min · lasting {carePlan.durationSeconds} sec · for {carePlan.windowMinutes} min
-            </div>
-          </div>
-
+          <h2 className="text-base font-display text-ink-50 mb-2">Preferences</h2>
           {/* Big text toggle */}
           <label className="flex items-center justify-between py-2 cursor-pointer">
             <span className="text-sm text-ink-200">Big text</span>
@@ -208,14 +141,14 @@ export default function SettingsSheet({
 
           {/* Theme variant */}
           <div className="border-t border-ink-200/20 mt-3 pt-3">
-            <div className="text-[10px] uppercase tracking-[0.15em] text-ink-400 font-semibold mb-2">Theme</div>
+            <div className="text-xs uppercase tracking-[0.12em] text-ink-300 font-semibold mb-2">Theme</div>
             <div className="flex gap-1.5">
               {(['calm', 'cool'] as const).map((v) => (
                 <button
                   key={v}
                   aria-pressed={themeVariant === v}
                   onClick={() => setThemeVariant(v)}
-                  className={`text-[11px] px-3 py-1.5 rounded-lg font-medium transition-colors ${
+                  className={`min-h-11 text-sm px-3 py-2 rounded-lg font-medium transition-colors ${
                     themeVariant === v
                       ? v === 'calm'
                         ? 'bg-rose-300/20 text-rose-200 border border-rose-300/40'
@@ -231,14 +164,14 @@ export default function SettingsSheet({
 
           {/* Time format */}
           <div className="mt-3">
-            <div className="text-[10px] uppercase tracking-[0.15em] text-ink-400 font-semibold mb-2">Time</div>
+            <div className="text-xs uppercase tracking-[0.12em] text-ink-300 font-semibold mb-2">Time</div>
             <div className="flex gap-1.5">
               {([false, true] as const).map((v) => (
                 <button
                   key={String(v)}
                   aria-pressed={hour12 === v}
                   onClick={() => setHour12(v)}
-                  className={`text-[11px] px-3 py-1.5 rounded-lg font-medium transition-colors ${
+                  className={`min-h-11 text-sm px-3 py-2 rounded-lg font-medium transition-colors ${
                     hour12 === v
                       ? 'bg-rose-300/20 text-rose-200 border border-rose-300/40'
                       : 'bg-ink-100/5 text-ink-400 border border-ink-200/30 active:bg-ink-100/10'
@@ -252,7 +185,7 @@ export default function SettingsSheet({
 
           {/* Backup section */}
           <div className="border-t border-ink-200/20 mt-3 pt-3">
-            <div className="text-[10px] uppercase tracking-[0.15em] text-ink-400 font-semibold mb-2">Backup</div>
+            <div className="text-xs uppercase tracking-[0.12em] text-ink-300 font-semibold mb-2">Backup</div>
             <div className="space-y-2">
               <button
                 onClick={handleExportBackup}
@@ -261,7 +194,7 @@ export default function SettingsSheet({
                 <Download className="w-4 h-4 text-sage-300" strokeWidth={1.75} />
                 <div className="flex-1 min-w-0">
                   <div className="font-medium">Export backup</div>
-                  <div className="text-[10px] text-ink-500">Download .json file</div>
+                  <div className="text-xs text-ink-300">Download .json file</div>
                 </div>
               </button>
               <button
@@ -271,7 +204,7 @@ export default function SettingsSheet({
                 <Share2 className="w-4 h-4 text-rose-300" strokeWidth={1.75} />
                 <div className="flex-1 min-w-0">
                   <div className="font-medium">Send via…</div>
-                  <div className="text-[10px] text-ink-500">AirDrop, message, email</div>
+                  <div className="text-xs text-ink-300">AirDrop, message, email</div>
                 </div>
               </button>
               <button
@@ -281,9 +214,77 @@ export default function SettingsSheet({
                 <Upload className="w-4 h-4 text-sage-300" strokeWidth={1.75} />
                 <div className="flex-1 min-w-0">
                   <div className="font-medium">Import from backup</div>
-                  <div className="text-[10px] text-ink-500">Restore from .json file</div>
+                  <div className="text-xs text-ink-300">Restore from .json file</div>
                 </div>
               </button>
+            </div>
+          </div>
+
+          <div className="border-t border-ink-200/20 mt-3 pt-3">
+            <div className="text-xs uppercase tracking-[0.12em] text-ink-300 font-semibold mb-1.5">
+              Care-plan reminder
+            </div>
+            <p className="text-xs text-ink-300 leading-relaxed mb-3">
+              Save the timing instructions given by your care team. Olive reports observed timing only and does not diagnose labor.
+            </p>
+            <label htmlFor="care-provider-input" className="block text-[11px] text-ink-300 mb-1">
+              Care provider or team
+            </label>
+            <input
+              id="care-provider-input"
+              type="text"
+              value={carePlan.providerName}
+              onChange={(event) => onCarePlanChange({ ...carePlan, providerName: event.target.value })}
+              placeholder="e.g. North Star Midwives"
+              maxLength={80}
+              className="w-full bg-ink-100/5 border border-ink-200/30 rounded-xl px-3 py-2 text-sm text-ink-50 placeholder:text-ink-500 focus:outline-none focus:border-rose-300/50"
+            />
+            <label htmlFor="care-provider-phone" className="block text-[11px] text-ink-300 mb-1 mt-3">
+              Care provider phone
+            </label>
+            <input
+              id="care-provider-phone"
+              type="tel"
+              inputMode="tel"
+              value={carePlan.providerPhone}
+              onChange={(event) => onCarePlanChange({ ...carePlan, providerPhone: event.target.value })}
+              placeholder="e.g. +1 416 555 0142"
+              maxLength={30}
+              className="w-full bg-ink-100/5 border border-ink-200/30 rounded-xl px-3 py-2 text-base text-ink-50 placeholder:text-ink-500 focus:outline-none focus:border-rose-300/50"
+            />
+            <label className="flex items-center gap-3 py-3">
+              <input type="checkbox" checked={carePlan.enabled}
+                onChange={(event) => onCarePlanChange({ ...carePlan, enabled: event.target.checked })} />
+              Enable my saved care-team timing reminder
+            </label>
+            <div className="grid grid-cols-3 gap-2 mt-3">
+              <CarePlanNumberField
+                id="care-plan-interval"
+                label="Contractions every (minutes)"
+                value={carePlan.intervalMinutes}
+                min={2}
+                max={15}
+                onChange={(value) => onCarePlanChange({ ...carePlan, intervalMinutes: value })}
+              />
+              <CarePlanNumberField
+                id="care-plan-duration"
+                label="Lasting at least (seconds)"
+                value={carePlan.durationSeconds}
+                min={30}
+                max={180}
+                onChange={(value) => onCarePlanChange({ ...carePlan, durationSeconds: value })}
+              />
+              <CarePlanNumberField
+                id="care-plan-window"
+                label="For at least (minutes)"
+                value={carePlan.windowMinutes}
+                min={15}
+                max={180}
+                onChange={(value) => onCarePlanChange({ ...carePlan, windowMinutes: value })}
+              />
+            </div>
+            <div className="mt-2 text-[10px] text-sage-300">
+              Every {carePlan.intervalMinutes} min · lasting {carePlan.durationSeconds} sec · for {carePlan.windowMinutes} min
             </div>
           </div>
 
@@ -291,11 +292,11 @@ export default function SettingsSheet({
           <div className="border-t border-ink-200/20 mt-3 pt-3">
             <div className="flex items-center justify-between mb-2">
               <div>
-                <div className="text-[10px] uppercase tracking-[0.15em] text-ink-400 font-semibold">App version</div>
+                <div className="text-xs uppercase tracking-[0.12em] text-ink-300 font-semibold">App version</div>
                 <div className="text-[11px] text-ink-300 mt-0.5">Olive v{appVersion}</div>
               </div>
             </div>
-            <div className="text-[9px] text-ink-600 mt-1.5 text-center">
+            <div className="text-xs text-ink-300 mt-1.5 text-center">
               Updates arrive through the App Store or Play Store.
             </div>
           </div>
@@ -314,7 +315,7 @@ function CarePlanNumberField({ id, label, value, min, max, onChange }: {
   onChange: (value: number) => void;
 }) {
   return (
-    <label htmlFor={id} className="text-[10px] text-ink-400 leading-tight">
+    <label htmlFor={id} className="text-xs text-ink-300 leading-tight">
       <span className="block min-h-9">{label}</span>
       <input
         id={id}

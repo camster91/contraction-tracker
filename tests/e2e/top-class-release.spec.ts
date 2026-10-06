@@ -128,3 +128,41 @@ test('care summary shares an objective provider-ready handoff', async ({ page })
   expect(shared.text).toContain('Recent pattern');
   expect(shared.text).toContain('does not diagnose labor');
 });
+
+test('care tools remain reachable after timing and Stop is a large target', async ({ page }) => {
+  await page.goto('/');
+  await waitForApp(page);
+  await page.getByRole('button', { name: /Start Tap when it begins/i }).click();
+  const stop = page.getByRole('button', { name: 'Stop', exact: true });
+  const bounds = await stop.boundingBox();
+  expect(bounds?.height).toBeGreaterThanOrEqual(76);
+  expect(bounds?.width).toBeGreaterThan(200);
+  await stop.click();
+  await page.getByRole('button', { name: 'Open birth journey' }).click();
+  await expect(page.getByRole('dialog', { name: /Birth journey/i })).toBeVisible();
+  await page.getByRole('button', { name: /Close birth journey/i }).click();
+  await page.getByRole('button', { name: 'More tools', exact: true }).click();
+  await expect(page.getByRole('button', { name: /Hospital bag:/i })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Recent timing' })).toContainText('1 completed');
+});
+
+test('tag-filtered history keeps actual spacing and honors clock preference', async ({ page }) => {
+  const now = Date.now();
+  const records = [20, 15, 10].map((minutesAgo, index) => ({
+    id: `spacing-${index}`, start: new Date(now - minutesAgo * 60000).toISOString(),
+    end: new Date(now - minutesAgo * 60000 + 60000).toISOString(),
+    tags: index === 0 ? ['pressure'] : ['back labor'],
+  }));
+  await page.addInitScript(({ records }) => {
+    localStorage.setItem('contraction-tracker:v1', JSON.stringify({ contractions: records }));
+    localStorage.setItem('contraction-tracker:hour12', '1');
+  }, { records });
+  await page.goto('/');
+  await waitForApp(page);
+  await page.getByRole('button', { name: 'pressure (1)', exact: true }).click();
+  await expect(page.getByText(/Spacing 5:00/)).toHaveCount(0);
+  const history = page.locator('main ul').last();
+  await expect(history).toContainText(/AM|PM/);
+  await page.getByRole('button', { name: 'back labor (2)', exact: true }).click();
+  await expect(page.getByText('Spacing 5:00 · start to start')).toHaveCount(2);
+});

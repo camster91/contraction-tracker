@@ -32,6 +32,7 @@ import {
   buildCareSummary,
   buildSummary,
   durationSeconds,
+  summarizeRecentContractions,
   formatClock,
   formatDuration,
   formatElapsed,
@@ -1508,8 +1509,10 @@ export default function App() {
               <div className="font-display text-6xl font-light text-ink-50 tabular-nums leading-none">
                 {formatDuration(currentElapsed)}
               </div>
-              <div className="text-[11px] text-ink-400 mt-3 tracking-wide flex items-center gap-2">
-                <span>Started at</span>
+              <div className="text-xs text-ink-300 mt-3 text-center">
+                <span>Started at {formatClock(current.start)}</span>
+                <details className="mt-1">
+                  <summary className="min-h-11 cursor-pointer flex items-center justify-center text-ink-300">Adjust start time</summary>
                 <input
                   type="time"
                   step="1"
@@ -1525,6 +1528,7 @@ export default function App() {
                   className="bg-transparent text-ink-400 border-none outline-none focus:underline focus:text-rose-300 cursor-pointer"
                   aria-label="Edit start time"
                 />
+                </details>
               </div>
               <div className="text-[10px] text-sage-300/80 mt-1.5 tracking-wide flex items-center gap-1.5">
                 <span className={`w-1.5 h-1.5 rounded-full ${isWakeLockHeld() ? 'bg-sage-300/70' : 'bg-amber-300/70'}`} />
@@ -1532,7 +1536,7 @@ export default function App() {
               </div>
               <button
                 ref={timerButtonRef} onClick={handleStop}
-                className="mt-5 bg-ink-50 active:bg-ink-100 text-plum-950 rounded-full px-7 py-2.5 flex items-center gap-2 font-semibold text-sm transition-colors"
+                className="mt-5 w-full min-h-[76px] bg-ink-50 active:bg-ink-100 text-plum-950 rounded-2xl px-7 py-4 flex items-center justify-center gap-3 font-semibold text-xl transition-colors"
               >
                 <Square className="w-3.5 h-3.5" fill="currentColor" strokeWidth={0} />
                 Stop
@@ -1577,7 +1581,7 @@ export default function App() {
                   aria-label="Delete last contraction"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
-                  <span>Clear</span>
+                  <span>Delete last</span>
                 </button>
               </div>
             </div>
@@ -1610,12 +1614,12 @@ export default function App() {
           <Onboarding onDismiss={() => setOnboardingStep(null)} />
         )}
 
-        {!current && finished.length === 0 && onboardingStep === null && (
-          <TodayPanel journey={journey} onOpen={() => setShowJourney(true)} buttonRef={journeyOpenerRef} />
+        {!current && (finished.length > 0 || onboardingStep === null) && (
+          <TodayPanel compact={finished.length > 0} journey={journey} onOpen={() => setShowJourney(true)} buttonRef={journeyOpenerRef} />
         )}
 
-        {/* Prepare-only. Once labor has a contraction, this stays off the screen. */}
-        {!current && finished.length === 0 && <div className="mb-4 space-y-2">
+        {/* Care tools remain available between contractions. */}
+        {!current && <div className="mb-4 space-y-2">
           <div className="grid grid-cols-2 gap-2">
             <button
               type="button"
@@ -1623,7 +1627,7 @@ export default function App() {
               aria-expanded={showMoreTools}
               aria-controls="olive-more-tools"
               aria-label={showMoreTools ? 'Hide more tools' : 'More tools'}
-              className="col-span-2 rounded-2xl border border-ink-200/30 bg-ink-100/5 px-4 py-3 flex items-center justify-center gap-2 min-h-[76px] text-ink-300 active:bg-ink-100/10 transition-colors"
+              className="col-span-2 rounded-2xl border border-ink-200/30 bg-ink-100/5 px-4 py-3 flex items-center justify-center gap-2 min-h-11 text-ink-300 active:bg-ink-100/10 transition-colors"
             >
               <Plus className={`w-4 h-4 transition-transform ${showMoreTools ? 'rotate-45' : ''}`} />
               <span className="text-[11px] font-medium">{showMoreTools ? 'Fewer tools' : 'More tools'}</span>
@@ -1672,6 +1676,7 @@ export default function App() {
         {/* History list */}
         {finished.length > 0 && (
           <div className="mb-4">
+            <RecentTimingSummary contractions={finished} now={now} />
             <HistoryHeader
               onReadSummary={handleReadSummary}
               onShare={handleShare}
@@ -1686,9 +1691,10 @@ export default function App() {
               onSetTagFilter={setTagFilter}
             />
             <ul className="space-y-3">
-              {[...visibleFinished].reverse().map((c, idx) => {
+              {[...visibleFinished].reverse().map((c) => {
                 const dur = durationSeconds(c, now);
-                const interval = idx < finished.length - 1 ? intervalSeconds(finished[finished.length - 2 - idx], c) : null;
+                const chronologicalIndex = finished.findIndex((item) => item.id === c.id);
+                const interval = chronologicalIndex > 0 ? intervalSeconds(finished[chronologicalIndex - 1], c) : null;
                 const isEditing = editingId === c.id;
                 return (
                   <li
@@ -1697,6 +1703,43 @@ export default function App() {
                   >
                     {isEditing ? (
                       <div className="space-y-2.5 animate-fade-in">
+                        <div className="grid grid-cols-2 gap-3">
+                          <label className="text-xs text-ink-300">
+                            Start time
+                            <div className="mt-1 min-h-11 flex items-center">
+                              <input
+                                type="time"
+                                step="1"
+                                value={c.start ? `${String(new Date(c.start).getHours()).padStart(2,'0')}:${String(new Date(c.start).getMinutes()).padStart(2,'0')}:${String(new Date(c.start).getSeconds()).padStart(2,'0')}` : ''}
+                                onChange={(e) => {
+                                  const changed = withClockTime(c, 'start', e.target.value);
+                                  if (!changed) { toast.error('Start must be before the end, within four hours, and not in the future.'); return; }
+                                  setContractions((prev) => prev.map((x) => x.id === c.id ? { ...x, ...changed } : x));
+                                }}
+                                className="font-display text-sm font-medium text-ink-50 bg-transparent border-none outline-none focus:underline focus:text-rose-300 w-[6.5rem] pr-0 tabular-nums cursor-pointer"
+                                aria-label="Edit start time"
+                              />
+                            </div>
+                          </label>
+                          <label className="text-xs text-ink-300">
+                            End time
+                            <div className="mt-1 min-h-11 flex items-center">
+                              <input
+                                type="time"
+                                step="1"
+                                value={c.end ? `${String(new Date(c.end).getHours()).padStart(2,'0')}:${String(new Date(c.end).getMinutes()).padStart(2,'0')}:${String(new Date(c.end).getSeconds()).padStart(2,'0')}` : ''}
+                                onChange={(e) => {
+                                  const changed = withClockTime(c, 'end', e.target.value);
+                                  if (!changed) { toast.error('End must be after the start, within four hours, and not in the future.'); return; }
+                                  setContractions((prev) => prev.map((x) => x.id === c.id ? { ...x, ...changed } : x));
+                                }}
+                                className="font-display text-sm font-medium text-ink-300 bg-transparent border-none outline-none focus:underline focus:text-rose-300 w-[6.5rem] pr-0 tabular-nums cursor-pointer"
+                                aria-label="Edit end time"
+                              />
+                            </div>
+                          </label>
+                        </div>
+
                         <div className="flex items-center justify-between">
                           <div className="font-display text-base font-medium">
                             {formatClock(c.start)} · {formatDuration(dur)}
@@ -1813,45 +1856,15 @@ export default function App() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-baseline gap-2 flex-wrap">
                             {c.source === 'manual' && <span className="text-xs text-ink-300">Manual</span>}
-                            <span className="flex items-center gap-1.5">
-                              <input
-                                type="time"
-                                step="1"
-                                value={c.start ? `${String(new Date(c.start).getHours()).padStart(2,'0')}:${String(new Date(c.start).getMinutes()).padStart(2,'0')}:${String(new Date(c.start).getSeconds()).padStart(2,'0')}` : ''}
-                                onChange={(e) => {
-                                  const changed = withClockTime(c, 'start', e.target.value);
-                                  if (!changed) { toast.error('Start must be before the end, within four hours, and not in the future.'); return; }
-                                  setContractions((prev) => prev.map((x) => x.id === c.id ? { ...x, ...changed } : x));
-                                }}
-                                className="font-display text-sm font-medium text-ink-50 bg-transparent border-none outline-none focus:underline focus:text-rose-300 w-[6.5rem] pr-0 tabular-nums cursor-pointer"
-                                aria-label="Edit start time"
-                              />
-                            </span>
-                            <span className="font-display text-xl font-light text-rose-300 tabular-nums">
-                              {formatDuration(dur)}
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <span className="text-[10px] text-ink-500">–</span>
-                              <input
-                                type="time"
-                                step="1"
-                                value={c.end ? `${String(new Date(c.end).getHours()).padStart(2,'0')}:${String(new Date(c.end).getMinutes()).padStart(2,'0')}:${String(new Date(c.end).getSeconds()).padStart(2,'0')}` : ''}
-                                onChange={(e) => {
-                                  const changed = withClockTime(c, 'end', e.target.value);
-                                  if (!changed) { toast.error('End must be after the start, within four hours, and not in the future.'); return; }
-                                  setContractions((prev) => prev.map((x) => x.id === c.id ? { ...x, ...changed } : x));
-                                }}
-                                className="font-display text-sm font-medium text-ink-300 bg-transparent border-none outline-none focus:underline focus:text-rose-300 w-[6.5rem] pr-0 tabular-nums cursor-pointer"
-                                aria-label="Edit end time"
-                              />
-                            </span>
+                            <span className="text-sm text-ink-200 tabular-nums">{formatClock(c.start)} – {formatClock(c.end!)}</span>
+                            <span className="text-sm text-ink-300">Duration <strong className="font-display text-xl font-medium text-rose-300 tabular-nums">{formatDuration(dur)}</strong></span>
                           </div>
                           <div className="text-xs text-ink-400 mt-0.5 flex items-center gap-1.5 flex-wrap">
                             {c.intensity ? (
                               <span>intensity {c.intensity}/10</span>
                             ) : null}
                             {interval !== null && (
-                              <span>{formatDuration(interval)} apart</span>
+                              <span>Spacing {formatDuration(interval)} · start to start</span>
                             )}
                             {c.note && <span className="truncate">— {c.note}</span>}
                           </div>
@@ -1865,14 +1878,14 @@ export default function App() {
                               setTagsDraft(c.tags ?? []);
                               setPainLocationsDraft(c.painLocations ?? []);
                             }}
-                            className="p-2 text-ink-400 active:text-rose-300 transition-colors"
+                            className="min-w-11 min-h-11 p-2 text-ink-300 active:text-rose-300 transition-colors"
                             aria-label="Edit"
                           >
                             <Pencil className="w-4 h-4" strokeWidth={1.5} />
                           </button>
                           <button
                             onClick={() => handleDelete(c.id)}
-                            className="p-2 text-ink-400 active:text-rose-300 transition-colors"
+                            className="min-w-11 min-h-11 p-2 text-ink-300 active:text-rose-300 transition-colors"
                             aria-label="Delete"
                           >
                             <Trash2 className="w-4 h-4" strokeWidth={1.5} />
@@ -2036,4 +2049,17 @@ function PeopleCard({ onClick }: { onClick: () => void }) {
       accent="ink"
     />
   );
+}
+
+function RecentTimingSummary({ contractions, now }: { contractions: Contraction[]; now: number }) {
+  const summary = summarizeRecentContractions(contractions, now);
+  return <section aria-label="Recent timing" className="mb-4 rounded-2xl border border-sage-300/25 bg-sage-300/5 px-4 py-4">
+    <h2 className="text-sm font-semibold text-ink-200">Last hour</h2>
+    <p className="text-xs text-ink-300 mt-1">{summary.count} completed · all sessions</p>
+    {summary.count > 0 && <dl className="grid grid-cols-2 gap-3 mt-3">
+      <div><dt className="text-xs text-ink-300">Average duration</dt><dd className="text-xl font-display text-rose-300 mt-1">{formatDuration(summary.averageDuration!)}</dd></div>
+      <div><dt className="text-xs text-ink-300">Average spacing</dt><dd className="text-xl font-display text-sage-300 mt-1">{summary.averageSpacing === null ? '—' : formatDuration(summary.averageSpacing)}</dd></div>
+    </dl>}
+    <p className="text-xs text-ink-300 mt-3">Spacing is measured start to start.{summary.count === 1 ? ' Add another contraction to see spacing.' : ''}</p>
+  </section>;
 }

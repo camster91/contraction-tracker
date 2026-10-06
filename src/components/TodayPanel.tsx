@@ -3,7 +3,8 @@ import type { RefObject } from 'react';
 import type { JourneyDocument } from '../lib/journey';
 import { journeyMessages } from '../messages/en';
 
-export default function TodayPanel({ journey, onOpen, buttonRef }: {
+export default function TodayPanel({ journey, onOpen, buttonRef, compact = false }: {
+  compact?: boolean;
   journey: JourneyDocument;
   onOpen: () => void;
   buttonRef?: RefObject<HTMLButtonElement | null>;
@@ -26,12 +27,12 @@ export default function TodayPanel({ journey, onOpen, buttonRef }: {
           <Heart className="w-4 h-4 text-sage-300" strokeWidth={1.75} />
         </div>
         <div className="min-w-0 flex-1">
-          <div className="text-[10px] uppercase tracking-[0.18em] text-sage-300 font-semibold">{message.eyebrow}</div>
-          <div className="font-display text-lg text-ink-50 mt-0.5">{message.title}</div>
-          <div className="text-[11px] text-ink-400 leading-relaxed mt-1">{message.detail}</div>
-          <div className="text-[10px] text-ink-500 mt-2">
+          <div className="text-[10px] uppercase tracking-[0.18em] text-sage-300 font-semibold">{compact ? 'Birth journey' : message.eyebrow}</div>
+          <div className="font-display text-lg text-ink-50 mt-0.5">{compact ? 'Care details & preparation' : message.title}</div>
+          <div className="text-xs text-ink-300 leading-relaxed mt-1">{compact ? 'Your care card, questions and shared tasks' : message.detail}</div>
+          {!compact && <div className="text-xs text-ink-300 mt-2">
             {openItems > 0 ? `${openItems} open item${openItems === 1 ? '' : 's'}` : 'Private on this device'}
-          </div>
+          </div>}
         </div>
         <ChevronRight className="w-4 h-4 text-ink-400 mt-3 flex-shrink-0" />
       </div>

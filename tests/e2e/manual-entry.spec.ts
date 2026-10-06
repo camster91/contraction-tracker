@@ -53,6 +53,7 @@ test('editing a completed end time cannot save a reversed duration', async ({ pa
     const d = new Date(start);
     return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}`;
   }, before[0].start);
+  await page.getByRole('button', { name: 'Edit', exact: true }).first().click();
   await page.getByLabel('Edit end time').fill(clock);
   await expect(page.getByText('End must be after the start, within four hours, and not in the future.')).toBeVisible();
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('contraction-tracker:v1') || '{}').contractions)).toEqual(before);

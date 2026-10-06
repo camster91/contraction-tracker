@@ -298,3 +298,19 @@ export function buildContractionsCsv(contractions: Contraction[], now = Date.now
   ]));
   return rows.map((row) => row.map(csvCell).join(',')).join('\r\n') + '\r\n';
 }
+
+/** Completed records that started in the last hour; spacing uses only pairs within that window. */
+export function summarizeRecentContractions(records: Contraction[], now: number) {
+  const recent = records.filter((record) => {
+    const start = Date.parse(record.start);
+    const end = record.end ? Date.parse(record.end) : NaN;
+    return Number.isFinite(start) && Number.isFinite(end) && start >= now - 3600000
+      && start <= now && end >= start && end <= now;
+  }).sort((a, b) => Date.parse(a.start) - Date.parse(b.start));
+  const count = recent.length;
+  return {
+    count,
+    averageDuration: count ? Math.round(recent.reduce((sum, record) => sum + durationSeconds(record), 0) / count) : null,
+    averageSpacing: count > 1 ? Math.round((Date.parse(recent[count - 1].start) - Date.parse(recent[0].start)) / 1000 / (count - 1)) : null,
+  };
+}
