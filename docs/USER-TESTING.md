@@ -1,92 +1,32 @@
-# Olive — User Testing Recruitment
+# Olive v1.3.0 observed-user testing
 
-If you're sharing the app with friends and family for testing, here's
-how to get the most useful feedback in the least amount of their time.
+Prepared protocol; no participant session or acceptance is claimed. Current scope is free, native-only and English. Use the same signed, processed candidate for observed sessions and professional review. Record version/build, full source revision, installed distribution, artifact hashes, device/OS and accessibility settings.
 
-## Who to ask
+## Participants and consent
 
-Best testers (in priority order):
-1. **Bianca** — she's the actual user, will use it for real
-2. **Anyone currently pregnant or recently gave birth** — they have the
-   lived experience to spot UX issues
-3. **Anyone who's been a birth partner** (dad, mom, doula, sister) —
-   they know what a support person needs to see at a glance
-4. **Anyone tech-savvy with iPhones or Android** — they'll find crashes
+Issues #70/#60 retain the pregnancy, birth-partner/doula, recent-labor and lived-experience accessibility evidence. The historical evaluator specifies 16 participants: 10 third-trimester participants including first and subsequent pregnancies, 3 partners/doulas, and 3 people who labored within the previous year. Four distinct lived-experience accessibility participants may overlap those primary cohorts. Resolve any change to that study target explicitly in #70; five informal testers do not establish its completion. These are repository study targets, not Apple or Google store requirements.
 
-What you DON'T need: a software engineer or a tester by profession.
-You need: someone who could plausibly be in a hospital room at 3am
-trying to time their contractions.
+Use consented, scheduled observations and fabricated records. Do not run scripted tasks during an urgent care situation. Keep contact/consent records restricted and use anonymous participant IDs in Git. Recruitment drafts do not authorize sending messages.
 
-## Recruitment message (copy-paste)
+## Current tasks
 
-> Hey — I'm launching a contraction timer app called Olive, and I need
-> 5 people to try it for 10-15 minutes before I submit it to the App
-> Store. It's free, no signup, no ads. Your data stays on your phone.
->
-> If you can: install it, time a fake contraction (just hit Start, wait
-> 5 seconds, hit Stop), and tell me:
-> - Was anything confusing?
-> - Did anything look broken?
-> - Did the "call your provider" 5-1-1 alert work when you tried it?
-> - What would make you use this at 3am in labor?
->
-> iPhone: <App Store link once it's up>
-> Android: <link to the universal APK>
->
-> Thanks. — Cameron
+1. Open offline; find Start, time a fabricated contraction and stop it. Record time to Start and assistance.
+2. Start another contraction, background/lock the device, return and stop. Compare elapsed time with an independent clock.
+3. Add a missed contraction, correct its timing and confirm the manual marker, validation and saved result.
+4. Edit, delete and undo a fabricated history entry. Reload and confirm the intended records remain.
+5. Find care-plan settings, enter fabricated individualized values and explain the opt-in switch. Observe saved-reminder and objective-frequency wording with a prepared fixture. Record any diagnosis, reassurance or travel-direction interpretation. Do not make a real call.
+6. Explain the history/chart/care summary. Record uncertainty without coaching the initial response.
+7. Record a fabricated provider question, responsibility and care-team-reported exam value. Confirm these are understood as user-entered notes.
+8. Navigate the current journey/care-card/postpartum surfaces. Retired partner links and PDF memory books are outside this release.
+9. Export backup and care summary through the native share sheet: cancel, then save locally. Import a fabricated backup and confirm populated domains/current timer. Exercise any spreadsheet export offered by the tested build and record the actual visible route.
+10. Relaunch with an in-progress timer and verify recovery without losing history. Never corrupt real participant records to manufacture an error.
+11. Repeat core tasks with actual assistive technology/settings. Cover VoiceOver/TalkBack, large text, reduced motion and motor-input needs.
+12. Find privacy/support and explain local storage, uninstall deletion and export destinations. Record whether the participant would choose Olive and why.
 
-## What to look for in feedback
+## Evidence and closure
 
-1. **Confusion moments** — "I tapped X expecting Y, got Z"
-2. **Visual bugs** — wrong colors, overlapping text, things that look
-   broken on different screen sizes
-3. **Performance** — does the timer lag? Does the screen feel slow to
-   respond when starting/stopping a contraction?
-4. **The 5-1-1 alert timing** — when it fires, is the message clear?
-   Is the timing right? (Real labor + this app: a tester should tap
-   3+ contractions in 5 minutes apart and see the alert.)
-5. **Backup and restore** — export a backup on one device, import it on
-   another, and confirm everything carries over.
-6. **Edge cases** — what if you go back to the app 4 hours after
-   starting a contraction? What if your phone dies mid-contraction?
-   What if you uninstall and reinstall?
+Record completion, duration, assistance, errors and quotations separately from interpretation. Attach redacted screenshots/recordings. Track findings in existing issues; unresolved P0/P1 defects prevent closure. Retest fixes on the exact replacement candidate; earlier results are not current evidence.
 
-## What NOT to ask about
+Use [NATIVE-DEVICE-ACCEPTANCE.md](NATIVE-DEVICE-ACCEPTANCE.md) for technical checks and [CLINICAL-COPY-REVIEW.md](CLINICAL-COPY-REVIEW.md) for independent wording review.
 
-- Marketing copy / app icon design (those are aesthetic, not functional)
-- Specific feature requests (this is v1.0.0, save it for v1.1)
-- Release pricing: free (the v1.0.1 build has no IAP)
-
-## Bug report template
-
-If a tester reports a bug, ask for:
-
-```
-Device: [iPhone 13, Pixel 7, etc.]
-OS: [iOS 17.4, Android 14, etc.]
-App version: 1.0.0 (visible in Settings)
-What were you doing: [starting a contraction, exporting a backup, etc.]
-What you expected: [the timer to start]
-What happened: [nothing happened, or screen froze, etc.]
-Screenshot: [attached]
-Time of bug: [4:32 PM PT]
-```
-
-## What to do with feedback
-
-Within 1 hour of receiving feedback:
-1. Triage: cosmetic (no fix needed for v1.0) / functional (fix in 1.0.1) / blocker (fix in 1.0.0-rc2)
-2. For functional issues, add a Playwright test that reproduces the bug
-3. For blockers, fix immediately and ship a 1.0.1 within 24 hours
-
-## The 1-week testing plan
-
-| Day | Test focus | Tester group |
-|-----|-----------|--------------|
-| Day 1-2 | Install + first-time UX | Family members (non-pregnant, fresh eyes) |
-| Day 3-4 | Real contractions (timed, not real labor) | Bianca + 1 pregnant friend |
-| Day 5-6 | Backup, restore, and care summary handoff | Tester + a second device |
-| Day 7 | Edge cases / battery / multi-day | Long-term tester |
-
-If a critical bug is found on Day 1-3, ship a hotfix before the 15th
-(Apple review for an existing app is faster than for a new app).
+The historical evaluator and templates retain retired shared-status/task references. Before automated evaluation is used, reconcile their inventory/schema with #69/#70 while preserving identity, consent, independence and finding-resolution checks. Until then, review current records manually against this protocol and exact candidate. Never mark unobserved results passed.
