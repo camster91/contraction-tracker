@@ -83,7 +83,7 @@ import { useUndo } from './lib/undo';
 import { stopListening } from './lib/voice';
 import { syncNativeTimerNotification } from './lib/nativeTimer';
 import ManualContractionSheet from './components/ManualContractionSheet';
-import { withClockTime, withEndOffset } from './lib/contractionTime';
+import { withClockTime, withEndOffset, withStartOffset } from './lib/contractionTime';
 import SessionsSheet from './components/SessionsSheet';
 import PeopleSheet from './components/PeopleSheet';
 import ChecklistSheet from './components/ChecklistSheet';
@@ -174,6 +174,7 @@ export default function App() {
   const [muted, setMutedState] = useState<boolean>(() => load<boolean>(MUTED_KEY, false));
   const [bigText, setBigTextState] = useState<boolean>(() => isBigText());
   const [muteSchedule, setMuteScheduleState] = useState<MuteSchedule>(() => getMuteSchedule());
+  const [startCorrection, setStartCorrection] = useState<{ id: string; start: string } | null>(null);
   const [carePlan, setCarePlanState] = useState<CarePlan>(() => getCarePlan());
   const [journey, setJourney] = useState<JourneyDocument>(() => getJourney());
   const [tagFilter, setTagFilter] = useState<string | null>(null);
@@ -975,6 +976,8 @@ export default function App() {
 
   const currentElapsed = current && !current.end ? durationSeconds(current, now) : 0;
   const secondsSinceFinish = secondsSinceLastFinish(contractions, now);
+  const hasRecentTiming = secondsSinceFinish !== null && secondsSinceFinish < 3600;
+  const laborView = current !== null || journey.profile.phase === 'labor' || hasRecentTiming;
   const firstStart = finished[0]?.start;
   const totalLogElapsedSec = firstStart
     ? Math.max(0, Math.round((now - new Date(firstStart).getTime()) / 1000))
@@ -1518,16 +1521,23 @@ export default function App() {
                   step="1"
                   value={current.start ? `${String(new Date(current.start).getHours()).padStart(2,'0')}:${String(new Date(current.start).getMinutes()).padStart(2,'0')}:${String(new Date(current.start).getSeconds()).padStart(2,'0')}` : ''}
                   onChange={(e) => {
-                    const parts = e.target.value.split(':');
-                    if (parts.length < 2) return;
-                    const d = new Date(current.start);
-                    d.setHours(Number(parts[0]), Number(parts[1]));
-                    if (parts[2]) d.setSeconds(Number(parts[2]));
-                    setCurrent((c) => c ? { ...c, start: d.toISOString() } : null);
+                    const changed = withClockTime(current, 'start', e.target.value);
+                    if (!changed) { toast.error('Choose a valid start time within the last four hours.'); return; }
+                    setStartCorrection({ id: current.id, start: current.start });
+                    setCurrent({ ...current, start: changed.start });
                   }}
                   className="bg-transparent text-ink-400 border-none outline-none focus:underline focus:text-rose-300 cursor-pointer"
                   aria-label="Edit start time"
                 />
+                <div className="flex flex-wrap justify-center gap-2 mt-2">
+                  {[10, 30, 60].map((seconds) => <button key={seconds} type="button" className="min-h-11 rounded-xl border border-ink-200/30 px-3 text-sm text-ink-200" onClick={() => {
+                    const changed = withStartOffset(current, -seconds);
+                    if (!changed) { toast.error('That adjustment would exceed four hours.'); return; }
+                    setStartCorrection({ id: current.id, start: current.start });
+                    setCurrent({ ...current, start: changed.start });
+                  }}>Started {seconds}s earlier</button>)}
+                  {startCorrection?.id === current.id && <button type="button" className="min-h-11 px-3 text-sm text-sage-300" onClick={() => { setCurrent({ ...current, start: startCorrection.start }); setStartCorrection(null); }}>Undo start adjustment</button>}
+                </div>
                 </details>
               </div>
               <div className="text-[10px] text-sage-300/80 mt-1.5 tracking-wide flex items-center gap-1.5">
@@ -1545,6 +1555,11 @@ export default function App() {
           )}
         </div>
 
+        <nav aria-label="Care access" className="grid grid-cols-2 gap-2 mb-4">
+          {carePlan.providerPhone ? <a href={`tel:${carePlan.providerPhone.replace(/[^+\d]/g, '')}`} className="min-h-11 rounded-xl border border-sage-300/40 px-3 py-3 text-sm text-sage-300 text-center break-words">Call {carePlan.providerName || 'care team'}</a> : <button type="button" onClick={() => setShowSettings(true)} className="min-h-11 rounded-xl border border-ink-200/30 px-3 py-3 text-sm text-ink-200">Set care-team contact</button>}
+          <button type="button" onClick={() => setShowPeople(true)} className="min-h-11 rounded-xl border border-ink-200/30 px-3 py-3 text-sm text-ink-200">Care contacts</button>
+        </nav>
+
         {/* "Since last" hero stat — biggest reading on the page during active
             labor, between contractions. Hidden while a contraction is in
             progress (the in-progress card takes that role) and for the
@@ -1552,7 +1567,7 @@ export default function App() {
         {!current && finished.length > 0 && secondsSinceFinish !== null && (
           <div className="mb-4 rounded-2xl border border-ink-200/30 bg-gradient-to-br from-ink-100/[0.04] to-transparent px-4 py-4 animate-fade-in">
             <div className="flex items-center justify-between">
-              <div className="text-[10px] uppercase tracking-[0.2em] text-ink-400 font-semibold">Since last</div>
+              <div className="text-[10px] uppercase tracking-[0.2em] text-ink-400 font-semibold">{hasRecentTiming ? 'Since last' : 'Last recorded'}</div>
               <div className="flex items-center gap-1">
                 <button
                   onClick={handleReadSummary}
@@ -1586,14 +1601,14 @@ export default function App() {
               </div>
             </div>
             <div className="font-display text-4xl font-light text-ink-50 tabular-nums mt-1 leading-none">
-              {formatDuration(secondsSinceFinish)}
+              {hasRecentTiming ? formatDuration(secondsSinceFinish) : formatRelative(new Date(finished[finished.length - 1].end!), now)}
             </div>
             <div className="text-[10px] text-ink-500 mt-1.5">
               {finished.length === 1
                 ? 'First one recorded. Keep tracking and follow the instructions from your care team.'
                 : `${pluralContraction(finished.length)} logged · started ${formatElapsed(totalLogElapsedSec)} ago`}
             </div>
-            <div className="flex items-center gap-1.5 mt-3 text-[10px] text-ink-500">
+            {hasRecentTiming && <div className="flex items-center gap-1.5 mt-3 text-xs text-ink-300">
               <span>Stopped late?</span>
               {[10, 30].map((sec) => (
                 <button
@@ -1605,18 +1620,22 @@ export default function App() {
                   −{sec}s
                 </button>
               ))}
-            </div>
+            </div>}
           </div>
         )}
+
+        {laborView && finished.length > 0 && <div className="mb-4"><RecentTimingSummary contractions={finished} now={now} /></div>}
 
         {/* Onboarding — 3 inline hint cards for first-time users */}
         {onboardingStep !== null && finished.length === 0 && !current && (
           <Onboarding onDismiss={() => setOnboardingStep(null)} />
         )}
 
-        {!current && (finished.length > 0 || onboardingStep === null) && (
-          <TodayPanel compact={finished.length > 0} journey={journey} onOpen={() => setShowJourney(true)} buttonRef={journeyOpenerRef} />
+        {!current && !laborView && (finished.length > 0 || onboardingStep === null) && (
+          <TodayPanel compact={false} journey={journey} onOpen={() => setShowJourney(true)} buttonRef={journeyOpenerRef} />
         )}
+
+        {!current && laborView && <button type="button" onClick={() => setShowJourney(true)} ref={journeyOpenerRef} aria-label="Open birth journey" className="mb-4 min-h-11 w-full rounded-xl border border-ink-200/30 px-4 text-sm text-ink-200">Care details & preparation</button>}
 
         {/* Care tools remain available between contractions. */}
         {!current && <div className="mb-4 space-y-2">
@@ -1676,7 +1695,7 @@ export default function App() {
         {/* History list */}
         {finished.length > 0 && (
           <div className="mb-4">
-            <RecentTimingSummary contractions={finished} now={now} />
+            {!laborView && <RecentTimingSummary contractions={finished} now={now} />}
             <HistoryHeader
               onReadSummary={handleReadSummary}
               onShare={handleShare}
@@ -1901,7 +1920,7 @@ export default function App() {
         )}
 
         {/* Empty state */}
-        {finished.length === 0 && !current && (
+        {finished.length === 0 && !current && onboardingStep === null && (
           <div className="text-center pt-4 pb-2 animate-fade-in">
             <div
               className="cursor-pointer"

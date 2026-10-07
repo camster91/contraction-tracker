@@ -35,7 +35,7 @@ export default function HistoryHeader({ onReadSummary, onShare, onDownload }: Pr
           className="text-ink-300 active:text-rose-300 active:bg-ink-100/10 min-h-11 px-2.5 py-2 rounded-lg flex items-center gap-1.5 text-xs transition-colors"
         >
           <Download className="w-3.5 h-3.5" />
-          <span>Download</span>
+          <span>Save summary</span>
         </button>
       </div>
     </div>

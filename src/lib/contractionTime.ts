@@ -46,3 +46,10 @@ export function withEndOffset(
   };
   return validateContractionTimes(candidate, now) ? candidate : null;
 }
+
+export function withStartOffset(value: EditableContractionTime, offsetSeconds: number, now = Date.now()): EditableContractionTime | null {
+  const start = Date.parse(value.start);
+  if (!Number.isFinite(start) || !Number.isFinite(offsetSeconds)) return null;
+  const candidate = { ...value, start: new Date(start + offsetSeconds * 1000).toISOString() };
+  return validateContractionTimes(candidate, now) ? candidate : null;
+}

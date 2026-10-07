@@ -1,5 +1,5 @@
 // Settings sheet — bottom overlay with theme, time format, quiet hours, backup, and version
-import { type Dispatch, type SetStateAction } from 'react';
+import { useState, type Dispatch, type SetStateAction } from 'react';
 import { Cog, Moon, Download, Share2, Upload } from 'lucide-react';
 import { type CarePlan, type MuteSchedule, isInQuietHours } from '../lib/settings';
 import { useModalDialog } from '../hooks/useModalDialog';
@@ -40,6 +40,14 @@ export default function SettingsSheet({
   onClose,
 }: SettingsSheetProps) {
   const dialogRef = useModalDialog(onClose);
+  const [reminder, setReminder] = useState(() => ({
+    enabled: carePlan.enabled,
+    interval: carePlan.enabled ? String(carePlan.intervalMinutes) : '',
+    duration: carePlan.enabled ? String(carePlan.durationSeconds) : '',
+    window: carePlan.enabled ? String(carePlan.windowMinutes) : '',
+  }));
+  const [reminderStatus, setReminderStatus] = useState('');
+  const reminderValid = [[reminder.interval, 2, 15], [reminder.duration, 30, 180], [reminder.window, 15, 180]].every(([value, min, max]) => String(value).trim() !== '' && Number.isInteger(Number(value)) && Number(value) >= Number(min) && Number(value) <= Number(max));
   return (
     <>
       <div
@@ -252,40 +260,22 @@ export default function SettingsSheet({
               maxLength={30}
               className="w-full bg-ink-100/5 border border-ink-200/30 rounded-xl px-3 py-2 text-base text-ink-50 placeholder:text-ink-500 focus:outline-none focus:border-rose-300/50"
             />
-            <label className="flex items-center gap-3 py-3">
-              <input type="checkbox" checked={carePlan.enabled}
-                onChange={(event) => onCarePlanChange({ ...carePlan, enabled: event.target.checked })} />
+            <p className="text-sm text-ink-200 mt-3">Enter only instructions your care team gave you. No timing values are recommended by Olive.</p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3">
+              <CarePlanNumberField id="care-plan-interval" label="Contractions every (minutes)" value={reminder.interval} min={2} max={15} onChange={(interval) => { setReminder({ ...reminder, interval }); setReminderStatus(''); }} />
+              <CarePlanNumberField id="care-plan-duration" label="Lasting at least (seconds)" value={reminder.duration} min={30} max={180} onChange={(duration) => { setReminder({ ...reminder, duration }); setReminderStatus(''); }} />
+              <CarePlanNumberField id="care-plan-window" label="For at least (minutes)" value={reminder.window} min={15} max={180} onChange={(window) => { setReminder({ ...reminder, window }); setReminderStatus(''); }} />
+            </div>
+            <label className="flex items-center gap-3 min-h-11 py-3 text-sm text-ink-100">
+              <input type="checkbox" checked={reminder.enabled} onChange={(event) => { setReminder({ ...reminder, enabled: event.target.checked }); setReminderStatus(''); }} />
               Enable my saved care-team timing reminder
             </label>
-            <div className="grid grid-cols-3 gap-2 mt-3">
-              <CarePlanNumberField
-                id="care-plan-interval"
-                label="Contractions every (minutes)"
-                value={carePlan.intervalMinutes}
-                min={2}
-                max={15}
-                onChange={(value) => onCarePlanChange({ ...carePlan, intervalMinutes: value })}
-              />
-              <CarePlanNumberField
-                id="care-plan-duration"
-                label="Lasting at least (seconds)"
-                value={carePlan.durationSeconds}
-                min={30}
-                max={180}
-                onChange={(value) => onCarePlanChange({ ...carePlan, durationSeconds: value })}
-              />
-              <CarePlanNumberField
-                id="care-plan-window"
-                label="For at least (minutes)"
-                value={carePlan.windowMinutes}
-                min={15}
-                max={180}
-                onChange={(value) => onCarePlanChange({ ...carePlan, windowMinutes: value })}
-              />
-            </div>
-            <div className="mt-2 text-[10px] text-sage-300">
-              Every {carePlan.intervalMinutes} min · lasting {carePlan.durationSeconds} sec · for {carePlan.windowMinutes} min
-            </div>
+            <button type="button" disabled={reminder.enabled && !reminderValid} onClick={() => {
+              onCarePlanChange({ ...carePlan, enabled: reminder.enabled, ...(reminderValid ? { intervalMinutes: Number(reminder.interval), durationSeconds: Number(reminder.duration), windowMinutes: Number(reminder.window) } : {}) });
+              setReminderStatus(reminder.enabled ? 'Care-team reminder saved and enabled.' : 'Care-team reminder is off.');
+            }} className="min-h-11 rounded-xl bg-rose-300 px-4 py-2 text-sm font-semibold text-plum-950 disabled:opacity-50">Save reminder</button>
+            {reminder.enabled && !reminderValid && <p className="mt-2 text-sm text-ink-200">Complete all three fields within the listed ranges before enabling.</p>}
+            {reminderStatus && <p role="status" className="mt-2 text-sm text-sage-300">{reminderStatus}</p>}
           </div>
 
           {/* Version */}
@@ -309,14 +299,14 @@ export default function SettingsSheet({
 function CarePlanNumberField({ id, label, value, min, max, onChange }: {
   id: string;
   label: string;
-  value: number;
+  value: string;
   min: number;
   max: number;
-  onChange: (value: number) => void;
+  onChange: (value: string) => void;
 }) {
   return (
     <label htmlFor={id} className="text-xs text-ink-300 leading-tight">
-      <span className="block min-h-9">{label}</span>
+      <span className="block">{label} · {min}–{max}</span>
       <input
         id={id}
         type="number"
@@ -324,7 +314,7 @@ function CarePlanNumberField({ id, label, value, min, max, onChange }: {
         min={min}
         max={max}
         value={value}
-        onChange={(event) => onChange(Number(event.target.value))}
+        onChange={(event) => onChange(event.target.value)}
         className="mt-1 w-full min-h-11 bg-ink-100/5 border border-ink-200/30 rounded-lg px-2 py-2 text-base text-ink-50 focus:outline-none focus:border-rose-300/50"
       />
     </label>

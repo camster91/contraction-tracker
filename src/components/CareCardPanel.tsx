@@ -17,12 +17,14 @@ export default function CareCardPanel({ journey, onChange }: {
     birthAddress: journey.profile.birthAddress ?? '',
     importantNotes: journey.profile.importantNotes ?? '',
   }));
+  const [editing, setEditing] = useState(!Object.values(draft).some(Boolean));
   const [status, setStatus] = useState<string | null>(null);
 
   const save = (event: FormEvent) => {
     event.preventDefault();
     onChange(updateJourneyProfile(journey, draft));
     setStatus('Care card saved on this device');
+    setEditing(!Object.values(draft).some(Boolean));
   };
 
   const copy = async () => {
@@ -35,6 +37,14 @@ export default function CareCardPanel({ journey, onChange }: {
   };
 
   const fieldClass = 'w-full bg-ink-100/5 border border-ink-200/30 rounded-xl px-3 py-2 text-base text-ink-50 placeholder:text-ink-500 focus:outline-none focus:border-rose-300/50';
+
+  if (!editing) return <section className="space-y-4">
+    <h3 className="font-display text-xl text-ink-50">Care card</h3>
+    <p className="text-sm text-ink-300">Your saved details. Review before showing or sharing.</p>
+    <pre className="whitespace-pre-wrap break-words font-sans text-base text-ink-100 rounded-xl border border-ink-200/30 p-4">{buildCareCardSummary(journey)}</pre>
+    <div className="flex gap-3"><button type="button" onClick={() => setEditing(true)} className="min-h-11 rounded-xl border border-ink-200/30 px-4 text-sm text-ink-100">Edit care card</button><button type="button" onClick={copy} className="min-h-11 rounded-xl border border-ink-200/30 px-4 text-sm text-ink-100">Copy care card</button></div>
+    {status && <p role="status" className="text-sm text-sage-300">{status}</p>}
+  </section>;
 
   return (
     <form onSubmit={save} className="space-y-3">

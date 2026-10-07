@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { summarizeRecentContractions } from '../../src/lib/contractions.ts';
+import { summarizeRecentContractions, formatDuration } from '../../src/lib/contractions.ts';
 const now = Date.parse('2026-10-06T14:00:00Z');
 const record = (minutesAgo, seconds = 60) => ({ id: String(minutesAgo), start: new Date(now - minutesAgo * 60000).toISOString(), end: new Date(now - minutesAgo * 60000 + seconds * 1000).toISOString() });
 test('recent timing excludes old, active, future and invalid records and sorts remaining starts', () => {
@@ -12,4 +12,11 @@ test('recent timing excludes old, active, future and invalid records and sorts r
 test('recent timing includes the hour boundary without borrowing spacing from outside it', () => {
   assert.deepEqual(summarizeRecentContractions([record(61), record(60)], now), { count: 1, averageDuration: 60, averageSpacing: null });
   assert.deepEqual(summarizeRecentContractions([], now), { count: 0, averageDuration: null, averageSpacing: null });
+});
+
+test('duration formatting preserves long gaps instead of saturating at ten hours', () => {
+  assert.equal(formatDuration(14 * 3600 + 46 * 60), '14:46:00');
+  assert.equal(formatDuration(3600), '1:00:00');
+  assert.equal(formatDuration(-1), '0:00');
+  assert.equal(formatDuration(NaN), '0:00');
 });

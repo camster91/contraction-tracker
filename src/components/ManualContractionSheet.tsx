@@ -64,6 +64,14 @@ export default function ManualContractionSheet({ onClose, onSave }: Props) {
               <input type="datetime-local" value={endValue} onChange={(event) => { setEndValue(event.target.value); setError(null); }} className="mt-1 min-h-12 w-full rounded-xl border border-ink-200/30 bg-ink-100/5 px-3 text-base text-ink-50" />
             </label>
           </div>
+          <div className="flex flex-wrap gap-2 mt-3">
+            {[0, 1, 5].map((minutes) => <button type="button" key={minutes} className="min-h-11 rounded-xl border border-ink-200/30 px-3 text-sm text-ink-200" onClick={() => {
+              const duration = new Date(endValue).getTime() - new Date(startValue).getTime();
+              if (!Number.isFinite(duration) || duration <= 0 || duration > 4 * 3600_000) { setError(t('manual.invalidTimes')); return; }
+              const end = new Date(Date.now() - minutes * 60_000);
+              setEndValue(toLocalInput(end)); setStartValue(toLocalInput(new Date(end.getTime() - duration))); setError(null);
+            }}>Ended {minutes === 0 ? 'now' : `${minutes} min ago`}</button>)}
+          </div>
           {error && <div role="alert" className="mt-3 rounded-xl border border-red-300/30 bg-red-400/10 px-3 py-2 text-sm text-red-100">{error}</div>}
           <button onClick={handleSave} className="mt-5 min-h-12 w-full rounded-xl bg-rose-300 px-4 text-base font-semibold text-plum-950">{t('manual.save')}</button>
         </div>
