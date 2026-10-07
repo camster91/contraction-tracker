@@ -5,7 +5,6 @@ import {
   Play,
   Plus,
   Trash2,
-  Download,
   AlertTriangle,
   Pencil,
   X,
@@ -15,12 +14,9 @@ import {
   VolumeX,
   Undo2,
   Tag,
-  ClipboardList,
   PictureInPicture2,
   ChevronDown,
-  Users2,
   Cog,
-  Stethoscope,
   Clock,
 } from 'lucide-react';
 import {
@@ -102,13 +98,12 @@ import {
   type Session,
   type Person,
 } from './lib/sessions';
-import { getChecklist, packedCount, type ChecklistItem } from './lib/checklist';
+import { getChecklist, type ChecklistItem } from './lib/checklist';
 import { getExams, type CervicalExam } from './lib/hospital';
 import Onboarding from './components/Onboarding';
 import { BrandWordmark } from './components/Brand';
 import TagFilter from './components/TagFilter';
 import HistoryHeader from './components/HistoryHeader';
-import TodayPanel from './components/TodayPanel';
 import JourneySheet from './components/JourneySheet';
 import {
   getJourney,
@@ -174,8 +169,6 @@ export default function App() {
   const [timingDraft, setTimingDraft] = useState<Contraction | null>(null);
   const [intensityDraft, setIntensityDraft] = useState<string>('');
   const [noteDraft, setNoteDraft] = useState<string>('');
-  const [savedAt, setSavedAt] = useState<Date | null>(null);
-  const [showBackupInfo, setShowBackupInfo] = useState(false);
   const [muted, setMutedState] = useState<boolean>(() => load<boolean>(MUTED_KEY, false));
   const [bigText, setBigTextState] = useState<boolean>(() => isBigText());
   const [muteSchedule, setMuteScheduleState] = useState<MuteSchedule>(() => getMuteSchedule());
@@ -200,8 +193,27 @@ export default function App() {
 
   // Hospital sheet (cervical exams)
   const [showHospital, setShowHospital] = useState(false);
-  const [showMoreTools, setShowMoreTools] = useState(false);
   const [showJourney, setShowJourney] = useState(false);
+  const [journeyInitialView, setJourneyInitialView] = useState<'home' | 'plan'>('home');
+  const [returnToJourney, setReturnToJourney] = useState(false);
+  const journeyReturnFocus = useRef<HTMLElement | null>(null);
+  const openJourney = (view: 'home' | 'plan' = 'home') => {
+    if (!returnToJourney && document.activeElement instanceof HTMLElement) journeyReturnFocus.current = document.activeElement;
+    setJourneyInitialView(view);
+    setShowJourney(true);
+  };
+  const openJourneyTool = (tool: 'checklist' | 'exams' | 'contacts') => {
+    setShowJourney(false);
+    setReturnToJourney(true);
+    if (tool === 'checklist') setShowChecklist(true);
+    if (tool === 'exams') setShowHospital(true);
+    if (tool === 'contacts') setShowPeople(true);
+  };
+  const closeJourneyTool = () => {
+    setShowChecklist(false); setShowHospital(false); setShowPeople(false);
+    if (returnToJourney) openJourney();
+    setReturnToJourney(false);
+  };
 
   // Pain location draft (edit panel)
   const [painLocationsDraft, setPainLocationsDraft] = useState<string[]>([]);
@@ -367,7 +379,6 @@ export default function App() {
           }
           setContractions([...merged.values()].sort((a, b) => a.start.localeCompare(b.start)));
           if (merged.size > local.contractions.length) setDataDamagedToast(true);
-          if (backup.savedAt) setSavedAt(new Date(backup.savedAt));
         }
         const candidate = timer?.current ?? backup?.current;
         if (!load(SESSION_KEY, null) && candidate && !candidate.end &&
@@ -408,9 +419,7 @@ export default function App() {
   useEffect(() => {
     if (!recoveryLoaded) return;
     save(STORAGE_KEY, { contractions, savedAt: new Date().toISOString() });
-    autoBackup(contractions, current).then((ok) => {
-      if (ok) setSavedAt(new Date());
-    });
+    void autoBackup(contractions, current);
     // The broadcast function itself dedupes via the hash LRU (see
     // lib/sync.ts) — no need for an isReceiving() guard at the call
     // site. The old queueMicrotask-based counter was broken (it
@@ -426,9 +435,7 @@ export default function App() {
   useEffect(() => {
     if (!recoveryLoaded) return;
     save(SESSION_KEY, current);
-    autoBackup(contractions, current).then((ok) => {
-      if (ok) setSavedAt(new Date());
-    });
+    void autoBackup(contractions, current);
     broadcastCurrent(current);
   }, [current, contractions, recoveryLoaded]);
 
@@ -1179,12 +1186,6 @@ export default function App() {
           setBigTextState={setBigTextState}
           muteSchedule={muteSchedule}
           setMuteScheduleState={setMuteScheduleState}
-          carePlan={carePlan}
-          onCarePlanChange={(value) => {
-            const normalized = normalizeCarePlan(value);
-            setCarePlanState(normalized);
-            setCarePlan(normalized);
-          }}
           themeVariant={themeVariant}
           setThemeVariant={(v) => {
             setThemeVariant(v);
@@ -1207,13 +1208,23 @@ export default function App() {
       {showJourney && (
         <JourneySheet
           journey={journey}
+          carePlan={carePlan}
+          onCarePlanChange={(value) => {
+            const normalized = normalizeCarePlan(value);
+            setCarePlanState(normalized);
+            setCarePlan(normalized);
+          }}
+          initialView={journeyInitialView}
+          onOpenChecklist={() => openJourneyTool('checklist')}
+          onOpenExams={() => openJourneyTool('exams')}
+          onOpenContacts={() => openJourneyTool('contacts')}
           onJourneyChange={setJourney}
           onPhaseChange={(nextPhase: JourneyPhase) => {
             setJourney((currentJourney) => updateJourneyPhase(currentJourney, nextPhase));
           }}
           onClose={() => {
             setShowJourney(false);
-            requestAnimationFrame(() => journeyOpenerRef.current?.focus());
+            requestAnimationFrame(() => { if (journeyReturnFocus.current?.isConnected) journeyReturnFocus.current.focus(); });
           }}
         />
       )}
@@ -1245,7 +1256,7 @@ export default function App() {
             }}
             aria-hidden="true"
           />
-          <PeopleSheet onClose={() => setShowPeople(false)} finished={finished} />
+          <PeopleSheet onClose={closeJourneyTool} finished={finished} />
         </>
       )}
 
@@ -1260,7 +1271,6 @@ export default function App() {
             event.currentTarget.focus();
             setShowSessions((s) => !s);
             setShowSettings(false);
-            setShowBackupInfo(false);
           }}
           className="min-h-11 flex items-center gap-2 active:opacity-70"
           aria-label="Sessions"
@@ -1295,51 +1305,6 @@ export default function App() {
           {/* Voice is off the labor screen: Web Speech inside Capacitor is unreliable at 3am. */}
         </div>
 
-        {/* Tooltip — drops down from the saved indicator */}
-        {showBackupInfo && (
-          <>
-            <div
-              className="fixed inset-0 z-30"
-              onClick={() => setShowBackupInfo(false)}
-              aria-hidden="true"
-            />
-            <div className="absolute right-5 top-full mt-1 z-40 w-72 rounded-2xl border border-sage-300/30 bg-plum-950/95 backdrop-blur-xl shadow-[0_8px_32px_-8px_rgba(0,0,0,0.6)] px-4 py-3.5 animate-fade-in">
-              <div className="flex items-start gap-2.5 mb-3">
-                <div className="w-7 h-7 rounded-full bg-sage-300/15 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <Shield className="w-3.5 h-3.5 text-sage-300" strokeWidth={2} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-semibold text-ink-50 font-display">
-                    Saved on this phone
-                  </div>
-                  <p className="text-[11px] text-ink-300 mt-1 leading-relaxed">
-                    Every contraction is saved automatically. Even if you
-                    close the app or lose internet, your history stays.
-                  </p>
-                  {savedAt && (
-                    <div className="text-[10px] text-ink-500 mt-2 font-medium">
-                      Last saved {formatRelative(savedAt, now)}
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => { handleExportBackup(); setShowBackupInfo(false); }}
-                  className="flex-1 text-xs bg-sage-300/20 active:bg-sage-300/30 text-sage-300 rounded-lg px-3 py-2 font-medium transition-colors"
-                >
-                  Export backup
-                </button>
-                <button
-                  onClick={() => { fileInputRef.current?.click(); setShowBackupInfo(false); }}
-                  className="flex-1 text-xs bg-ink-100/10 active:bg-ink-100/20 text-ink-300 rounded-lg px-3 py-2 font-medium transition-colors"
-                >
-                  Import backup
-                </button>
-              </div>
-            </div>
-          </>
-        )}
       </header>
 
       {/* 5-1-1 alert */}
@@ -1541,8 +1506,8 @@ export default function App() {
         </div>
 
         <nav aria-label="Care access" className="grid grid-cols-2 gap-2 mb-4">
-          {carePlan.providerPhone ? <a href={`tel:${carePlan.providerPhone.replace(/[^+\d]/g, '')}`} className="min-h-11 rounded-xl border border-sage-300/40 px-3 py-3 text-sm text-sage-300 text-center break-words">Call {carePlan.providerName || 'care team'}</a> : <button type="button" onClick={() => setShowSettings(true)} className="min-h-11 rounded-xl border border-ink-200/30 px-3 py-3 text-sm text-ink-200">Set care-team contact</button>}
-          <button type="button" onClick={() => setShowPeople(true)} className="min-h-11 rounded-xl border border-ink-200/30 px-3 py-3 text-sm text-ink-200">Care contacts</button>
+          {carePlan.providerPhone ? <a href={`tel:${carePlan.providerPhone.replace(/[^+\d]/g, '')}`} className="min-h-11 rounded-xl border border-sage-300/40 px-3 py-3 text-sm text-sage-300 text-center break-words">Call {carePlan.providerName || 'care team'}</a> : <button type="button" onClick={(event) => { event.currentTarget.focus(); openJourney('plan'); }} className="min-h-11 rounded-xl border border-ink-200/30 px-3 py-3 text-sm text-ink-200">Set care-team contact</button>}
+          <button type="button" onClick={(event) => { event.currentTarget.focus(); setShowPeople(true); }} className="min-h-11 rounded-xl border border-ink-200/30 px-3 py-3 text-sm text-ink-200">Care contacts</button>
         </nav>
 
         {/* "Since last" hero stat — biggest reading on the page during active
@@ -1553,37 +1518,6 @@ export default function App() {
           <div className="mb-4 rounded-2xl border border-ink-200/30 bg-gradient-to-br from-ink-100/[0.04] to-transparent px-4 py-4 animate-fade-in">
             <div className="flex items-center justify-between">
               <div className="text-[10px] uppercase tracking-[0.2em] text-ink-400 font-semibold">{hasRecentTiming ? 'Since last' : 'Last recorded'}</div>
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={handleReadSummary}
-                  className="text-ink-300 active:text-rose-300 active:bg-ink-100/10 px-2 py-1 rounded-lg flex items-center gap-1 text-[11px] transition-colors"
-                  title="Read aloud"
-                  aria-label="Read aloud"
-                >
-                  <Volume2 className="w-3.5 h-3.5" />
-                  <span>Read</span>
-                </button>
-                <button
-                  onClick={() => {
-                    // No confirmation prompt — the existing undo toast (see
-                    // handleDelete + the useUndo stack at the bottom of the
-                    // screen) gives the user 5 seconds to tap Undo and
-                    // reverse the action. window.confirm was added in case
-                    // the undo toast failed silently, but the native dialog
-                    // is a worse experience than the toast (blocks the page,
-                    // can't be styled, and on iOS PWAs can be flaky).
-                    const last = finished[finished.length - 1];
-                    if (!last) return;
-                    handleDelete(last.id);
-                  }}
-                  className="text-ink-300 active:text-rose-300 active:bg-ink-100/10 px-2 py-1 rounded-lg flex items-center gap-1 text-[11px] transition-colors"
-                  title="Delete last contraction"
-                  aria-label="Delete last contraction"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  <span>Delete last</span>
-                </button>
-              </div>
             </div>
             <div className="font-display text-4xl font-light text-ink-50 tabular-nums mt-1 leading-none">
               {hasRecentTiming ? formatDuration(secondsSinceFinish) : formatRelative(new Date(finished[finished.length - 1].end!), now)}
@@ -1600,7 +1534,8 @@ export default function App() {
                   key={sec}
                   type="button"
                   onClick={() => shortenLast(sec)}
-                  className="px-2 py-1 rounded-full border border-ink-300/30 text-ink-300"
+                  disabled={!withEndOffset(finished[finished.length - 1], -sec)}
+                  className="px-2 py-1 rounded-full border border-ink-300/30 text-ink-300 disabled:opacity-40"
                 >
                   −{sec}s
                 </button>
@@ -1615,52 +1550,6 @@ export default function App() {
         {onboardingStep !== null && finished.length === 0 && !current && (
           <Onboarding onDismiss={() => setOnboardingStep(null)} />
         )}
-
-        {!current && !laborView && (finished.length > 0 || onboardingStep === null) && (
-          <TodayPanel compact={false} journey={journey} onOpen={() => setShowJourney(true)} buttonRef={journeyOpenerRef} />
-        )}
-
-        {!current && laborView && <button type="button" onClick={() => setShowJourney(true)} ref={journeyOpenerRef} aria-label="Open birth journey" className="mb-4 min-h-11 w-full rounded-xl border border-ink-200/30 px-4 text-sm text-ink-200">Care details & preparation</button>}
-
-        {/* Care tools remain available between contractions. */}
-        {!current && <div className="mb-4 space-y-2">
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => setShowMoreTools((visible) => !visible)}
-              aria-expanded={showMoreTools}
-              aria-controls="olive-more-tools"
-              aria-label={showMoreTools ? 'Hide more tools' : 'More tools'}
-              className="col-span-2 rounded-2xl border border-ink-200/30 bg-ink-100/5 px-4 py-3 flex items-center justify-center gap-2 min-h-11 text-ink-300 active:bg-ink-100/10 transition-colors"
-            >
-              <Plus className={`w-4 h-4 transition-transform ${showMoreTools ? 'rotate-45' : ''}`} />
-              <span className="text-[11px] font-medium">{showMoreTools ? 'Fewer tools' : 'More tools'}</span>
-            </button>
-          </div>
-          {showMoreTools && (
-            <div id="olive-more-tools" className="grid grid-cols-2 gap-2 animate-fade-in">
-              <HospitalBagCard sessionId={activeSessionId} onClick={() => setShowChecklist(true)} />
-              <CervicalExamCard sessionId={activeSessionId} onClick={() => setShowHospital(true)} />
-              <PeopleCard onClick={() => setShowPeople(true)} />
-              <FeatureCard
-                icon={<Plus className="w-4 h-4" />}
-                label="New session"
-                sub="Start fresh"
-                onClick={() => {
-                  setShowSessions(true);
-                }}
-                accent="sage"
-              />
-              <FeatureCard
-                icon={<Download className="w-4 h-4" />}
-                label="Backup"
-                sub="Export & restore"
-                onClick={() => setShowBackupInfo(true)}
-                accent="sage"
-              />
-            </div>
-          )}
-        </div>}
 
         {/* Friends banner — reduced; now handled by carousel */}
         {/* Hospital bag pill — reduced; now handled by carousel */}
@@ -1747,9 +1636,32 @@ export default function App() {
 
                         <div className="flex items-center justify-between">
                           <div className="font-display text-base font-medium">
-                            {formatClock(c.start)} · {formatDuration(dur)}
+                            {formatClock(editable.start)} · {formatDuration(durationSeconds(editable, now))}
                           </div>
                         </div>
+                        {/* Quick-adjust end time — for when you stopped late */}
+                        <div className="flex items-center gap-1.5 text-[10px] text-ink-500">
+                          <span>Stop was late?</span>
+                          {[-5, -10, -15, -30].map((sec) => (
+                            <button
+                              key={sec}
+                              disabled={!withEndOffset(editable, sec)}
+                              onClick={() => {
+                                const target = timingDraft;
+                                if (!target || !target.end) return;
+                                const changed = withEndOffset(target, sec);
+                                if (!changed) { toast.error('That adjustment would create an invalid duration.'); return; }
+                                setTimingDraft({ ...target, ...changed });
+                              }}
+                              className="px-2 py-0.5 rounded-full border border-ink-300/30 text-ink-400 active:bg-rose-300/10 active:text-rose-300 active:border-rose-300/40 transition-colors"
+                            >
+                              {sec}s
+                            </button>
+                          ))}
+                        </div>
+                        <details className="rounded-xl border border-ink-200/20 p-3">
+                          <summary className="min-h-11 cursor-pointer text-sm text-ink-200 flex items-center">Optional details</summary>
+                          <div className="space-y-3 pt-2">
                         <div className="flex items-center gap-3">
                           <label className="text-[11px] uppercase tracking-[0.15em] text-ink-400 font-semibold">
                             Intensity
@@ -1765,31 +1677,13 @@ export default function App() {
                                     : 'bg-ink-100/10 text-ink-300 active:bg-ink-100/20'
                                 }`}
                                 aria-label={`Intensity ${n}`}
+                                aria-pressed={intensityDraft === String(n)}
                                 title={intensityDraft === String(n) ? `${n} of 10 — tap to clear` : `Set intensity to ${n}`}
                               >
                                 {n}
                               </button>
                             ))}
                           </div>
-                        </div>
-                        {/* Quick-adjust end time — for when you stopped late */}
-                        <div className="flex items-center gap-1.5 text-[10px] text-ink-500">
-                          <span>Stop was late?</span>
-                          {[-5, -10, -15, -30].map((sec) => (
-                            <button
-                              key={sec}
-                              onClick={() => {
-                                const target = timingDraft;
-                                if (!target || !target.end) return;
-                                const changed = withEndOffset(target, sec);
-                                if (!changed) { toast.error('That adjustment would create an invalid duration.'); return; }
-                                setTimingDraft({ ...target, ...changed });
-                              }}
-                              className="px-2 py-0.5 rounded-full border border-ink-300/30 text-ink-400 active:bg-rose-300/10 active:text-rose-300 active:border-rose-300/40 transition-colors"
-                            >
-                              {sec}s
-                            </button>
-                          ))}
                         </div>
                         {/* Quick-tag chips — tap to toggle inclusion on this contraction */}
                         <div className="flex flex-wrap gap-1.5">
@@ -1798,6 +1692,7 @@ export default function App() {
                             return (
                               <button
                                 key={t}
+                                aria-pressed={active}
                                 onClick={() =>
                                   setTagsDraft((cur) =>
                                     active ? cur.filter((x) => x !== t) : [...cur, t],
@@ -1834,11 +1729,14 @@ export default function App() {
                         />
                         <input
                           type="text"
+                          aria-label="Note (optional)"
                           placeholder="Note (optional)"
                           value={noteDraft}
                           onChange={(e) => setNoteDraft(e.target.value)}
-                          className="w-full bg-ink-100/5 border border-ink-200/30 rounded-xl px-3 py-2 text-sm text-ink-50 placeholder-ink-400 focus:outline-none focus:border-rose-300/50"
+                          className="w-full bg-ink-100/5 border border-ink-200/30 rounded-xl px-3 py-2 text-base text-ink-50 placeholder-ink-400 focus:outline-none focus:border-rose-300/50"
                         />
+                          </div>
+                        </details>
                         <div className="flex gap-2">
                           <button
                             onClick={handleSaveEdit}
@@ -1909,19 +1807,7 @@ export default function App() {
         {/* Empty state */}
         {finished.length === 0 && !current && onboardingStep === null && (
           <div className="text-center pt-4 pb-2 animate-fade-in">
-            <div
-              className="cursor-pointer"
-              onClick={handleStart}
-              role="button"
-              aria-label="Tap to start a contraction"
-              tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  handleStart();
-                }
-              }}
-            >
+            <div>
               <div className="font-display text-2xl font-light text-ink-200 tracking-tight">
                 When you're ready.
               </div>
@@ -1959,13 +1845,15 @@ export default function App() {
 
 
         {/* Checklist sheet (hospital bag) — opens from the header Briefcase icon */}
+        <button type="button" ref={journeyOpenerRef} onClick={(event) => { event.currentTarget.focus(); openJourney(); }} aria-label="Open birth journey" className="my-4 w-full min-h-11 rounded-xl border border-ink-200/30 px-4 py-3 text-sm text-ink-200">Care details & preparation</button>
+
         {showChecklist && (
-          <ChecklistSheet sessionId={activeSessionId} onClose={() => setShowChecklist(false)} />
+          <ChecklistSheet sessionId={activeSessionId} onClose={closeJourneyTool} />
         )}
 
         {/* Hospital sheet (cervical exams) — opens from the Stethoscope icon */}
         {showHospital && (
-          <HospitalSheet sessionId={activeSessionId} onClose={() => setShowHospital(false)} />
+          <HospitalSheet sessionId={activeSessionId} onClose={closeJourneyTool} />
         )}
 
         {/* View-session modal — read-only view of an ended session */}
@@ -1987,73 +1875,6 @@ export default function App() {
         <ToastHost />
       </main>
     </div>
-  );
-}
-
-// ---- Feature carousel card components ----
-
-function FeatureCard({ icon, label, sub, onClick, accent }: {
-  icon: React.ReactNode; label: string; sub: string;
-  onClick: () => void; accent: 'rose' | 'sage' | 'ink';
-}) {
-  const accentBg = accent === 'rose' ? 'active:bg-rose-300/10 border-rose-300/20' : accent === 'sage' ? 'active:bg-sage-300/10 border-sage-300/20' : 'active:bg-ink-100/10 border-ink-200/30';
-  const accentText = accent === 'rose' ? 'text-rose-300' : accent === 'sage' ? 'text-sage-300' : 'text-ink-300';
-  return (
-    <button
-      onClick={onClick}
-      aria-label={`${label}: ${sub}`}
-      className={`flex-shrink-0 rounded-2xl border bg-ink-100/5 px-4 py-3 flex flex-col items-center gap-1.5 min-w-[100px] active:scale-95 transition-all ${accentBg}`}
-    >
-      <span className={accentText}>{icon}</span>
-      <span className="text-[11px] font-medium text-ink-200">{label}</span>
-      <span className="text-[9px] text-ink-500">{sub}</span>
-    </button>
-  );
-}
-
-function HospitalBagCard({ sessionId, onClick }: { sessionId: string; onClick: () => void }) {
-  const [packed, setPacked] = useState(() => packedCount(getChecklist(sessionId)));
-  const [total, setTotal] = useState(() => getChecklist(sessionId).length);
-  // Re-check on mount and whenever sessionId changes
-  useEffect(() => {
-    const items = getChecklist(sessionId);
-    setTotal(items.length);
-    setPacked(packedCount(items));
-  }, [sessionId]);
-  return (
-    <FeatureCard
-      icon={<ClipboardList className="w-4 h-4" />}
-      label="Hospital bag"
-      sub={`${packed}/${total} packed`}
-      onClick={onClick}
-      accent={packed === total && total > 0 ? 'sage' : 'ink'}
-    />
-  );
-}
-
-function CervicalExamCard({ sessionId, onClick }: { sessionId: string; onClick: () => void }) {
-  const count = useState(() => getExams(sessionId).length)[0];
-  return (
-    <FeatureCard
-      icon={<Stethoscope className="w-4 h-4" />}
-      label="Exams"
-      sub={count > 0 ? `${count} logged` : 'Log exam'}
-      onClick={onClick}
-      accent="ink"
-    />
-  );
-}
-
-function PeopleCard({ onClick }: { onClick: () => void }) {
-  const count = useState(() => getPeople().length)[0];
-  return (
-    <FeatureCard
-      icon={<Users2 className="w-4 h-4" />}
-      label="People"
-      sub={count > 0 ? `${count} contact${count===1?'':'s'}` : 'Add contacts'}
-      onClick={onClick}
-      accent="ink"
-    />
   );
 }
 

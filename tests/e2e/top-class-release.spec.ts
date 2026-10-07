@@ -13,17 +13,17 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('labor screen keeps preparation tools behind one clear disclosure', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
   await waitForApp(page);
 
-  await expect(page.getByRole('button', { name: /More tools/i })).toBeVisible();
-  await expect(page.getByRole('button', { name: /Hospital bag:/i })).toBeHidden();
+  await expect(page.getByRole('button', { name: 'Open birth journey' })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Hospital bag/ })).toBeHidden();
 
-  await page.getByRole('button', { name: /More tools/i }).click();
+  await page.getByRole('button', { name: 'Open birth journey' }).click();
 
-  await expect(page.getByRole('button', { name: /Hospital bag:/i })).toBeVisible();
-  await expect(page.getByRole('button', { name: /Exams:/i })).toBeVisible();
-  await expect(page.getByRole('button', { name: /People:/i })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Hospital bag/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Exams/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Care contacts Your trusted/ })).toBeVisible();
 });
 
 test('frequent contractions are described without diagnosing active labor', async ({ page }) => {
@@ -38,7 +38,7 @@ test('frequent contractions are described without diagnosing active labor', asyn
     localStorage.setItem(key, JSON.stringify({ contractions: records }));
   }, { key: STORAGE_KEY, records: contractions });
 
-  await page.goto('/');
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
   await waitForApp(page);
 
   await expect(page.getByText('Frequent contractions')).toBeVisible();
@@ -69,34 +69,37 @@ test('a sustained saved pattern exposes the user-provided care-team action', asy
     }));
   }, { key: STORAGE_KEY, records: contractions });
 
-  await page.goto('/');
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
   await waitForApp(page);
 
   await expect(page.getByText('Saved care-plan reminder')).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Call North Star Midwives' })).toHaveAttribute('href', 'tel:+14165550142');
+  await expect(page.getByRole('navigation', { name: 'Care access' }).getByRole('link', { name: 'Call North Star Midwives' })).toHaveAttribute('href', 'tel:+14165550142');
   await expect(page.getByText(/This is not a diagnosis/i)).toBeVisible();
 });
 
-test('settings save a provider-specific contraction reminder', async ({ page }) => {
-  await page.goto('/');
+test('journey saves a provider-specific contraction reminder', async ({ page }) => {
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
   await waitForApp(page);
-  await page.getByRole('button', { name: 'Settings' }).click();
+  await page.getByRole('button', { name: 'Set care-team contact' }).click();
 
-  const dialog = page.getByRole('dialog', { name: 'Settings' });
+  const dialog = page.getByRole('dialog', { name: 'Birth journey' });
   await dialog.getByLabel('Care provider or team').fill('North Star Midwives');
   await dialog.getByLabel('Care provider phone').fill('+1 416 555 0142');
   await dialog.getByLabel('Contractions every (minutes)').fill('4');
   await dialog.getByLabel('Lasting at least (seconds)').fill('60');
   await dialog.getByLabel('For at least (minutes)').fill('45');
+  await dialog.getByRole('checkbox', { name: 'Enable my saved care-team timing reminder' }).check();
+  await dialog.getByRole('button', { name: 'Save reminder' }).click();
   await page.keyboard.press('Escape');
 
-  await page.reload();
+  await page.reload({ waitUntil: 'domcontentloaded' });
   await waitForApp(page);
-  await page.getByRole('button', { name: 'Settings' }).click();
+  await page.getByRole('button', { name: 'Open birth journey' }).click();
+  await page.getByRole('button', { name: /Care-team contact & reminder/ }).click();
 
-  await expect(page.getByRole('dialog', { name: 'Settings' }).getByLabel('Care provider or team')).toHaveValue('North Star Midwives');
-  await expect(page.getByRole('dialog', { name: 'Settings' }).getByLabel('Care provider phone')).toHaveValue('+1 416 555 0142');
-  await expect(page.getByRole('dialog', { name: 'Settings' }).getByLabel('Contractions every (minutes)')).toHaveValue('4');
+  await expect(page.getByRole('dialog', { name: 'Birth journey' }).getByLabel('Care provider or team')).toHaveValue('North Star Midwives');
+  await expect(page.getByRole('dialog', { name: 'Birth journey' }).getByLabel('Care provider phone')).toHaveValue('+1 416 555 0142');
+  await expect(page.getByRole('dialog', { name: 'Birth journey' }).getByLabel('Contractions every (minutes)')).toHaveValue('4');
 });
 
 test('care summary shares an objective provider-ready handoff', async ({ page }) => {
@@ -119,7 +122,7 @@ test('care summary shares an objective provider-ready handoff', async ({ page })
     });
   }, { key: STORAGE_KEY, records: contractions });
 
-  await page.goto('/');
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
   await waitForApp(page);
   await page.getByRole('button', { name: /Share care summary/i }).click();
 
@@ -130,7 +133,7 @@ test('care summary shares an objective provider-ready handoff', async ({ page })
 });
 
 test('care tools remain reachable after timing and Stop is a large target', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
   await waitForApp(page);
   await page.getByRole('button', { name: /Start Tap when it begins/i }).click();
   const stop = page.getByRole('button', { name: 'Stop', exact: true });
@@ -141,8 +144,9 @@ test('care tools remain reachable after timing and Stop is a large target', asyn
   await page.getByRole('button', { name: 'Open birth journey' }).click();
   await expect(page.getByRole('dialog', { name: /Birth journey/i })).toBeVisible();
   await page.getByRole('button', { name: /Close birth journey/i }).click();
-  await page.getByRole('button', { name: 'More tools', exact: true }).click();
-  await expect(page.getByRole('button', { name: /Hospital bag:/i })).toBeVisible();
+  await page.getByRole('button', { name: 'Open birth journey', exact: true }).click();
+  await expect(page.getByRole('button', { name: /Hospital bag/ })).toBeVisible();
+  await page.getByRole('button', { name: 'Close birth journey' }).click();
   await expect(page.getByRole('region', { name: 'Recent timing' })).toContainText('1 completed');
 });
 
@@ -157,7 +161,7 @@ test('tag-filtered history keeps actual spacing and honors clock preference', as
     localStorage.setItem('contraction-tracker:v1', JSON.stringify({ contractions: records }));
     localStorage.setItem('contraction-tracker:hour12', '1');
   }, { records });
-  await page.goto('/');
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
   await waitForApp(page);
   await page.getByRole('button', { name: 'pressure (1)', exact: true }).click();
   await expect(page.getByText(/Spacing 5:00/)).toHaveCount(0);

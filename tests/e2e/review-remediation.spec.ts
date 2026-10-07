@@ -146,9 +146,9 @@ test('Stop and sheet Close remain separate reachable targets in landscape', asyn
 test('exam measurements start blank, preserve unknowns and reset for each new exam', async ({ page }, testInfo) => {
   await page.goto('/', { waitUntil: 'domcontentloaded' });
   await waitForApp(page);
-  await page.getByRole('button', { name: 'More tools' }).click();
-  await page.getByRole('button', { name: /Exams:/ }).click();
-  const sheet = page.getByRole('dialog', { name: 'Hospital exams' });
+  await page.getByRole('button', { name: 'Open birth journey' }).click();
+  await page.getByRole('button', { name: /Exams/ }).click();
+  const sheet = page.getByRole('dialog', { name: 'Exams' });
   await sheet.getByRole('button', { name: 'Log exam' }).click();
   await expect(sheet.getByLabel('Dilation (cm)')).toHaveValue('');
   await expect(sheet.getByLabel('Effacement (%)')).toHaveValue('');

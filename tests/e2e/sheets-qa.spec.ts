@@ -13,7 +13,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('hospital bag packing survives reload', async ({ page }) => {
-  await page.getByRole('button', { name: 'More tools' }).click();
+  await page.getByRole('button', { name: 'Open birth journey' }).click();
   await page.getByRole('button', { name: /Hospital bag/ }).click();
   const sheet = page.getByRole('dialog', { name: 'Hospital bag' });
   const pack = sheet.getByRole('button', { name: /^Mark .* as packed$/ }).first();
@@ -22,15 +22,15 @@ test('hospital bag packing survives reload', async ({ page }) => {
   await expect(sheet.getByRole('button', { name, exact: true })).toBeVisible();
   await page.reload({ waitUntil: 'domcontentloaded' });
   await waitForApp(page);
-  await page.getByRole('button', { name: 'More tools' }).click();
+  await page.getByRole('button', { name: 'Open birth journey' }).click();
   await page.getByRole('button', { name: /Hospital bag/ }).click();
   await expect(page.getByRole('button', { name, exact: true })).toBeVisible();
 });
 
 test('hospital exam is saved locally', async ({ page }) => {
-  await page.getByRole('button', { name: 'More tools' }).click();
+  await page.getByRole('button', { name: 'Open birth journey' }).click();
   await page.getByRole('button', { name: /Exams/ }).click();
-  const sheet = page.getByRole('dialog', { name: 'Hospital exams' });
+  const sheet = page.getByRole('dialog', { name: 'Exams' });
   await sheet.getByRole('button', { name: 'Log exam' }).click();
   await sheet.getByLabel('Dilation (cm)').fill('3');
   await sheet.getByRole('button', { name: 'Save exam' }).click();
@@ -38,18 +38,16 @@ test('hospital exam is saved locally', async ({ page }) => {
 });
 
 test('a fabricated contact persists after reload', async ({ page }) => {
-  await page.getByRole('button', { name: 'More tools' }).click();
-  await page.getByRole('button', { name: /People/ }).click();
-  const sheet = page.getByRole('dialog', { name: 'People' });
+  await page.getByRole('button', { name: 'Care contacts', exact: true }).click();
+  const sheet = page.getByRole('dialog', { name: 'Care contacts' });
   await sheet.getByRole('button', { name: 'Add', exact: true }).click();
   await sheet.getByPlaceholder('Name (required)').fill('Example support person');
   await sheet.getByRole('button', { name: 'Add', exact: true }).click();
   await expect(sheet.getByText('Example support person')).toBeVisible();
   await page.reload({ waitUntil: 'domcontentloaded' });
   await waitForApp(page);
-  await page.getByRole('button', { name: 'More tools' }).click();
-  await page.getByRole('button', { name: /People/ }).click();
-  await expect(page.getByRole('dialog', { name: 'People' }).getByText('Example support person')).toBeVisible();
+  await page.getByRole('button', { name: 'Care contacts', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: 'Care contacts' }).getByText('Example support person')).toBeVisible();
 });
 
 test('a new session becomes the active timer session', async ({ page }) => {

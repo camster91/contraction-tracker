@@ -39,15 +39,15 @@ test('mobile viewport permits user zoom', async ({ page }) => {
 test('bottom sheets expose modal semantics and keep keyboard focus inside', async ({ page }) => {
   const sheets: Array<{ button: string | RegExp; dialog: string | RegExp }> = [
     { button: 'Settings', dialog: 'Settings' },
-    { button: 'Hospital bag: 0/12 packed', dialog: 'Hospital bag' },
-    { button: 'Exams: Log exam', dialog: 'Hospital exams' },
-    { button: 'People: Add contacts', dialog: 'People' },
+    { button: /Hospital bag/, dialog: 'Hospital bag' },
+    { button: /Exams/, dialog: 'Exams' },
+    { button: 'Care contacts', dialog: 'Care contacts' },
   ];
 
   for (const sheet of sheets) {
     await resetApp(page);
-    if (/Hospital bag|Exams|People/.test(String(sheet.button))) {
-      await page.getByRole('button', { name: 'More tools' }).click();
+    if (/Hospital bag|Exams/.test(String(sheet.button))) {
+      await page.getByRole('button', { name: 'Open birth journey' }).click();
     }
     await page.getByRole('button', { name: sheet.button, exact: true }).click();
     await expectModalDialog(page, sheet.dialog);
@@ -66,9 +66,9 @@ test('bottom sheets expose modal semantics and keep keyboard focus inside', asyn
   await expectModalDialog(page, /Accessibility QA/);
 });
 
-test('secondary timer control activates with Space', async ({ page }) => {
+test('primary timer control activates with Space', async ({ page }) => {
   await resetApp(page);
-  const start = page.getByRole('button', { name: 'Tap to start a contraction' });
+  const start = page.getByRole('button', { name: /Start Tap when it begins/i });
   await start.focus();
   await page.keyboard.press('Space');
   await expect(page.getByRole('button', { name: /Stop/i })).toBeVisible();

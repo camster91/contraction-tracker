@@ -16,6 +16,7 @@ export default function TagFilter({ knownTags, finishedCount, tagFilter, onSetTa
     <div className="flex flex-wrap gap-1.5 mb-3 ml-1">
       <button
         onClick={() => onSetTagFilter(null)}
+        aria-pressed={tagFilter === null}
         className={`text-[11px] px-2.5 py-1 rounded-full font-medium transition-colors ${
           tagFilter === null
             ? 'bg-rose-300/20 text-rose-200 border border-rose-300/40'
@@ -28,6 +29,7 @@ export default function TagFilter({ knownTags, finishedCount, tagFilter, onSetTa
         <button
           key={tag}
           onClick={() => onSetTagFilter(tagFilter === tag ? null : tag)}
+          aria-pressed={tagFilter === tag}
           className={`text-[11px] px-2.5 py-1 rounded-full font-medium transition-colors flex items-center gap-1 ${
             tagFilter === tag
               ? 'bg-rose-300/20 text-rose-200 border border-rose-300/40'

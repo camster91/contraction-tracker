@@ -28,15 +28,15 @@ Exit evidence: targeted regression checks for each defect; screenshots show Sess
 
 Owner: Codex. Follow the existing control inventory; preserve useful capabilities and local records.
 
-- [ ] Main screen: timer, rest interval, recent summary, care-call/contact access, history, and missed-entry action. Put history ahead of unrelated tools.
-- [ ] Birth journey: care card/provider setup, questions, responsibilities, hospital bag, optional exams, and postpartum logistics.
-- [ ] Sessions: create, switch, end, view, and explicit delete. Remove the duplicate New session tool card.
-- [ ] Settings: appearance, working Big Text, clock/audio/quiet hours, backup export/send/import, privacy/support, and version.
-- [ ] Consolidate duplicate People/contacts, backup, Read, and empty-state Start routes; retain justified quick care access.
-- [ ] Rename Care contacts/People and Exams/Hospital consistently. Make care setup open the relevant fields directly.
-- [ ] Keep optional intensity, tags, pain location, and notes in record details. Add keyboard-operable pain-region controls and selected-state semantics.
+- [x] Main screen: timer, rest interval, recent summary, care-call/contact access, history, and missed-entry action. Put history ahead of unrelated tools.
+- [x] Birth journey: care card/provider setup, questions, responsibilities, hospital bag, optional exams, and postpartum logistics.
+- [x] Sessions: create, switch, end, view, and explicit delete. Remove the duplicate New session tool card.
+- [x] Settings: appearance, working Big Text, clock/audio/quiet hours, backup export/send/import, privacy/support, and version.
+- [x] Consolidate duplicate People/contacts, backup, Read, and empty-state Start routes; retain justified quick care access.
+- [x] Rename Care contacts/People and Exams/Hospital consistently. Make care setup open the relevant fields directly.
+- [x] Keep optional intensity, tags, pain location, and notes in record details. Add keyboard-operable pain-region controls and selected-state semantics.
 - [ ] Keep Close/Back reachable on long sheets and when the keyboard opens. Use persistent field labels and appropriate input sizing.
-- [ ] Provide a touch/keyboard alternative for checklist reorder. Disable impossible end-time corrections.
+- [x] Provide a touch/keyboard alternative for checklist reorder. Disable impossible end-time corrections.
 - [ ] Review reminder labels and spoken copy against the actual configured plan; verify mute/snooze behavior. Preserve user opt-in and clinical-copy review gates.
 - [ ] Audit unmounted charts/photo/voice source and stale tests; remove genuinely unused code only after checking references. Do not surface unused features just to fill space.
 
@@ -98,3 +98,15 @@ New exams start with all measurements not recorded. Save requires an entered mea
 Verification includes scroll/edit/sheet/landscape Stop reachability and non-overlap, single-action count, focus behavior, blank exam defaults, partial measurement persistence and reload, and unit storage/failure/backup checks. Navigation waits in affected browser tests use DOM readiness followed by app assertions rather than a load event that timed out on already-rendered WebKit pages. No assertions were removed or checks disabled.
 
 Remaining: phase 2 navigation/accessibility cleanup, full final-candidate checks, physical-device acceptance and store release. No native upload or publication has been made from these changes.
+
+## Implementation round 3 — October 7, 2026
+
+The timer screen now puts history before the preparation entry. Removed the More tools grid and its duplicate session, backup and contact routes; backup remains in Settings, and session management remains in Sessions. The header shows Sessions, with Primary retained only as the saved current-session name inside the sheet.
+
+Birth journey owns provider contact/reminder setup, hospital bag, exams, contacts and existing journey modules. Set care-team contact opens the provider fields directly. Nested tools return to the journey without stacking modal dialogs; closing restores focus to the original shortcut. Settings now holds preferences, backup, privacy/support and version.
+
+Optional record annotations are collapsed under Optional details. Pain-region buttons support keyboard activation, selected states and at least 44-pixel targets while preserving existing stored identifiers. Intensity and tag selections expose pressed states. Impossible end-time corrections are disabled. Checklist reorder mode offers Up/Down buttons and retains drag for those who prefer it; normal packing is uncluttered.
+
+Settings, contacts and journey headers stay outside their scroll areas. Contact labels remain visible and input text is 16 pixels. Browser reduced-viewport checks do not replace physical-device keyboard/VoiceOver testing.
+
+Remaining phase 2 work: reminder copy and snooze/mute behavior; unused source and stale-test audit; final control-inventory reconciliation. Native keyboard/device acceptance and all candidate/distribution steps remain open. This round is local only.

@@ -7,7 +7,7 @@ test('a startup render failure offers a saved-data export without exposing the e
       { id: 'fake-c1', start: '2026-10-05T12:00:00.000Z', end: '2026-10-05T12:01:00.000Z' },
     ] }));
   });
-  await page.goto('/');
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
   await expect(page.getByRole('heading', { name: 'Olive needs to reload' })).toBeVisible();
   await expect(page.getByText('Recovered 1 saved contractions.')).toBeVisible();
   await expect(page.locator('body')).not.toContainText('invalid-json-private-marker');
@@ -19,8 +19,8 @@ test('a startup render failure offers a saved-data export without exposing the e
 
 test('fresh install requires explicit opt-in before saved timing reminders are enabled', async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('contraction-tracker:onboarding-seen', '1'));
-  await page.goto('/');
-  await page.getByRole('button', { name: /settings/i }).first().click();
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await page.getByRole('button', { name: 'Set care-team contact' }).first().click();
   const reminder = page.getByRole('checkbox', { name: 'Enable my saved care-team timing reminder' });
   await expect(reminder).not.toBeChecked();
   await page.getByRole('spinbutton', { name: /Contractions every/ }).fill('5');
@@ -29,7 +29,7 @@ test('fresh install requires explicit opt-in before saved timing reminders are e
   await reminder.check();
   await page.getByRole('button', { name: 'Save reminder' }).click();
   await expect(page.getByRole('status')).toContainText('saved and enabled');
-  await page.reload();
-  await page.getByRole('button', { name: /settings/i }).first().click();
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await page.getByRole('button', { name: 'Set care-team contact' }).first().click();
   await expect(reminder).toBeChecked();
 });
