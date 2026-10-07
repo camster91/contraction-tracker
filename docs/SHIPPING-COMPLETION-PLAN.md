@@ -46,7 +46,7 @@ Exit evidence: each control has a purpose, one clear home or justified shortcut,
 
 Owner: Codex for host checks and candidate preparation; Cameron/testers for physical-device actions requiring hands-on access.
 
-- [ ] Run lint, TypeScript/build, affected unit checks, and relevant Chromium/WebKit phone flows; resolve failures without disabling checks.
+- [x] Run lint, TypeScript/build, affected unit checks, and relevant Chromium/WebKit phone flows; resolve failures without disabling checks.
 - [ ] Capture fresh Night/Daylight and Big Text screens, active timer, history edit, Sessions, care setup, and long sheets. Check supported smaller screens, landscape, and tablet if offered.
 - [ ] Record exact source revision and web/native artifact hashes; increment native build numbers and synchronize assets for both platforms.
 - [ ] Verify icons, splash, bundled illustrations, listing screenshots, support/privacy URLs, and metadata reflect the final UI. Regenerate screenshots affected by fixes.
@@ -126,3 +126,14 @@ Next: finish the final candidate check matrix and rendered state capture, then m
 Fresh reminder screenshots also exposed a stacked-notice layout problem: fixed notices above the scrolling main area displaced the timer. Moved saved reminders, frequent/stale notices and backup nudges into main content after the timer and care shortcuts. Start/Stop now precede those notices; active Stop remains available while scrolling. Final regression checks explicitly require the primary Start and Stop to be fully in the phone viewport with saved/frequent notices present.
 
 Round 4 verification: npm run verify passed; 16 affected unit checks passed; final 34 Chromium/WebKit cases passed with no skips. Fresh paused-reminder screens were inspected after notice relocation. Xcode 27.0 is installed. System java_home has no registered runtime, but the project scripts' Homebrew JDK 21.0.12 is present and executable, along with Android API 36. This is toolchain availability, not a native build result.
+
+
+## Final host verification and console refresh — October 7, 2026
+
+Source UI is 5001c1aff340ae9591b264055b6a58b2d1f0577c. Full browser matrix: 212 passed, six failed (three stale expectations in each engine); all 24 cases in the affected brand, journey and changelog specs passed after updating assertions. No skipped results. Replaced the external-cache changelog no-op with required current repository listing assertions. All unit checks, offline build check, store metadata and asset format checks passed. iOS structure: 11 passed; Android host unit tests and instrumentation source compilation passed after a disk-space failure and regenerable CocoaPods cache cleanup. These results do not establish physical-device acceptance.
+
+Prepared native build number 8 for the remediation candidate. Current browser screenshot previews are being regenerated for seven supported profiles into the task outputs. Browser-only floating-timer UI can appear in these previews: they must not be represented as native store screenshots. Capture the final native candidate on device before publishing its listing images.
+
+Authenticated console observations: Apple Olive app 6819506377 is Prepare for Submission; existing build 7 is Waiting for Review and predates remediation. Google Ashbi Design account 4743214850621961541 requires identity, organization website and phone verification; Create app is disabled and Olive is not yet created. Cameron was asked to complete those verifications in the open Chrome tab. No new invitations, submissions or uploads occurred in this check.
+
+Next: commit build-8 preparation, make a clean isolated signed iOS candidate with embedded source provenance, verify its payload, then continue the approved upload. Android upload signing configuration remains absent; physical-device and professional clinical-copy review remain explicit open gates.

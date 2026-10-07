@@ -6,6 +6,7 @@
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { chromium } from 'playwright';
+import { expect } from '@playwright/test';
 
 const root = new URL('..', import.meta.url).pathname;
 const profile = process.env.OLIVE_PROFILE || 'iphone67';
@@ -59,7 +60,8 @@ async function freshPage(browser, seed = {}) {
     for (const [k, v] of Object.entries(s)) localStorage.setItem(k, v);
   }, { ...seedBase, ...seed });
   await page.goto(server, { waitUntil: 'domcontentloaded' });
-  await page.waitForTimeout(400);
+  await expect(page.getByRole('heading', { name: 'Olive', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Sessions', exact: true })).toBeVisible();
   await page.evaluate(() => document.fonts.ready);
   await page.waitForTimeout(200);
   return { context, page };
@@ -69,10 +71,10 @@ const browser = await chromium.launch();
 const server = process.env.OLIVE_URL || 'http://127.0.0.1:5173/';
 
 try {
-  // 01 — hero timer (honest fresh install: Start button, today panel)
+  // 01 — hero timer (honest fresh install: Start button and care access)
   {
     const { context, page } = await freshPage(browser);
-    await page.waitForTimeout(600);
+    await expect(page.getByRole('button', { name: /^Start/ })).toBeInViewport({ ratio: 1 });
     await page.screenshot({ path: `${out}01-hero-timer.png` });
     await context.close();
   }
@@ -87,7 +89,7 @@ try {
         intensity: null,
       }),
     });
-    await page.waitForTimeout(1_200);
+    await expect(page.getByRole('button', { name: 'Stop', exact: true })).toBeInViewport({ ratio: 1 });
     await page.screenshot({ path: `${out}02-contraction-active.png` });
     await context.close();
   }
@@ -144,7 +146,9 @@ try {
         ],
       }),
     });
-    await page.waitForTimeout(900);
+    const reminder = page.getByText('Saved care-plan reminder', { exact: true });
+    await expect(reminder).toBeVisible();
+    await reminder.evaluate(element => element.parentElement.parentElement.scrollIntoView({ block: 'start' }));
     await page.screenshot({ path: `${out}05-care-plan-reminder.png` });
     await context.close();
   }

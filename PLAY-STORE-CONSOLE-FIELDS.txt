@@ -35,7 +35,7 @@ Privacy: https://olive.ashbi.ca/privacy/
 
 VERSION / BUILD
 ────────────────────────────────────────────────────────────────────────
-1.3.0 / 6 (confirm unused versionCode before upload)
+1.3.0 / 8 (confirm unused versionCode before upload)
 
 
 APP ICON (512x512)

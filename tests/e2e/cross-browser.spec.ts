@@ -42,7 +42,8 @@ test('cross-browser: main app loads without errors', async ({ page }) => {
   // Main app rendered
   const body = (await page.locator('body').textContent()) || '';
   expect(body.length, 'App should render content').toBeGreaterThan(100);
-  expect(body, 'Brand "Olive" should be visible').toContain('Olive');
+  await expect(page.getByRole('heading', { name: 'Olive', exact: true })).toBeVisible();
+  await expect(page.getByRole('img', { name: 'Olive', exact: true })).toBeVisible();
 
   // No fatal errors
   const fatal = consoleErrors.filter((e) =>

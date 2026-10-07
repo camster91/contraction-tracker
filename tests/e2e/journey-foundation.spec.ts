@@ -30,7 +30,7 @@ test('journey foundation creates a private preparing record', async ({ page }) =
   }))).toBe('preparing');
 });
 
-test('Today panel exposes one calm next action without displacing the timer', async ({ page }) => {
+test('one birth-journey entry follows the timer and opens its preparation tools', async ({ page }) => {
   await page.goto('/');
   await waitForApp(page);
 
@@ -38,13 +38,15 @@ test('Today panel exposes one calm next action without displacing the timer', as
   const journey = page.getByRole('button', { name: /open birth journey/i });
   await expect(start).toBeVisible();
   await expect(journey).toBeVisible();
-  await expect(page.getByText('Prepare for what’s next')).toBeVisible();
+  await expect(journey).toHaveCount(1);
 
   const startBox = await start.boundingBox();
   const journeyBox = await journey.boundingBox();
   expect(startBox).not.toBeNull();
   expect(journeyBox).not.toBeNull();
   expect(startBox!.y).toBeLessThan(journeyBox!.y);
+  await journey.click();
+  await expect(page.getByRole('dialog', { name: 'Birth journey' }).getByText('Prepare for what’s next')).toBeVisible();
 });
 
 test('journey phase changes only after an explicit selection and survives reload', async ({ page }) => {
@@ -61,7 +63,8 @@ test('journey phase changes only after an explicit selection and survives reload
   await waitForApp(page);
   const stored = await page.evaluate(() => JSON.parse(localStorage.getItem('olive:journey:v1') ?? 'null'));
   expect(stored.profile.phase).toBe('postpartum');
-  await expect(page.getByText('Take today gently')).toBeVisible();
+  await page.getByRole('button', { name: /open birth journey/i }).click();
+  await expect(page.getByRole('dialog', { name: 'Birth journey' }).getByText('Take today gently')).toBeVisible();
 });
 
 test('malformed journey storage recovers without changing contraction data', async ({ page }) => {
