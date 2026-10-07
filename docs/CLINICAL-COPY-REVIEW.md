@@ -9,7 +9,7 @@ This reviews wording and interpretation; it is not medical-device certification 
 | Surface | Current source and review focus |
 |---|---|
 | Saved reminder | `src/App.tsx`: Saved care-plan reminder and matching-timing detail. Assess diagnosis, reassurance and travel-direction interpretations. |
-| Opt-in settings | `src/components/SettingsSheet.tsx`, `src/lib/carePlan.ts`: disabled by default. Assess prefilled numbers and individualized instructions. |
+| Opt-in settings | `src/components/CarePlanPanel.tsx`, `src/lib/carePlan.ts`: disabled by default. Assess prefilled numbers and individualized instructions. |
 | Spoken reminder | The care-plan `speak(...)` call in `src/App.tsx`; assess audio without the visual disclaimer. |
 | Objective frequency | `src/components/ActiveLaborBanner.tsx`: Frequent contractions/count in ten minutes. Review wording, color and prominence. |
 | History / summary | Current history/chart and exported summary. Assess clinical interpretation of counts, averages and intervals. |

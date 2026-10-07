@@ -77,7 +77,7 @@ Work in order: recording correctness → placement/accessibility → candidate v
 
 Maintain a short progress record identifying verified work, candidate identity, remaining gate, owner, and resume condition. Mark the goal complete only after the intended release outcomes, or after Cameron explicitly narrows the objective. Do not equate browser QA, local builds, upload processing, or a waiting store review with shipping completion.
 
-Next action: finish phase 2 control placement and accessibility, then recheck the complete app before rebuilding native release candidates.
+Current next action: execute physical-device acceptance on internal TestFlight build 8, finish native listing images and professional copy review, and restore the original Android upload key while Google account verification proceeds. Earlier implementation entries below retain their original next actions as history.
 
 ## Implementation round 1 — October 7, 2026
 
@@ -137,3 +137,14 @@ Prepared native build number 8 for the remediation candidate. Current browser sc
 Authenticated console observations: Apple Olive app 6819506377 is Prepare for Submission; existing build 7 is Waiting for Review and predates remediation. Google Ashbi Design account 4743214850621961541 requires identity, organization website and phone verification; Create app is disabled and Olive is not yet created. Cameron was asked to complete those verifications in the open Chrome tab. No new invitations, submissions or uploads occurred in this check.
 
 Next: commit build-8 preparation, make a clean isolated signed iOS candidate with embedded source provenance, verify its payload, then continue the approved upload. Android upload signing configuration remains absent; physical-device and professional clinical-copy review remain explicit open gates.
+
+
+## Build 8 upload and Android preparation — October 7, 2026
+
+Frozen candidate: 235e91f6ab596a230c0e04115fdb9405a430efd6, 1.3.0 (8). iOS archive/export succeeded using the existing paid distribution certificate and manual App Store profiles. Signature verification, app/extension versions and embedded web payload/source hashes passed. Xcode upload succeeded; App Store Connect upload ID 941bb3ca-cad7-4d08-a68d-88944f4716b9 advanced from Processing to Missing Compliance. Export compliance was saved after checking the app encryption behavior. Build 8 now shows Testing in the existing Olive Internal Testing group, whose sole tester is cameron@ashbi.ca. What to Test instructions were saved. This establishes internal availability, not installation or device acceptance.
+
+Android host tests, bundleRelease and assembleRelease passed. Both unsigned artifacts have the same embedded payload hash as iOS and are retained with SHA-256 evidence. They cannot be submitted without the original upload key. Issue #78 was fetched live and confirms that key/properties are on CAM-DESKTOP; Cameron has been asked to restore them locally. Google account verification remains open. Issue #69 was also fetched live: both independent professional reviews remain required and no accepted records exist.
+
+The isolated iPhone 17/iOS 26.5 Simulator build and native launch succeeded. Sessions, timer, onboarding, care access and safe areas rendered; browser-only floating-timer UI is absent. Saved native-window evidence is supplementary. Device Hub coordinate input returned noWindowsAvailable; accessibility-based screenshot capture still worked, but app interaction checks remain unverified; do not mark any hands-on check passed. No physical phone was connected in devicectl/adb inventory. Booting the Simulator exhausted disk headroom; removed only this candidate's regenerable compiler caches, preserving archive, IPA, Simulator app, source and all evidence.
+
+Next: complete native images and device acceptance on build 8. Apple allows only one build from version 1.3.0 in Beta App Review at a time; build 7 is Waiting for Review, so leave that review intact and resume external build-8 distribution after Apple resolves it. External tester records for both requested Bianca addresses exist, but currently show No Builds Available. Do not resend invitations or claim installation while beta review is pending.

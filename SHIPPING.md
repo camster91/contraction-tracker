@@ -1,8 +1,10 @@
+> October 7 build-8 status: source 235e91f6ab596a230c0e04115fdb9405a430efd6. Signed iOS export verified and Xcode upload succeeded; Apple processing completed, export compliance was saved, and build 8 is Testing in Olive Internal Testing (Cameron only). What to Test instructions were saved. Build 7 remains the pending external beta review; both Bianca tester records currently have No Builds Available. Android AAB/APK built with matching embedded payload/source identity but remains unsigned. Protected original upload key is still required from CAM-DESKTOP. Evidence: task outputs/remediation-build8. Native Simulator launch is supplementary; physical-device acceptance and two professional copy reviews remain open. Older evidence below retains its original source/build identity.
+
 # Olive v1.3.0 release readiness
 
 Updated 2026-10-07. **Build 7 is the botanical rebrand candidate; public store acceptance is still open.**
 
-The current candidate uses version 1.3.0/build 7 and bundle/package ID `com.ashbi.olive`. It is free and native-only. Build 6 was previously signed and uploaded to TestFlight; it is a separate source/artifact and must not be represented as the rebrand. Partner relay sharing, the public web app, memory-book PDF and Baby-is-here modal were removed in PR #77. Preserve the original Android upload key.
+The current remediation candidate uses version 1.3.0/build 8 and bundle/package ID `com.ashbi.olive`. It is free and native-only. Build 6 was previously signed and uploaded to TestFlight; it is a separate source/artifact and must not be represented as the rebrand. Partner relay sharing, the public web app, memory-book PDF and Baby-is-here modal were removed in PR #77. Preserve the original Android upload key.
 
 See [the current release plan](docs/RELEASE-PLAN.md) for the reconciled issue inventory and [the submission checklist](SUBMISSION-CHECKLIST.md) for the remaining steps. Earlier Windows AAB/APK hashes describe earlier source and cannot certify this candidate.
 
