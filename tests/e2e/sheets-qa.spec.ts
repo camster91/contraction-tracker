@@ -8,7 +8,7 @@ test.beforeEach(async ({ page }) => {
     sessionStorage.setItem('sheet-initialized', '1');
     localStorage.setItem('contraction-tracker:onboarding-seen', '1');
   });
-  await page.goto('/');
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
   await waitForApp(page);
 });
 
@@ -20,7 +20,7 @@ test('hospital bag packing survives reload', async ({ page }) => {
   const name = (await pack.getAttribute('aria-label'))!.replace(' as packed', ' as not packed');
   await pack.click();
   await expect(sheet.getByRole('button', { name, exact: true })).toBeVisible();
-  await page.reload();
+  await page.reload({ waitUntil: 'domcontentloaded' });
   await waitForApp(page);
   await page.getByRole('button', { name: 'More tools' }).click();
   await page.getByRole('button', { name: /Hospital bag/ }).click();
@@ -32,6 +32,7 @@ test('hospital exam is saved locally', async ({ page }) => {
   await page.getByRole('button', { name: /Exams/ }).click();
   const sheet = page.getByRole('dialog', { name: 'Hospital exams' });
   await sheet.getByRole('button', { name: 'Log exam' }).click();
+  await sheet.getByLabel('Dilation (cm)').fill('3');
   await sheet.getByRole('button', { name: 'Save exam' }).click();
   await expect.poll(() => page.evaluate(() => Object.keys(localStorage).filter(k => k.startsWith('contraction-tracker:cervical-exams:')).some(k => JSON.parse(localStorage.getItem(k) || '[]').length === 1))).toBe(true);
 });
@@ -44,7 +45,7 @@ test('a fabricated contact persists after reload', async ({ page }) => {
   await sheet.getByPlaceholder('Name (required)').fill('Example support person');
   await sheet.getByRole('button', { name: 'Add', exact: true }).click();
   await expect(sheet.getByText('Example support person')).toBeVisible();
-  await page.reload();
+  await page.reload({ waitUntil: 'domcontentloaded' });
   await waitForApp(page);
   await page.getByRole('button', { name: 'More tools' }).click();
   await page.getByRole('button', { name: /People/ }).click();

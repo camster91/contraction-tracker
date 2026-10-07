@@ -1,11 +1,13 @@
 import { expect, test, type Page } from '@playwright/test';
+import { waitForApp } from './helpers';
 
 async function resetApp(page: Page, seed?: () => void) {
-  await page.goto('/');
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await waitForApp(page);
   await page.evaluate(() => localStorage.clear());
   await page.evaluate(() => localStorage.setItem('contraction-tracker:onboarding-seen', '1'));
   if (seed) await page.evaluate(seed);
-  await page.reload();
+  await page.reload({ waitUntil: 'domcontentloaded' });
   await expect(page.getByRole('heading', { name: 'Olive' })).toBeVisible();
 }
 
@@ -28,7 +30,7 @@ async function expectModalDialog(page: Page, name: string | RegExp) {
 }
 
 test('mobile viewport permits user zoom', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
   const viewport = await page.locator('meta[name="viewport"]').getAttribute('content');
   expect(viewport).not.toMatch(/user-scalable\s*=\s*no/i);
   expect(viewport).not.toMatch(/maximum-scale\s*=\s*1(?:\.0)?(?:,|$)/i);
@@ -73,9 +75,10 @@ test('secondary timer control activates with Space', async ({ page }) => {
 });
 
 test('onboarding step controls have at least 24 by 24 CSS pixel targets', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await waitForApp(page);
   await page.evaluate(() => localStorage.clear());
-  await page.reload();
+  await page.reload({ waitUntil: 'domcontentloaded' });
 
   for (const step of [1, 2]) {
     const box = await page.getByRole('button', { name: `Go to step ${step}` }).boundingBox();

@@ -4,9 +4,9 @@ export type CervicalExam = {
   id: string;
   sessionId: string;
   time: string;        // ISO timestamp
-  dilationCm: number;  // 0–10 in 0.5 increments
-  effacementPct: number; // 0–100
-  station: number;      // -3 to +3
+  dilationCm: number | null;  // 0–10 in 0.5 increments
+  effacementPct: number | null; // 0–100
+  station: number | null;      // -3 to +3
   notes?: string;
 };
 
@@ -45,6 +45,9 @@ export function writeExams(sessionId: string, exams: CervicalExam[]) {
 }
 
 export function addExam(sessionId: string, input: Omit<CervicalExam, 'id' | 'sessionId'>): CervicalExam | null {
+  const valid = (value: number | null, min: number, max: number) => value === null || (Number.isFinite(value) && value >= min && value <= max);
+  if (!valid(input.dilationCm, 0, 10) || !valid(input.effacementPct, 0, 100) || !valid(input.station, -3, 3)) return null;
+  if (input.dilationCm === null && input.effacementPct === null && input.station === null && !input.notes?.trim()) return null;
   const exams = getExams(sessionId);
   const exam: CervicalExam = {
     ...input,

@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Play,
   Plus,
-  Square,
   Trash2,
   Download,
   AlertTriangle,
@@ -84,6 +83,7 @@ import { syncNativeTimerNotification } from './lib/nativeTimer';
 import ManualContractionSheet from './components/ManualContractionSheet';
 import { withClockTime, withEndOffset, withStartOffset } from './lib/contractionTime';
 import SessionsSheet from './components/SessionsSheet';
+import ActiveTimerControl from './components/ActiveTimerControl';
 import PeopleSheet from './components/PeopleSheet';
 import ChecklistSheet from './components/ChecklistSheet';
 import SettingsSheet from './components/SettingsSheet';
@@ -163,7 +163,11 @@ export default function App() {
   const timerButtonRef = useRef<HTMLButtonElement>(null);
   const previousTimer = useRef(current);
   useEffect(() => {
-    if (Boolean(previousTimer.current) !== Boolean(current)) timerButtonRef.current?.focus();
+    if (Boolean(previousTimer.current) !== Boolean(current)) {
+      const dialog = document.querySelector('[role="dialog"][aria-modal="true"]');
+      const dialogAction = dialog?.querySelector<HTMLButtonElement>('button');
+      (dialogAction ?? timerButtonRef.current)?.focus();
+    }
     previousTimer.current = current;
   }, [current]);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -1017,7 +1021,7 @@ export default function App() {
   }, [currentElapsed, current]);
 
   return (
-    <div className="olive-app flex flex-col h-dvh text-ink-50 max-w-md mx-auto w-full">
+    <div data-timer-active={!!current} className="olive-app flex flex-col h-dvh text-ink-50 max-w-md mx-auto w-full">
       {/* Undo toast — fixed to the bottom of the screen so it doesn't push content.
           Auto-dismisses after 5s; user can tap Undo to reverse the last action. */}
       {undo.pending && (
@@ -1470,12 +1474,7 @@ export default function App() {
             </button>
           ) : (
             <div className="w-full">
-              <button ref={timerButtonRef} onClick={handleStop} aria-label="Stop"
-                className="w-full min-h-[200px] rounded-3xl bg-ink-50 text-plum-950 active:scale-[0.99] transition-transform duration-150 flex flex-col items-center justify-center px-6 py-6">
-                <span className="font-display text-6xl font-light tabular-nums leading-none" aria-hidden="true">{formatDuration(currentElapsed)}</span>
-                <span className="flex items-center gap-2 mt-3 text-xl font-semibold"><Square className="w-4 h-4" fill="currentColor" strokeWidth={0} />Stop</span>
-                <span className="text-[10px] uppercase tracking-[0.18em] opacity-70 mt-2">Tap when it passes</span>
-              </button>
+              <ActiveTimerControl elapsed={currentElapsed} onStop={handleStop} buttonRef={timerButtonRef} />
               <div className="flex flex-col items-center mt-3">
               <span role="timer" aria-label={`Elapsed contraction time: ${formatDurationSpoken(currentElapsed)}`} className="sr-only">{formatDuration(currentElapsed)}</span>
               <div className="flex items-center gap-2 mb-3">

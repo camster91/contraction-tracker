@@ -156,3 +156,17 @@ html.big-text {
 input[type='time']::-webkit-calendar-picker-indicator {
   display: none;
 }
+
+/* The active Stop remains above scrolling content and inside any open sheet. */
+.active-timer-dock {
+  top: calc(env(safe-area-inset-top, 0px) + 4.5rem);
+  left: max(1.25rem, calc((100vw - 28rem) / 2 + 1.25rem));
+  right: max(1.25rem, calc((100vw - 28rem) / 2 + 1.25rem));
+}
+.olive-app[data-timer-active='true'] [role='dialog'] {
+  /* Backdrop filters create a containing block for fixed portal children.
+     Keep the standard property last so production CSS retains both forms. */
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  max-height: calc(100dvh - env(safe-area-inset-top, 0px) - 9rem);
+}

@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 import { waitForApp } from './helpers';
 
 test('brand assets are local; appearance persists without changing a running timer', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
   await waitForApp(page);
   await expect(page.getByRole('img', { name: 'Olive', exact: true })).toHaveCount(1);
   for (const file of ['wordmark.png', 'illustration-timing.webp', 'illustration-support.webp', 'illustration-care.webp', 'illustration-records.webp']) {
@@ -21,7 +21,7 @@ test('brand assets are local; appearance persists without changing a running tim
   await page.getByRole('button', { name: 'Daylight', exact: true }).click();
   await page.getByRole('button', { name: 'Close settings' }).click();
   await expect(page.locator('html')).toHaveAttribute('data-appearance', 'day');
-  await page.reload();
+  await page.reload({ waitUntil: 'domcontentloaded' });
   await expect(page.locator('html')).toHaveAttribute('data-appearance', 'day');
   await expect(page.getByRole('button', { name: 'Stop', exact: true })).toBeVisible();
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('contraction-tracker:current')!).start)).toBe(start);
@@ -34,7 +34,7 @@ test('Olive Day timer and settings pass automated accessibility and reflow', asy
     localStorage.setItem('contraction-tracker:theme', 'cool');
     localStorage.setItem('contraction-tracker:onboarding-seen', '1');
   });
-  await page.goto('/');
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
   await waitForApp(page);
   for (const settings of [false, true]) {
     if (settings) await page.getByRole('button', { name: 'Settings', exact: true }).click();

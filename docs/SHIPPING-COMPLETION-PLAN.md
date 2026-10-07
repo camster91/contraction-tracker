@@ -18,9 +18,9 @@ Owner: Codex. Start here; do not begin with more graphics or features.
 - [x] Replace the offscreen session popup with a bounded accessible sheet. Label its opener Sessions, and show the active session inside.
 - [x] Fix Big Text so prominent timer text never shrinks. Check actual enabled mode on idle, active, history, and forms.
 - [x] Make record edits transactional: draft start/end and annotations, Save commits, Cancel restores, Delete remains an explicit separate action with Undo.
-- [ ] Preserve an active timer's wake lock when editing or canceling another record; distinguish recent completion from the record's start time.
-- [ ] Keep Stop reachable during active recording, scrolling, editing, and secondary sheets. Choose one persistent active action rather than conflicting Start/Stop controls.
-- [ ] Initialize exam measurements as not recorded. Save only explicitly entered values; label inputs and selected states accessibly.
+- [x] Remove the cancellation path that releases an active timer's wake lock. Cancel is non-destructive for every record age; physical wake-lock acceptance remains in phase 3.
+- [x] Keep Stop reachable during active recording, scrolling, editing, and secondary sheets. Choose one persistent active action rather than conflicting Start/Stop controls.
+- [x] Initialize exam measurements as not recorded. Save only explicitly entered values; label inputs and selected states accessibly.
 
 Exit evidence: targeted regression checks for each defect; screenshots show Sessions and Stop in the viewport; canceled edits leave saved data unchanged; untouched exam inputs produce no invented measurement records.
 
@@ -77,7 +77,7 @@ Work in order: recording correctness → placement/accessibility → candidate v
 
 Maintain a short progress record identifying verified work, candidate identity, remaining gate, owner, and resume condition. Mark the goal complete only after the intended release outcomes, or after Cameron explicitly narrows the objective. Do not equate browser QA, local builds, upload processing, or a waiting store review with shipping completion.
 
-Next action: implement the Sessions sheet and label fix, then the transactional editor and remaining P1 defects with focused regression checks.
+Next action: finish phase 2 control placement and accessibility, then recheck the complete app before rebuilding native release candidates.
 
 ## Implementation round 1 — October 7, 2026
 
@@ -88,3 +88,13 @@ Timing edits now use an isolated draft; Save commits start/end and annotations, 
 New regression coverage exercises session viewport placement, focus restoration and switching, actual Big Text duration size, and Save/Cancel persistence for recent and older records while another timer runs. These are browser checks; physical-device wake-lock and accessibility acceptance remain open.
 
 Next implementation: keep Stop reachable through scrolling/secondary flows and remove preset examination measurements. Then continue the remaining control-placement and accessibility cleanup. No new native build or store upload has been made from this changed source.
+
+## Implementation round 2 — October 7, 2026
+
+All five review P1 code defects now have local remediation. The active timer has one Stop action: large in the hero, compact while scrolling or in a sheet. Inside a sheet it belongs to the dialog's accessible tree and focus trap. Sheets leave clear space above for Stop, including landscape; active sheets do not apply a backdrop filter that would change fixed positioning. Stopping inside a sheet preserves usable focus.
+
+New exams start with all measurements not recorded. Save requires an entered measurement or note; unknowns stay null, explicitly entered zeroes remain zero, invalid ranges are rejected, and a new exam resets the fields. Older numeric exam records retain their display and storage shape. Exam header now matches the Exams entry; further global label cleanup is in phase 2.
+
+Verification includes scroll/edit/sheet/landscape Stop reachability and non-overlap, single-action count, focus behavior, blank exam defaults, partial measurement persistence and reload, and unit storage/failure/backup checks. Navigation waits in affected browser tests use DOM readiness followed by app assertions rather than a load event that timed out on already-rendered WebKit pages. No assertions were removed or checks disabled.
+
+Remaining: phase 2 navigation/accessibility cleanup, full final-candidate checks, physical-device acceptance and store release. No native upload or publication has been made from these changes.
