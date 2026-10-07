@@ -141,18 +141,6 @@ input, textarea {
 html.big-text {
   font-size: 110%;
 }
-html.big-text .font-display.text-6xl,
-html.big-text .font-display.text-7xl {
-  font-size: 1.5em;
-}
-html.big-text .font-display.text-3xl,
-html.big-text .font-display.text-2xl {
-  font-size: 1.35em;
-}
-html.big-text .font-display.text-xl {
-  font-size: 1.18em;
-}
-
 /* Subtle breathing for the in-progress state */
 @keyframes pulse-live {
   0%, 100% { opacity: 1; }

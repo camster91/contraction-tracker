@@ -167,6 +167,7 @@ export default function App() {
     previousTimer.current = current;
   }, [current]);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [timingDraft, setTimingDraft] = useState<Contraction | null>(null);
   const [intensityDraft, setIntensityDraft] = useState<string>('');
   const [noteDraft, setNoteDraft] = useState<string>('');
   const [savedAt, setSavedAt] = useState<Date | null>(null);
@@ -398,12 +399,6 @@ export default function App() {
       (incoming) => setCurrent(incoming),
     );
   }, []);
-
-  // Active session display name (or "Contractions" as fallback)
-  const activeSessionName = useMemo(
-    () => sessions.find((s) => s.id === activeSessionId)?.name ?? 'Contractions',
-    [sessions, activeSessionId],
-  );
 
   // Save to localStorage + mirror to IndexedDB on every change.
   useEffect(() => {
@@ -679,6 +674,8 @@ export default function App() {
       prev.map((c) => (c.id === editingId
         ? {
             ...c,
+            start: timingDraft?.id === c.id ? timingDraft.start : c.start,
+            end: timingDraft?.id === c.id ? timingDraft.end : c.end,
             intensity,
             note: note || undefined,
             tags: cleanTags.length ? cleanTags : undefined,
@@ -687,35 +684,16 @@ export default function App() {
         : c)),
     );
     setEditingId(null);
+    setTimingDraft(null);
     setIntensityDraft('');
     setNoteDraft('');
     setTagsDraft([]);
     setPainLocationsDraft([]);
   };
-  // Was the entry just-finished (auto-edit panel after Stop) or already-saved?
-  // 2-minute window: the user has a moment to add intensity/note, then it's "saved".
-  const editingContraction = contractions.find((c) => c.id === editingId);
-  const isJustFinished =
-    !!editingContraction && Date.now() - new Date(editingContraction.start).getTime() < 2 * 60 * 1000;
-
   const handleCancelEdit = () => {
-    if (!editingId) return;
-    if (isJustFinished) {
-      // Capture the just-finished entry for undo before discarding
-      const justFinished = contractions.find((c) => c.id === editingId);
-      if (justFinished) {
-        undo.push({
-          kind: 'discard',
-          label: `Discarded contraction (${formatDuration(durationSeconds(justFinished, now))})`,
-          contractions: contractions,
-          current: current,
-        });
-      }
-      setContractions((prev) => prev.filter((c) => c.id !== editingId));
-      // The user discarded the just-finished contraction, so there's no active timer.
-      disableWakeLock();
-    }
+    // Recording is already saved by Stop. Cancel only abandons the edit draft.
     setEditingId(null);
+    setTimingDraft(null);
     setIntensityDraft('');
     setNoteDraft('');
     setTagsDraft([]);
@@ -741,6 +719,7 @@ export default function App() {
     setCurrent(entry.current);
     // Close any open edit panel that referenced a now-restored entry
     setEditingId(null);
+    setTimingDraft(null);
     setIntensityDraft('');
     setNoteDraft('');
     setTagsDraft([]);
@@ -1236,12 +1215,6 @@ export default function App() {
       )}
 
       {showSessions && !showPeople && (
-        <>
-          <div
-            className="fixed inset-0 z-30"
-            onClick={() => setShowSessions(false)}
-            aria-hidden="true"
-          />
           <SessionsSheet
             contractions={contractions}
             activeSessionId={activeSessionId}
@@ -1250,13 +1223,11 @@ export default function App() {
               setShowSessions(false);
             }}
             onClose={() => setShowSessions(false)}
-            onOpenPeople={() => setShowPeople(true)}
             onViewSession={(s) => {
               setViewingSessionId(s.id);
               setShowSessions(false);
             }}
           />
-        </>
       )}
 
       {/* People sheet — closes both sheets when dismissed */}
@@ -1276,21 +1247,26 @@ export default function App() {
 
       {/* Header */}
       <header className="flex-shrink-0 px-5 pt-5 pb-3 flex flex-wrap gap-2 items-center justify-between relative">
+        <div className="flex items-center gap-3">
+        <h1 aria-label="Olive" className="flex items-center"><BrandWordmark /></h1>
         <button
-          onClick={() => {
+          onClick={(event) => {
+            // Safari touch clicks do not focus buttons automatically. Capture a
+            // real opener so the modal can return focus after it closes.
+            event.currentTarget.focus();
             setShowSessions((s) => !s);
             setShowSettings(false);
             setShowBackupInfo(false);
           }}
           className="min-h-11 flex items-center gap-2 active:opacity-70"
           aria-label="Sessions"
+          aria-haspopup="dialog"
+          aria-expanded={showSessions}
         >
-          <h1 aria-label="Olive" className="flex items-center"><BrandWordmark /><span className="sr-only">Olive</span></h1>
-          <ChevronDown className="w-3.5 h-3.5 text-ink-400 mt-0.5" strokeWidth={2} />
-          <span className="text-[10px] uppercase tracking-[0.18em] text-ink-400 font-medium mt-0.5">
-            {activeSessionName}
-          </span>
+          <span className="text-xs text-ink-200 font-medium">Sessions</span>
+          <ChevronDown className="w-3.5 h-3.5 text-ink-400" strokeWidth={2} />
         </button>
+        </div>
         <div className="flex items-center gap-0.5">
           {/* Sound on/off */}
           <button
@@ -1725,6 +1701,7 @@ export default function App() {
                 const chronologicalIndex = finished.findIndex((item) => item.id === c.id);
                 const interval = chronologicalIndex > 0 ? intervalSeconds(finished[chronologicalIndex - 1], c) : null;
                 const isEditing = editingId === c.id;
+                const editable = isEditing && timingDraft?.id === c.id ? timingDraft : c;
                 return (
                   <li
                     key={c.id}
@@ -1739,11 +1716,11 @@ export default function App() {
                               <input
                                 type="time"
                                 step="1"
-                                value={c.start ? `${String(new Date(c.start).getHours()).padStart(2,'0')}:${String(new Date(c.start).getMinutes()).padStart(2,'0')}:${String(new Date(c.start).getSeconds()).padStart(2,'0')}` : ''}
+                                value={editable.start ? `${String(new Date(editable.start).getHours()).padStart(2,'0')}:${String(new Date(editable.start).getMinutes()).padStart(2,'0')}:${String(new Date(editable.start).getSeconds()).padStart(2,'0')}` : ''}
                                 onChange={(e) => {
-                                  const changed = withClockTime(c, 'start', e.target.value);
+                                  const changed = withClockTime(editable, 'start', e.target.value);
                                   if (!changed) { toast.error('Start must be before the end, within four hours, and not in the future.'); return; }
-                                  setContractions((prev) => prev.map((x) => x.id === c.id ? { ...x, ...changed } : x));
+                                  setTimingDraft({ ...editable, ...changed });
                                 }}
                                 className="font-display text-sm font-medium text-ink-50 bg-transparent border-none outline-none focus:underline focus:text-rose-300 w-[6.5rem] pr-0 tabular-nums cursor-pointer"
                                 aria-label="Edit start time"
@@ -1756,11 +1733,11 @@ export default function App() {
                               <input
                                 type="time"
                                 step="1"
-                                value={c.end ? `${String(new Date(c.end).getHours()).padStart(2,'0')}:${String(new Date(c.end).getMinutes()).padStart(2,'0')}:${String(new Date(c.end).getSeconds()).padStart(2,'0')}` : ''}
+                                value={editable.end ? `${String(new Date(editable.end).getHours()).padStart(2,'0')}:${String(new Date(editable.end).getMinutes()).padStart(2,'0')}:${String(new Date(editable.end).getSeconds()).padStart(2,'0')}` : ''}
                                 onChange={(e) => {
-                                  const changed = withClockTime(c, 'end', e.target.value);
+                                  const changed = withClockTime(editable, 'end', e.target.value);
                                   if (!changed) { toast.error('End must be after the start, within four hours, and not in the future.'); return; }
-                                  setContractions((prev) => prev.map((x) => x.id === c.id ? { ...x, ...changed } : x));
+                                  setTimingDraft({ ...editable, ...changed });
                                 }}
                                 className="font-display text-sm font-medium text-ink-300 bg-transparent border-none outline-none focus:underline focus:text-rose-300 w-[6.5rem] pr-0 tabular-nums cursor-pointer"
                                 aria-label="Edit end time"
@@ -1803,11 +1780,11 @@ export default function App() {
                             <button
                               key={sec}
                               onClick={() => {
-                                const target = contractions.find((c) => c.id === editingId);
+                                const target = timingDraft;
                                 if (!target || !target.end) return;
                                 const changed = withEndOffset(target, sec);
                                 if (!changed) { toast.error('That adjustment would create an invalid duration.'); return; }
-                                setContractions((prev) => prev.map((x) => x.id === editingId ? { ...x, ...changed } : x));
+                                setTimingDraft({ ...target, ...changed });
                               }}
                               className="px-2 py-0.5 rounded-full border border-ink-300/30 text-ink-400 active:bg-rose-300/10 active:text-rose-300 active:border-rose-300/40 transition-colors"
                             >
@@ -1876,7 +1853,7 @@ export default function App() {
                             className="flex-1 bg-ink-100/5 border border-ink-200/30 active:bg-ink-100/10 text-ink-200 rounded-xl py-2.5 text-sm font-semibold flex items-center justify-center gap-1.5 transition-colors"
                           >
                             <X className="w-4 h-4" strokeWidth={2.5} />
-                            {isJustFinished ? 'Discard' : 'Cancel'}
+                            Cancel
                           </button>
                         </div>
                       </div>
@@ -1902,6 +1879,7 @@ export default function App() {
                           <button
                             onClick={() => {
                               setEditingId(c.id);
+                              setTimingDraft({ ...c });
                               setIntensityDraft(c.intensity?.toString() ?? '');
                               setNoteDraft(c.note ?? '');
                               setTagsDraft(c.tags ?? []);
