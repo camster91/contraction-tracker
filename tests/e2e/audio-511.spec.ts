@@ -1,79 +1,87 @@
-﻿/**
- * Audio: verify the sound system fires on 5-1-1 trigger.
- *
- * The audio module (src/lib/audio.ts) is fully built with:
- * - chimeAlert(): three soft 440Hz pulses
- * - speak("5-1-1 pattern detected..."): speech synthesis
- * - Mute check, quiet hours bypass (force=true for 5-1-1)
- * - Snooze support (10-min re-fire interval)
- *
- * This test verifies the integration: when the 5-1-1 pattern
- * triggers in the app, audio IS called.
- */
 import { test, expect } from '@playwright/test';
-import * as helpers from './helpers';
+import { waitForApp } from './helpers';
 
-const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:8765/';
-
-test('audio: chimeAlert is called when the sustained saved reminder triggers', async ({ page }) => {
-  await page.goto(BASE_URL, { waitUntil: 'domcontentloaded' });
-  await helpers.waitForApp(page);
-
-  // Patch the audio functions to record calls
-  await page.evaluate(() => {
-    (window as any).__audioCalls = [];
-    // The audio module functions are imported, so we can't patch them
-    // directly. Instead, we check if the 5-1-1 alert renders â€” the
-    // alert rendering triggers chimeAlert() as a side effect in the
-    // useEffect block. If the alert banner is visible, the chime
-    // was fired (modulo snooze/mute conditions).
+test.beforeEach(async ({ page }) => {
+  await page.clock.install({ time: new Date('2026-10-07T12:00:00Z') });
+  await page.addInitScript(() => {
+    const state = window as unknown as { __spoken: string[]; __tones: number };
+    state.__spoken = []; state.__tones = 0;
+    Object.defineProperty(window, 'speechSynthesis', { configurable: true, value: { getVoices: () => [], cancel: () => {}, speak: (utterance: { text: string }) => state.__spoken.push(utterance.text) } });
+    Object.defineProperty(window, 'SpeechSynthesisUtterance', { configurable: true, value: class { text: string; constructor(text: string) { this.text = text; } } });
+    const param = { setValueAtTime: () => {}, linearRampToValueAtTime: () => {}, exponentialRampToValueAtTime: () => {} };
+    Object.defineProperty(window, 'AudioContext', { configurable: true, value: class {
+      state = 'running'; currentTime = 0; destination = {};
+      createBuffer() { return {}; }
+      createBufferSource() { return { connect: () => {}, start: () => {} }; }
+      createOscillator() { return { frequency: param, connect: () => {}, start: () => state.__tones++, stop: () => {} }; }
+      createGain() { return { gain: param, connect: () => {} }; }
+      createBiquadFilter() { return { frequency: {}, connect: () => {} }; }
+    } });
+    if (sessionStorage.getItem('reminder-fixture')) return;
+    sessionStorage.setItem('reminder-fixture', '1');
+    localStorage.clear();
+    localStorage.setItem('contraction-tracker:onboarding-seen', '1');
+    localStorage.setItem('contraction-tracker:care-plan', JSON.stringify({ enabled: true, providerName: 'Example care team', providerPhone: '+1 555 0100', intervalMinutes: 4, durationSeconds: 45, windowMinutes: 60 }));
+    localStorage.setItem('contraction-tracker:v1', JSON.stringify({ contractions: Array.from({ length: 30 }, (_, i) => ({
+      id: `reminder-${i}`, sessionId: 'primary', start: new Date(Date.now() - (59 - i * 2) * 60000).toISOString(), end: new Date(Date.now() - (59 - i * 2) * 60000 + 45000).toISOString(),
+    })) }));
   });
-
-  // Seed a sustained 55-minute pattern. A short cluster must not trigger.
-  await page.evaluate(() => {
-    localStorage.setItem('contraction-tracker:care-plan', JSON.stringify({ enabled: true, intervalMinutes: 5, durationSeconds: 60, windowMinutes: 60 }));
-    const now = Date.now();
-    const contractions = Array.from({ length: 11 }, (_, i) => 55 - i * 5).map((min, i) => ({
-      id: `audio-${i}`,
-      sessionId: 'audio-test',
-      start: new Date(now - min * 60_000).toISOString(),
-      end: new Date(now - min * 60_000 + 60_000).toISOString(),
-      durationMs: 60_000,
-      intensity: 'medium',
-      note: '',
-      tags: [],
-      painLocations: [],
-    }));
-    localStorage.setItem('contraction-tracker:v1', JSON.stringify({ contractions }));
-    localStorage.setItem('olive:onboarded', '1');
-    localStorage.setItem('olive:backup-reminder-dismissed', '1');
-  });
-  await page.reload({ waitUntil: 'domcontentloaded' });
-  await helpers.waitForApp(page);
-  await page.waitForTimeout(3_000);
-
-  // Verify the saved care-plan reminder is visible.
-  const body = (await page.locator('body').textContent()) || '';
-  const hasReminder = /Saved care-plan reminder/i.test(body);
-  expect(hasReminder, 'The sustained reminder banner should be visible â€” if it shows, chimeAlert was called').toBe(true);
-
-  console.log('5-1-1 alert body:', body.substring(0, 300));
 });
 
-test('audio: source code verifies chime imports and calls', async () => {
-  const fs = await import('fs');
-  const path = await import('path');
-  const appPath = path.resolve(process.cwd(), 'src/App.tsx');
-  const audioPath = path.resolve(process.cwd(), 'src/lib/audio.ts');
-  const app = fs.readFileSync(appPath, 'utf-8');
-  const audio = fs.readFileSync(audioPath, 'utf-8');
+const spoken = (page: import('@playwright/test').Page) => page.evaluate(() => (window as unknown as { __spoken: string[] }).__spoken);
 
-  // Verify chimeAlert exists in audio.ts
-  expect(audio).toContain('export function chimeAlert');
-  expect(audio).toContain('playTone(440, 0.25');
-  // Verify App.tsx imports and calls chimeAlert
-  expect(app).toContain('chimeAlert');
-  expect(app).toContain('chimeAlert()');
-  // Verify speak with force=true for 5-1-1
-  expect(app).toContain("force: true");
+test('saved reminder uses exact configured seconds and repeats after ten minutes', async ({ page }) => {
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await waitForApp(page);
+  await expect.poll(() => spoken(page)).toHaveLength(1);
+  await expect(page.getByRole('button', { name: /^Start/ })).toBeInViewport({ ratio: 1 });
+  expect((await spoken(page))[0]).toContain('every 4 minutes, lasting at least 45 seconds, for 60 minutes');
+  await page.clock.fastForward(9 * 60000);
+  expect(await spoken(page)).toHaveLength(1);
+  await page.clock.fastForward(61000);
+  await expect.poll(() => spoken(page)).toHaveLength(2);
+  expect((await spoken(page))[1]).toContain('lasting at least 45 seconds');
+  await expect.poll(() => page.evaluate(() => (window as unknown as { __tones: number }).__tones)).toBeGreaterThanOrEqual(3);
+});
+
+test('pausing sounds persists across reload and retains factual summary and call access', async ({ page }, info) => {
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await waitForApp(page);
+  await page.getByRole('button', { name: 'Pause reminder sounds for 24 hours' }).click();
+  await expect(page.getByRole('status')).toContainText('Reminder sounds paused until');
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await waitForApp(page);
+  await expect(page.getByText('Saved care-plan reminder', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Resume reminder sounds' })).toBeVisible();
+  expect(await spoken(page)).toEqual([]);
+  await expect(page.getByRole('navigation', { name: 'Care access' }).getByRole('link', { name: 'Call Example care team' })).toHaveAttribute('href', 'tel:+15550100');
+  await page.screenshot({ path: `/Users/Cameron/Documents/Codex/2026-10-05/let-s-work-on-the-olive/outputs/remediation-round-4/${info.project.name.includes('webkit') ? 'webkit' : 'chromium'}-paused-reminder.png` });
+  await page.getByRole('button', { name: 'Resume reminder sounds' }).click();
+  await expect.poll(() => spoken(page)).toHaveLength(1);
+});
+
+for (const mode of ['muted', 'quiet hours'] as const) {
+  test(`${mode} suppresses reminder tones and speech while preserving its summary`, async ({ page }) => {
+    await page.addInitScript(mode => {
+      if (mode === 'muted') localStorage.setItem('contraction-tracker:muted', 'true');
+      else localStorage.setItem('contraction-tracker:mute-schedule', JSON.stringify({ enabled: true, startHour: 0, endHour: 23 }));
+    }, mode);
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await waitForApp(page);
+    await expect(page.getByText('Saved care-plan reminder', { exact: true })).toBeVisible();
+    await page.clock.fastForward(1000);
+    expect(await spoken(page)).toEqual([]);
+    expect(await page.evaluate(() => (window as unknown as { __tones: number }).__tones)).toBe(0);
+  });
+}
+
+test('saved and frequent notices leave the primary Stop fully visible', async ({ page }) => {
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await waitForApp(page);
+  await page.getByRole('button', { name: /^Start/ }).click();
+  const stop = page.getByRole('button', { name: 'Stop', exact: true });
+  await expect(stop).toBeInViewport({ ratio: 1 });
+  await expect(stop).toHaveCount(1);
+  await stop.click();
+  await expect(page.getByRole('button', { name: /^Start/ })).toBeInViewport({ ratio: 1 });
 });

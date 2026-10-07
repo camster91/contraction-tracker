@@ -130,7 +130,7 @@ export default function SettingsSheet({
             )}
             {muteSchedule.enabled && isInQuietHours(muteSchedule) && (
               <div className="text-[10px] text-amber-300 mt-2">
-                Quiet hours are active now. Only your saved care-plan reminder will play.
+                Quiet hours are active now. All sounds, including saved care-plan reminders, are quiet.
               </div>
             )}
           </div>

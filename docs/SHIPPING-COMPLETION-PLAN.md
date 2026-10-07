@@ -37,8 +37,8 @@ Owner: Codex. Follow the existing control inventory; preserve useful capabilitie
 - [x] Keep optional intensity, tags, pain location, and notes in record details. Add keyboard-operable pain-region controls and selected-state semantics.
 - [ ] Keep Close/Back reachable on long sheets and when the keyboard opens. Use persistent field labels and appropriate input sizing.
 - [x] Provide a touch/keyboard alternative for checklist reorder. Disable impossible end-time corrections.
-- [ ] Review reminder labels and spoken copy against the actual configured plan; verify mute/snooze behavior. Preserve user opt-in and clinical-copy review gates.
-- [ ] Audit unmounted charts/photo/voice source and stale tests; remove genuinely unused code only after checking references. Do not surface unused features just to fill space.
+- [x] Review reminder labels and spoken copy against the actual configured plan; verify mute/snooze behavior. Preserve user opt-in and clinical-copy review gates.
+- [x] Audit unmounted charts/photo/voice source and stale tests; remove genuinely unused code only after checking references. Do not surface unused features just to fill space.
 
 Exit evidence: each control has a purpose, one clear home or justified shortcut, a usable empty/saved/error state, and accessible semantics. Recheck the inventory against the final rendered app.
 
@@ -110,3 +110,19 @@ Optional record annotations are collapsed under Optional details. Pain-region bu
 Settings, contacts and journey headers stay outside their scroll areas. Contact labels remain visible and input text is 16 pixels. Browser reduced-viewport checks do not replace physical-device keyboard/VoiceOver testing.
 
 Remaining phase 2 work: reminder copy and snooze/mute behavior; unused source and stale-test audit; final control-inventory reconciliation. Native keyboard/device acceptance and all candidate/distribution steps remain open. This round is local only.
+
+## Implementation round 4 — October 7, 2026
+
+Saved reminder speech now uses the actual configured interval, seconds and window on initial and repeated announcements. The app clock supports ten-minute repeats. Mute and quiet hours suppress both speech and tones. A clearly labeled 24-hour sound pause persists across reload, shows its expiry, and can be resumed; factual timing and care-call access remain available. Persistence failures report an error rather than claiming a saved pause.
+
+Removed unmounted FrequencyChart, Timeline, PhotoPicker, VoiceMemoPicker, TodayPanel and speech-recognition module after checking references. Historical tests under legacy remain historical; stored record/photo/voice data fields and backup formats are preserved. Replaced misleading chart/audio source assertions and skipping backup checks with actual recent-summary assertions, recorded speech/tone calls and export/import in a separate fresh browser context. Mocked audio calls do not establish native audibility.
+
+Postpartum phase now puts First 12 weeks first within Birth journey. Floating timer is browser-only, guarded in both UI and handler; native screen-awake wording no longer promises unsupported behavior. Current 48-family placement audit is CONTROL-HOME-AUDIT.csv. Device/keyboard and final candidate checks remain open.
+
+A test launch hit ENOSPC before running. Cleared the regenerable npm download cache under the existing disk-cleanup authorization; source, installed dependencies, release artifacts and unrelated validation files were preserved. Disk availability recovered sufficiently for tests; native-build headroom still needs rechecking.
+
+Next: finish the final candidate check matrix and rendered state capture, then make isolated clean native builds with exact source provenance. Clinical-copy professional review is still recorded as outstanding in CLINICAL-COPY-REVIEW.md; do not claim store acceptance or replace that evidence with automated checks.
+
+Fresh reminder screenshots also exposed a stacked-notice layout problem: fixed notices above the scrolling main area displaced the timer. Moved saved reminders, frequent/stale notices and backup nudges into main content after the timer and care shortcuts. Start/Stop now precede those notices; active Stop remains available while scrolling. Final regression checks explicitly require the primary Start and Stop to be fully in the phone viewport with saved/frequent notices present.
+
+Round 4 verification: npm run verify passed; 16 affected unit checks passed; final 34 Chromium/WebKit cases passed with no skips. Fresh paused-reminder screens were inspected after notice relocation. Xcode 27.0 is installed. System java_home has no registered runtime, but the project scripts' Homebrew JDK 21.0.12 is present and executable, along with Android API 36. This is toolchain availability, not a native build result.

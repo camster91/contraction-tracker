@@ -74,7 +74,6 @@ import {
   type MuteSchedule,
 } from './lib/settings';
 import { useUndo } from './lib/undo';
-import { stopListening } from './lib/voice';
 import { syncNativeTimerNotification } from './lib/nativeTimer';
 import ManualContractionSheet from './components/ManualContractionSheet';
 import { withClockTime, withEndOffset, withStartOffset } from './lib/contractionTime';
@@ -275,7 +274,6 @@ export default function App() {
   });
 
   const undo = useUndo();
-  const alertAnnouncedRef = useRef<number>(0);
   // Separate timestamp for re-alert tracking (10-minute repeat interval)
   const lastAlertAtRef = useRef<number>(0);
   const lastAnnouncedMinuteRef = useRef<number>(0);
@@ -483,7 +481,7 @@ export default function App() {
     // Install the visibility-change re-acquire handler for the wake lock
     installWakeLockVisibilityHandler();
     // Release the wake lock if the page is being torn down
-    return () => { disableWakeLock(); stopListening(); };
+    return () => { disableWakeLock(); };
   }, []);
 
   // Keep the audio module in sync with the muted state
@@ -588,8 +586,9 @@ export default function App() {
   // PiP video element is created in handleEnterPip (kept inline; no need
   // for a ref because the cleanup happens in a useEffect-free closure).
 
+  const canUsePip = !Capacitor.isNativePlatform() && !!document.pictureInPictureEnabled;
   const handleEnterPip = async () => {
-    if (!document.pictureInPictureEnabled) return;
+    if (!canUsePip) return;
     let rafId: number | null = null;
     let video: HTMLVideoElement | null = null;
     const cleanup = () => {
@@ -992,29 +991,29 @@ export default function App() {
   // All tags used anywhere, for the filter chip row
   const knownTags = useMemo(() => allTags(contractions), [contractions]);
 
-  // Snooze state for 5-1-1 reminder: when set, reminders are suppressed until this timestamp
-  const [snoozedUntil, setSnoozedUntil] = useState<number>(0);
-
-  // Voice the 5-1-1 alert once when it transitions from off → on,
-  // and re-fire every 10 minutes while the pattern persists.
-  useEffect(() => {
-    if (!showAlert) return;
-    const nowMs = Date.now();
-    // Snoozed: suppress until snooze expires
-    if (snoozedUntil > nowMs) return;
-    // Re-fire interval: 10 minutes
-    if (nowMs - lastAlertAtRef.current < 10 * 60 * 1000) return;
-    lastAlertAtRef.current = nowMs;
-    chimeAlert();
-    const elapsedMin = lastAlertAtRef.current > 0
-      ? Math.round((nowMs - alertAnnouncedRef.current) / 60_000)
-      : 0;
-    if (elapsedMin > 1) {
-      speak(`5 1 1 still active, ${elapsedMin} minutes since the last alert.`, { force: true });
-    } else {
-      speak(`Your saved ${carePlan.intervalMinutes} ${Math.round(carePlan.durationSeconds / 60)} ${carePlan.windowMinutes} reminder pattern is showing. Follow the plan from your care team.`, { force: true });
+  const [snoozedUntil, setSnoozedUntil] = useState<number>(() => {
+    const stored = load<unknown>('contraction-tracker:reminder-paused-until', 0);
+    return typeof stored === 'number' && Number.isFinite(stored) ? stored : 0;
+  });
+  const remindersPaused = snoozedUntil > now;
+  const pauseReminders = (until: number) => {
+    if (!save('contraction-tracker:reminder-paused-until', until)) {
+      toast.error('Could not save the reminder setting. Free up space and try again.');
+      return;
     }
-  }, [showAlert, snoozedUntil, carePlan]);
+    setSnoozedUntil(until);
+    stopSpeaking();
+  };
+
+  // Use the timer clock so a sustained saved pattern can repeat every ten
+  // minutes. Sound preference, quiet hours and the persisted pause all apply.
+  useEffect(() => {
+    if (!showAlert || remindersPaused || muted || isInQuietHours(muteSchedule, new Date(now))) return;
+    if (lastAlertAtRef.current && now - lastAlertAtRef.current < 10 * 60 * 1000) return;
+    lastAlertAtRef.current = now;
+    chimeAlert();
+    speak(`Your saved timing reminder is showing: every ${carePlan.intervalMinutes} minutes, lasting at least ${carePlan.durationSeconds} seconds, for ${carePlan.windowMinutes} minutes. Follow the plan from your care team.`);
+  }, [showAlert, remindersPaused, muted, muteSchedule, now, carePlan]);
 
   // Periodic "X minutes in" voice readouts while a contraction is running.
   // Only on whole minutes; rate-limited to once per minute.
@@ -1307,120 +1306,7 @@ export default function App() {
 
       </header>
 
-      {/* 5-1-1 alert */}
-      {showAlert && (
-        <div className="flex-shrink-0 mx-5 mb-3 rounded-2xl border border-rose-300/60 bg-rose-300/15 px-4 py-3 flex items-start gap-3 animate-fade-in shadow-[0_4px_24px_-8px_rgba(232,149,122,0.3)]">
-          <div className="w-8 h-8 rounded-full bg-rose-300/15 flex items-center justify-center flex-shrink-0">
-            <AlertTriangle className="w-4 h-4 text-rose-300" strokeWidth={2} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="text-sm font-semibold text-rose-200 font-display">Saved care-plan reminder</div>
-            <div className="text-xs text-ink-300 mt-0.5 leading-relaxed">
-              The timing now matches your saved reminder: every {carePlan.intervalMinutes} minutes, lasting at least {carePlan.durationSeconds} seconds, for {carePlan.windowMinutes} minutes. This is not a diagnosis. Follow the plan from {carePlan.providerName || 'your care team'}.
-            </div>
-            {carePlan.providerPhone && (
-              <a
-                href={`tel:${carePlan.providerPhone.replace(/[^+\d]/g, '')}`}
-                className="mt-2 inline-flex min-h-11 items-center whitespace-nowrap rounded-xl bg-rose-300 px-4 py-2 text-xs font-semibold text-plum-950"
-              >
-                Call {carePlan.providerName || 'care provider'}
-              </a>
-            )}
-            {/* Stop reminding — snooze for 24 hours */}
-            <button
-              onClick={() => setSnoozedUntil(Date.now() + 24 * 60 * 60 * 1000)}
-              className="mt-2 text-xs text-ink-400 hover:text-ink-200 active:text-ink-100 transition-colors"
-            >
-              Stop reminding
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Stale in-progress timer warning.
-          If a current contraction is older than 4 hours, it's almost certainly
-          a forgotten timer from a previous session. Surface a warning + discard
-          option instead of just showing a 4-hour duration on the clock. */}
-      {current && !current.end && Date.now() - new Date(current.start).getTime() > 4 * 60 * 60 * 1000 && (
-        <div className="flex-shrink-0 mx-5 mb-3 rounded-2xl border border-amber-300/40 bg-amber-300/10 px-4 py-3 flex items-start gap-3 animate-fade-in">
-          <div className="w-8 h-8 rounded-full bg-amber-300/15 flex items-center justify-center flex-shrink-0">
-            <AlertTriangle className="w-4 h-4 text-amber-300" strokeWidth={2} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="text-sm font-semibold text-amber-200 font-display">Old timer</div>
-            <div className="text-xs text-ink-300 mt-0.5 leading-relaxed">
-              This contraction started {formatRelative(new Date(current.start), now)}. Did you forget to stop it?
-            </div>
-            <button
-              onClick={() => setCurrent(null)}
-              className="text-xs bg-amber-300/20 active:bg-amber-300/30 text-amber-200 rounded-lg px-3 py-1.5 font-semibold mt-2.5 transition-colors"
-            >
-              Discard timer
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Active labor indicator */}
-      <ActiveLaborBanner contractions={contractions} now={now} />
-
-      {/* Backup reminder banner — soft nudge if no local backup has been
-          exported recently. The "Back up now" CTA triggers the actual
-          file-download backup. Hidden during active timing and while
-          editing a contraction so it doesn't obstruct those flows. */}
-      {showBackupBanner && !current && !editingId && (
-        <div className="flex-shrink-0 mx-5 mb-3 rounded-2xl border border-sage-300/30 bg-sage-300/10 px-4 py-3 animate-fade-in">
-          <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-full bg-sage-300/15 flex items-center justify-center flex-shrink-0">
-              <Shield className="w-4 h-4 text-sage-300" strokeWidth={1.75} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="text-sm font-semibold text-ink-100 font-display">Save a backup</div>
-              <div className="text-xs text-ink-300 mt-0.5 leading-relaxed">
-                Download a .json file with your full contraction history. Keep it somewhere safe.
-              </div>
-            </div>
-            <button
-              onClick={() => {
-                localStorage.setItem(BACKUP_REMINDER_KEY, JSON.stringify(Date.now()));
-                setDismissedBannerAt(Date.now());
-              }}
-              className="p-1 text-ink-400 active:text-ink-200 flex-shrink-0"
-              aria-label="Dismiss backup reminder"
-              title="Dismiss"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-          <div className="flex gap-2 mt-2.5">
-            <button
-              onClick={() => {
-                // Run the real export, then mark the banner as handled so it
-                // doesn't reappear on the next visit. handleExportBackup is
-                // synchronous (it triggers a file download), so the user
-                // sees the file dialog immediately.
-                handleExportBackup();
-                localStorage.setItem(BACKUP_REMINDER_KEY, JSON.stringify(Date.now()));
-                setDismissedBannerAt(Date.now());
-              }}
-              className="flex-1 text-xs font-semibold bg-sage-300/20 active:bg-sage-300/30 text-sage-100 rounded-lg px-3 py-2 transition-colors min-h-[44px]"
-            >
-              Back up now
-            </button>
-            <button
-              onClick={() => {
-                localStorage.setItem(BACKUP_REMINDER_KEY, JSON.stringify(Date.now()));
-                setDismissedBannerAt(Date.now());
-              }}
-              className="text-xs text-ink-400 active:text-ink-200 rounded-lg px-3 py-2 min-h-[44px] border border-ink-200/20"
-            >
-              Not now
-            </button>
-          </div>
-        </div>
-      )}
-
-      <main className="flex-1 overflow-y-auto px-5 pb-8 w-full">
+      <main className="flex-1 min-h-0 overflow-y-auto px-5 pb-8 w-full">
         {/* Hero CTA */}
         <div className="pt-2 pb-6">
           {!current ? (
@@ -1447,7 +1333,7 @@ export default function App() {
                 <div className="text-[10px] uppercase tracking-[0.25em] text-rose-300 font-semibold">
                   <span role="status">In progress</span>
                 </div>
-                {document.pictureInPictureEnabled && !document.pictureInPictureElement && (
+                {canUsePip && !document.pictureInPictureElement && (
                   <button
                     onClick={handleEnterPip}
                     className="ml-1 p-1 rounded text-rose-300/60 active:text-rose-300 active:bg-rose-300/10 transition-colors"
@@ -1457,7 +1343,7 @@ export default function App() {
                     <PictureInPicture2 className="w-4 h-4" strokeWidth={1.75} />
                   </button>
                 )}
-                {document.pictureInPictureElement && (
+                {canUsePip && document.pictureInPictureElement && (
                   <button
                     onClick={handleEnterPip}
                     className="ml-1 p-1 rounded text-rose-300/60 active:text-rose-300 active:bg-rose-300/10 transition-colors"
@@ -1509,6 +1395,119 @@ export default function App() {
           {carePlan.providerPhone ? <a href={`tel:${carePlan.providerPhone.replace(/[^+\d]/g, '')}`} className="min-h-11 rounded-xl border border-sage-300/40 px-3 py-3 text-sm text-sage-300 text-center break-words">Call {carePlan.providerName || 'care team'}</a> : <button type="button" onClick={(event) => { event.currentTarget.focus(); openJourney('plan'); }} className="min-h-11 rounded-xl border border-ink-200/30 px-3 py-3 text-sm text-ink-200">Set care-team contact</button>}
           <button type="button" onClick={(event) => { event.currentTarget.focus(); setShowPeople(true); }} className="min-h-11 rounded-xl border border-ink-200/30 px-3 py-3 text-sm text-ink-200">Care contacts</button>
         </nav>
+
+      {/* User-configured care-plan reminder */}
+      {showAlert && (
+        <div className="flex-shrink-0 mb-3 rounded-2xl border border-rose-300/60 bg-rose-300/15 px-4 py-3 flex items-start gap-3 animate-fade-in shadow-[0_4px_24px_-8px_rgba(232,149,122,0.3)]">
+          <div className="w-8 h-8 rounded-full bg-rose-300/15 flex items-center justify-center flex-shrink-0">
+            <AlertTriangle className="w-4 h-4 text-rose-300" strokeWidth={2} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-semibold text-rose-200 font-display">Saved care-plan reminder</div>
+            <div className="text-xs text-ink-300 mt-0.5 leading-relaxed">
+              The timing now matches your saved reminder: every {carePlan.intervalMinutes} minutes, lasting at least {carePlan.durationSeconds} seconds, for {carePlan.windowMinutes} minutes. This is not a diagnosis. Follow the plan from {carePlan.providerName || 'your care team'}.
+            </div>
+            {carePlan.providerPhone && (
+              <a
+                href={`tel:${carePlan.providerPhone.replace(/[^+\d]/g, '')}`}
+                className="mt-2 inline-flex min-h-11 items-center max-w-full whitespace-normal break-words rounded-xl bg-rose-300 px-4 py-2 text-xs font-semibold text-plum-950"
+              >
+                Call {carePlan.providerName || 'care provider'}
+              </a>
+            )}
+            {remindersPaused && <p role="status" className="mt-2 text-sm text-ink-200">Reminder sounds paused until {new Date(snoozedUntil).toLocaleString()}. The timing summary and care-team call remain available.</p>}
+            <button
+              onClick={() => pauseReminders(remindersPaused ? 0 : Date.now() + 24 * 60 * 60 * 1000)}
+              className="mt-2 min-h-11 px-2 text-sm text-ink-200 active:text-ink-100"
+            >
+              {remindersPaused ? 'Resume reminder sounds' : 'Pause reminder sounds for 24 hours'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Stale in-progress timer warning.
+          If a current contraction is older than 4 hours, it's almost certainly
+          a forgotten timer from a previous session. Surface a warning + discard
+          option instead of just showing a 4-hour duration on the clock. */}
+      {current && !current.end && Date.now() - new Date(current.start).getTime() > 4 * 60 * 60 * 1000 && (
+        <div className="flex-shrink-0 mb-3 rounded-2xl border border-amber-300/40 bg-amber-300/10 px-4 py-3 flex items-start gap-3 animate-fade-in">
+          <div className="w-8 h-8 rounded-full bg-amber-300/15 flex items-center justify-center flex-shrink-0">
+            <AlertTriangle className="w-4 h-4 text-amber-300" strokeWidth={2} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-semibold text-amber-200 font-display">Old timer</div>
+            <div className="text-xs text-ink-300 mt-0.5 leading-relaxed">
+              This contraction started {formatRelative(new Date(current.start), now)}. Did you forget to stop it?
+            </div>
+            <button
+              onClick={() => setCurrent(null)}
+              className="text-xs bg-amber-300/20 active:bg-amber-300/30 text-amber-200 rounded-lg px-3 py-1.5 font-semibold mt-2.5 transition-colors"
+            >
+              Discard timer
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Active labor indicator */}
+      <ActiveLaborBanner contractions={contractions} now={now} />
+
+      {/* Backup reminder banner — soft nudge if no local backup has been
+          exported recently. The "Back up now" CTA triggers the actual
+          file-download backup. Hidden during active timing and while
+          editing a contraction so it doesn't obstruct those flows. */}
+      {showBackupBanner && !current && !editingId && (
+        <div className="flex-shrink-0 mb-3 rounded-2xl border border-sage-300/30 bg-sage-300/10 px-4 py-3 animate-fade-in">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-full bg-sage-300/15 flex items-center justify-center flex-shrink-0">
+              <Shield className="w-4 h-4 text-sage-300" strokeWidth={1.75} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-semibold text-ink-100 font-display">Save a backup</div>
+              <div className="text-xs text-ink-300 mt-0.5 leading-relaxed">
+                Download a .json file with your full contraction history. Keep it somewhere safe.
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                localStorage.setItem(BACKUP_REMINDER_KEY, JSON.stringify(Date.now()));
+                setDismissedBannerAt(Date.now());
+              }}
+              className="p-1 text-ink-400 active:text-ink-200 flex-shrink-0"
+              aria-label="Dismiss backup reminder"
+              title="Dismiss"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="flex gap-2 mt-2.5">
+            <button
+              onClick={() => {
+                // Run the real export, then mark the banner as handled so it
+                // doesn't reappear on the next visit. handleExportBackup is
+                // synchronous (it triggers a file download), so the user
+                // sees the file dialog immediately.
+                handleExportBackup();
+                localStorage.setItem(BACKUP_REMINDER_KEY, JSON.stringify(Date.now()));
+                setDismissedBannerAt(Date.now());
+              }}
+              className="flex-1 text-xs font-semibold bg-sage-300/20 active:bg-sage-300/30 text-sage-100 rounded-lg px-3 py-2 transition-colors min-h-[44px]"
+            >
+              Back up now
+            </button>
+            <button
+              onClick={() => {
+                localStorage.setItem(BACKUP_REMINDER_KEY, JSON.stringify(Date.now()));
+                setDismissedBannerAt(Date.now());
+              }}
+              className="text-xs text-ink-400 active:text-ink-200 rounded-lg px-3 py-2 min-h-[44px] border border-ink-200/20"
+            >
+              Not now
+            </button>
+          </div>
+        </div>
+      )}
 
         {/* "Since last" hero stat — biggest reading on the page during active
             labor, between contractions. Hidden while a contraction is in
@@ -1817,7 +1816,7 @@ export default function App() {
             </div>
             {/* Pre-open the floating timer so it stays visible while using
                 other apps during labor. One tap, then forget about it. */}
-            {document.pictureInPictureEnabled && !document.pictureInPictureElement && (
+            {canUsePip && !document.pictureInPictureElement && (
               <button
                 onClick={handleEnterPip}
                 className="mt-4 inline-flex items-center gap-1.5 text-[11px] text-ink-400 active:text-rose-300 border border-ink-200/20 rounded-full px-3 py-1.5 min-h-[32px] transition-colors"
@@ -1826,12 +1825,12 @@ export default function App() {
                 Open floating timer
               </button>
             )}
-            {!document.pictureInPictureEnabled && (
+            {!canUsePip && (
               <p className="mt-2 text-[10px] text-ink-500 text-center">
-                Keep the app open — your screen won't sleep while timing.
+                While timing, Olive tries to keep the screen awake.
               </p>
             )}
-            {document.pictureInPictureElement && (
+            {canUsePip && document.pictureInPictureElement && (
               <button
                 onClick={handleEnterPip}
                 className="mt-4 inline-flex items-center gap-1.5 text-[11px] text-rose-300 border border-rose-300/30 rounded-full px-3 py-1.5 min-h-[32px] transition-colors"

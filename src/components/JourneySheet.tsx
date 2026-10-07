@@ -72,6 +72,7 @@ export default function JourneySheet({ journey, onJourneyChange, onPhaseChange, 
               </div>
 
               <div className="space-y-2 mb-5">
+                {journey.profile.phase === 'postpartum' && <ModuleButton icon={<Heart className="w-4 h-4" />} title="First 12 weeks" detail={journey.entries.length ? `${journey.entries.length} timeline item${journey.entries.length === 1 ? '' : 's'}` : 'Appointments, notes, and support'} onClick={() => setView('timeline')} />}
                 <ModuleButton icon={<Heart className="w-4 h-4" />} title="Care-team contact & reminder" detail="Your provider and their timing instructions" onClick={() => setView('plan')} />
                 <ModuleButton icon={<Heart className="w-4 h-4" />} title="Care contacts" detail="Your trusted support people" onClick={onOpenContacts} />
                 <ModuleButton icon={<ListChecks className="w-4 h-4" />} title="Hospital bag" detail="Packing checklist" onClick={onOpenChecklist} />
@@ -85,9 +86,9 @@ export default function JourneySheet({ journey, onJourneyChange, onPhaseChange, 
                 <ModuleButton icon={<ListChecks className="w-4 h-4" />} title="Responsibilities"
                   detail={journey.responsibilities.length ? `${journey.responsibilities.filter((item) => !item.completedAt).length} open` : 'Coordinate practical support'}
                   onClick={() => setView('responsibilities')} />
-                <ModuleButton icon={<Heart className="w-4 h-4" />} title="First 12 weeks"
+                {journey.profile.phase !== 'postpartum' && <ModuleButton icon={<Heart className="w-4 h-4" />} title="First 12 weeks"
                   detail={journey.entries.length ? `${journey.entries.length} timeline item${journey.entries.length === 1 ? '' : 's'}` : 'Appointments, notes, and support'}
-                  onClick={() => setView('timeline')} />
+                  onClick={() => setView('timeline')} />}
               </div>
 
               <fieldset>
