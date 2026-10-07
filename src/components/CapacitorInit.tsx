@@ -13,11 +13,11 @@ export function CapacitorInit() {
 
         const platform = Capacitor.getPlatform();
 
-        // Status bar: force dark style (white text on dark background)
+        // Keep status bar contrast consistent with the saved appearance.
         try {
           const { StatusBar, Style } = await import('@capacitor/status-bar');
-          await StatusBar.setStyle({ style: Style.Dark });
-          await StatusBar.setBackgroundColor({ color: '#120c10' });
+          await StatusBar.setStyle({ style: localStorage.getItem('contraction-tracker:theme') === 'cool' ? Style.Light : Style.Dark });
+          if (platform === 'android') await StatusBar.setBackgroundColor({ color: localStorage.getItem('contraction-tracker:theme') === 'cool' ? '#F5F1E7' : '#26382C' });
         } catch { /* status bar plugin may not be installed on web */ }
 
         // Hide the native splash screen after React mounts
@@ -25,21 +25,6 @@ export function CapacitorInit() {
           const { SplashScreen } = await import('@capacitor/splash-screen');
           await SplashScreen.hide();
         } catch { /* splash screen plugin may not be installed on web */ }
-
-        // iOS: begin sending Live Activity updates every second
-        if (platform === 'ios') {
-          // Live Activity widget reads from App Groups UserDefaults.
-          // The shared suite "group.com.ashbi.olive" is configured in the
-          // widget extension's entitlements. This is a one-way write:
-          // the React app posts timer state, the widget reads it.
-          try {
-            await import('@capacitor/core').then(() => {
-              // Future: use a native plugin to write to shared UserDefaults
-              // so the widget picks up the current timer state every second.
-            });
-          } catch { /* live activity not available */ }
-        }
-
       } catch {
         // Browser environment — no native plugins, no-op is fine
       }

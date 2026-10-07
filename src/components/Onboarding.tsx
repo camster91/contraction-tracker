@@ -3,7 +3,7 @@
 // internal step state.
 
 import { useState } from 'react';
-import { Play, Square } from 'lucide-react';
+import { BrandIllustration } from './Brand';
 
 type Props = {
   onDismiss: () => void;
@@ -11,14 +11,14 @@ type Props = {
 
 const STEPS = [
   {
-    icon: Play,
+    illustration: 'timing' as const,
     title: 'Tap the button when a contraction starts',
-    desc: 'Your screen will stay awake so you can see the timer.',
+    desc: 'Tap Start, then Stop when it passes. Timing works offline.',
   },
   {
-    icon: Square,
+    illustration: 'support' as const,
     title: 'Tap again when it passes',
-    desc: 'Mark how strong it felt, or add a note if you want.',
+    desc: 'Your records stay on this device. Add a note or share a summary when you choose.',
   },
 ] as const;
 
@@ -30,14 +30,12 @@ export default function Onboarding({ onDismiss }: Props) {
     onDismiss();
   };
 
-  const Icon = STEPS[step].icon;
+
 
   return (
     <div className="mb-4 rounded-2xl border border-rose-300/30 bg-rose-300/[0.06] px-4 py-3 animate-fade-in">
       <div className="flex items-start gap-3">
-        <div className="w-7 h-7 rounded-full bg-rose-300/20 flex items-center justify-center flex-shrink-0">
-          <Icon className="w-3.5 h-3.5 text-rose-300" style={step === 0 ? { fill: 'currentColor' } : undefined} />
-        </div>
+        <BrandIllustration name={STEPS[step].illustration} className="w-14 h-14" />
         <div className="flex-1 min-w-0">
           <div className="text-sm font-semibold text-ink-100 font-display">
             {STEPS[step].title}
@@ -48,7 +46,7 @@ export default function Onboarding({ onDismiss }: Props) {
         </div>
         <button
           onClick={handleDismiss}
-          className="text-[11px] text-ink-400 active:text-ink-200 px-2 py-1 min-h-[32px]"
+          className="text-[11px] text-ink-400 active:text-ink-200 px-2 py-1 min-h-[44px]"
           aria-label="Dismiss onboarding"
         >
           Not now
@@ -75,14 +73,14 @@ export default function Onboarding({ onDismiss }: Props) {
         {step < 1 ? (
           <button
             onClick={() => setStep((s) => s + 1)}
-            className="text-xs bg-rose-300 active:bg-rose-400 text-plum-950 rounded-lg px-3 py-1.5 font-semibold transition-colors min-h-[32px]"
+            className="text-xs bg-rose-300 active:bg-rose-400 text-plum-950 rounded-lg px-3 py-1.5 font-semibold transition-colors min-h-[44px]"
           >
             Next
           </button>
         ) : (
           <button
             onClick={handleDismiss}
-            className="text-xs bg-rose-300 active:bg-rose-400 text-plum-950 rounded-lg px-3 py-1.5 font-semibold transition-colors min-h-[32px]"
+            className="text-xs bg-rose-300 active:bg-rose-400 text-plum-950 rounded-lg px-3 py-1.5 font-semibold transition-colors min-h-[44px]"
           >
             Got it
           </button>

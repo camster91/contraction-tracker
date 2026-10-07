@@ -17,6 +17,7 @@ import {
 } from '../lib/sessions';
 import { contractionsInSession } from '../lib/sessions';
 import type { Contraction } from '../lib/contractions';
+import { BrandIllustration } from './Brand';
 
 type Props = {
   contractions: Contraction[];
@@ -163,6 +164,11 @@ export default function SessionsSheet({
           </div>
         </div>
       )}
+
+      {contractions.length === 0 && <div className="flex items-center gap-3 mb-3">
+        <BrandIllustration name="records" className="w-14 h-14" />
+        <p className="text-xs text-ink-300 leading-relaxed">Keep each timing session together. Records are saved privately on this device.</p>
+      </div>}
 
       <ul className="space-y-1.5 max-h-80 overflow-y-auto">
         {sessions.map((s) => {

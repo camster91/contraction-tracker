@@ -10,6 +10,7 @@ const iconSource = new URL('../resources/icon.png', import.meta.url);
 
 const asDataUrl = (url, mime) => `data:${mime};base64,${readFileSync(url).toString('base64')}`;
 const icon = asDataUrl(iconSource, 'image/png');
+const wordmark = asDataUrl(new URL('../public/branding/wordmark.png', import.meta.url), 'image/png');
 const fraunces = asDataUrl(new URL('../node_modules/@fontsource/fraunces/files/fraunces-latin-500-normal.woff2', import.meta.url), 'font/woff2');
 const inter = asDataUrl(new URL('../node_modules/@fontsource/inter/files/inter-latin-500-normal.woff2', import.meta.url), 'font/woff2');
 
@@ -17,7 +18,7 @@ const browser = await chromium.launch();
 try {
   const renderIcon = async (size, path) => {
     const page = await browser.newPage({ viewport: { width: size, height: size }, deviceScaleFactor: 1 });
-    await page.setContent(`<!doctype html><html><style>*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#120c10}img{display:block;width:100%;height:100%}</style><body><img src="${icon}" alt=""></body></html>`, { waitUntil: 'load' });
+    await page.setContent(`<!doctype html><html><style>*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#26382C}img{display:block;width:100%;height:100%}</style><body><img src="${icon}" alt=""></body></html>`, { waitUntil: 'load' });
     await page.screenshot({ path });
     await page.close();
   };
@@ -45,17 +46,17 @@ try {
       html, body { margin: 0; width: 1024px; height: 500px; overflow: hidden; }
       body {
         display: flex; align-items: center; justify-content: center; padding: 64px 78px;
-        color: #faf6f4; background:
+        color: #F5F1E7; background:
           radial-gradient(circle at 16% 20%, rgba(232,149,122,.22), transparent 34%),
           radial-gradient(circle at 92% 84%, rgba(168,184,159,.14), transparent 34%),
-          #120c10;
+          #26382C;
       }
       .copy { min-width: 0; width: 100%; text-align: center; }
-      h1 { font: 500 118px/1 Fraunces, Georgia, serif; letter-spacing: -3px; margin: 0 0 24px; }
-      p { font: 500 37px/1.28 Inter, system-ui, sans-serif; color: #e8d9d1; margin: 0 auto; max-width: 760px; }
-      .rule { width: 86px; height: 5px; margin: 34px auto 0; border-radius: 999px; background: #e8957a; }
+      .wordmark { display:block; width:360px; height:144px; margin:0 auto 24px; background:#F5F1E7; mask:url('${wordmark}') center/contain no-repeat; -webkit-mask:url('${wordmark}') center/contain no-repeat; }
+      p { font: 500 37px/1.28 Inter, system-ui, sans-serif; color: #C9C7BB; margin: 0 auto; max-width: 760px; }
+      .rule { width: 86px; height: 5px; margin: 34px auto 0; border-radius: 999px; background: #E8AD8B; }
     </style></head><body>
-      <div class="copy"><h1>Olive</h1><p>Calm, private contraction timing</p><div class="rule"></div></div>
+      <div class="copy"><div class="wordmark" role="img" aria-label="Olive"></div><p>Private timing. Practical support.</p><div class="rule"></div></div>
     </body></html>`, { waitUntil: 'load' });
   await page.screenshot({ path: new URL('../store-assets/play-feature-graphic-1024x500.png', import.meta.url).pathname });
 } finally {

@@ -4,6 +4,7 @@ import { useModalDialog } from '../hooks/useModalDialog';
 import { type JourneyDocument, type JourneyPhase } from '../lib/journey';
 import { journeyMessages } from '../messages/en';
 import CareCardPanel from './CareCardPanel';
+import { BrandIllustration } from './Brand';
 import ProviderQuestionsPanel from './ProviderQuestionsPanel';
 import ResponsibilitiesPanel from './ResponsibilitiesPanel';
 import PostpartumTimelinePanel from './PostpartumTimelinePanel';
@@ -55,6 +56,7 @@ export default function JourneySheet({ journey, onJourneyChange, onPhaseChange, 
           {view === 'home' && (
             <>
               <div className="rounded-2xl border border-sage-300/25 bg-sage-300/10 px-4 py-4 mb-5">
+                <BrandIllustration name={journey.profile.phase === 'postpartum' ? 'support' : 'care'} className="w-20 h-20 float-right ml-3 mb-2" />
                 <div className="text-[10px] uppercase tracking-[0.18em] text-sage-300 font-semibold">{message.eyebrow}</div>
                 <div className="font-display text-xl text-ink-50 mt-1">{message.title}</div>
                 <p className="text-xs text-ink-300 leading-relaxed mt-1.5">{message.detail}</p>

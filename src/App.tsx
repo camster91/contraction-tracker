@@ -11,7 +11,6 @@ import {
   Pencil,
   X,
   Check,
-  Heart,
   Shield,
   Volume2,
   VolumeX,
@@ -106,6 +105,7 @@ import {
 import { getChecklist, packedCount, type ChecklistItem } from './lib/checklist';
 import { getExams, type CervicalExam } from './lib/hospital';
 import Onboarding from './components/Onboarding';
+import { BrandWordmark } from './components/Brand';
 import TagFilter from './components/TagFilter';
 import HistoryHeader from './components/HistoryHeader';
 import TodayPanel from './components/TodayPanel';
@@ -201,10 +201,22 @@ export default function App() {
   // Pain location draft (edit panel)
   const [painLocationsDraft, setPainLocationsDraft] = useState<string[]>([]);
 
-  // Theme variant — 'calm' (default warm rose) or 'cool' (blue/plum)
+  // Preserve existing stored choices; calm is Olive Night, cool is Olive Day.
   const [themeVariant, setThemeVariant] = useState<'calm' | 'cool'>(() => {
     return (localStorage.getItem('contraction-tracker:theme') as 'calm' | 'cool') || 'calm';
   });
+
+  useEffect(() => {
+    const day = themeVariant === 'cool';
+    document.documentElement.dataset.appearance = day ? 'day' : 'night';
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', day ? '#F5F1E7' : '#26382C');
+    if (Capacitor.isNativePlatform()) {
+      void import('@capacitor/status-bar').then(async ({ StatusBar, Style }) => {
+        await StatusBar.setStyle({ style: day ? Style.Light : Style.Dark });
+        if (Capacitor.getPlatform() === 'android') await StatusBar.setBackgroundColor({ color: day ? '#F5F1E7' : '#26382C' });
+      }).catch(() => { /* In-app controls remain available without the status bar plugin. */ });
+    }
+  }, [themeVariant]);
 
   // 12-hour time format toggle. Defaults to 24h.
   const [hour12, setHour12] = useState<boolean>(() => isHour12Preferred());
@@ -602,10 +614,10 @@ export default function App() {
         const inProgress = current && !current.end;
         const carePlanMatch = isCarePlanPattern(contractions, carePlan, Date.now());
         // Background — amber when the saved reminder matches, otherwise dark plum
-        ctx.fillStyle = carePlanMatch ? '#3a2410' : '#120c10';
+        ctx.fillStyle = carePlanMatch ? '#3a2410' : '#26382C';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         // Top status row
-        ctx.fillStyle = carePlanMatch ? '#fbbf24' : '#e8957a';
+        ctx.fillStyle = carePlanMatch ? '#fbbf24' : '#E8AD8B';
         ctx.font = '500 14px Inter, system-ui, sans-serif';
         ctx.textAlign = 'left';
         ctx.fillText(
@@ -613,7 +625,7 @@ export default function App() {
           20, 28,
         );
         // Big number — different per state
-        ctx.fillStyle = carePlanMatch ? '#fef3c7' : '#faf6f4';
+        ctx.fillStyle = carePlanMatch ? '#fef3c7' : '#F5F1E7';
         ctx.font = '64px Fraunces, Georgia, serif';
         ctx.textAlign = 'center';
         let bigText = '0:00';
@@ -628,7 +640,7 @@ export default function App() {
         if (!inProgress && !carePlanMatch) {
           const finished = contractions.filter((c) => c.end);
           if (finished.length > 0) {
-            ctx.fillStyle = '#8a6f64';
+            ctx.fillStyle = '#B8C5A2';
             ctx.font = '500 11px Inter, system-ui, sans-serif';
             ctx.textAlign = 'center';
             ctx.fillText(`${finished.length} contraction${finished.length === 1 ? '' : 's'} so far`, canvas.width / 2, 105);
@@ -1026,7 +1038,7 @@ export default function App() {
   }, [currentElapsed, current]);
 
   return (
-    <div className="flex flex-col h-dvh text-ink-50 max-w-md mx-auto w-full">
+    <div className="olive-app flex flex-col h-dvh text-ink-50 max-w-md mx-auto w-full">
       {/* Undo toast — fixed to the bottom of the screen so it doesn't push content.
           Auto-dismisses after 5s; user can tap Undo to reverse the last action. */}
       {undo.pending && (
@@ -1273,8 +1285,7 @@ export default function App() {
           className="min-h-11 flex items-center gap-2 active:opacity-70"
           aria-label="Sessions"
         >
-          <Heart className="w-5 h-5 text-rose-300 fill-rose-300/20" strokeWidth={1.5} />
-          <h1 className="font-display text-xl font-medium tracking-tight text-ink-50">Olive</h1>
+          <h1 aria-label="Olive" className="flex items-center"><BrandWordmark /><span className="sr-only">Olive</span></h1>
           <ChevronDown className="w-3.5 h-3.5 text-ink-400 mt-0.5" strokeWidth={2} />
           <span className="text-[10px] uppercase tracking-[0.18em] text-ink-400 font-medium mt-0.5">
             {activeSessionName}
@@ -1471,7 +1482,7 @@ export default function App() {
             <button
               ref={timerButtonRef}
               onClick={handleStart}
-              className="w-full min-h-[180px] rounded-3xl bg-gradient-to-br from-rose-300 via-rose-400 to-rose-500 text-plum-950 active:scale-[0.99] transition-transform duration-150 flex flex-col items-center justify-center px-6 py-8"
+              className="w-full min-h-[200px] rounded-3xl bg-gradient-to-br from-rose-300 via-rose-400 to-rose-500 text-plum-950 active:scale-[0.99] transition-transform duration-150 flex flex-col items-center justify-center px-6 py-8"
             >
               <div className="w-14 h-14 rounded-full bg-plum-950/10 backdrop-blur-sm flex items-center justify-center mb-3">
                 <Play className="w-6 h-6" fill="currentColor" strokeWidth={0} />
@@ -1482,7 +1493,15 @@ export default function App() {
               </div>
             </button>
           ) : (
-            <div className="w-full min-h-[180px] rounded-3xl border border-rose-300/40 bg-gradient-to-br from-rose-300/10 to-transparent px-6 py-8 flex flex-col items-center justify-center animate-fade-in">
+            <div className="w-full">
+              <button ref={timerButtonRef} onClick={handleStop} aria-label="Stop"
+                className="w-full min-h-[200px] rounded-3xl bg-ink-50 text-plum-950 active:scale-[0.99] transition-transform duration-150 flex flex-col items-center justify-center px-6 py-6">
+                <span className="font-display text-6xl font-light tabular-nums leading-none" aria-hidden="true">{formatDuration(currentElapsed)}</span>
+                <span className="flex items-center gap-2 mt-3 text-xl font-semibold"><Square className="w-4 h-4" fill="currentColor" strokeWidth={0} />Stop</span>
+                <span className="text-[10px] uppercase tracking-[0.18em] opacity-70 mt-2">Tap when it passes</span>
+              </button>
+              <div className="flex flex-col items-center mt-3">
+              <span role="timer" aria-label={`Elapsed contraction time: ${formatDurationSpoken(currentElapsed)}`} className="sr-only">{formatDuration(currentElapsed)}</span>
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-2 h-2 rounded-full bg-rose-300 animate-pulse-live" />
                 <div className="text-[10px] uppercase tracking-[0.25em] text-rose-300 font-semibold">
@@ -1508,9 +1527,6 @@ export default function App() {
                     <X className="w-4 h-4" strokeWidth={1.75} />
                   </button>
                 )}
-              </div>
-              <div className="font-display text-6xl font-light text-ink-50 tabular-nums leading-none">
-                {formatDuration(currentElapsed)}
               </div>
               <div className="text-xs text-ink-300 mt-3 text-center">
                 <span>Started at {formatClock(current.start)}</span>
@@ -1544,13 +1560,7 @@ export default function App() {
                 <span className={`w-1.5 h-1.5 rounded-full ${isWakeLockHeld() ? 'bg-sage-300/70' : 'bg-amber-300/70'}`} />
                 <span>{isWakeLockHeld() ? 'Screen will stay on' : 'Screen may dim — tap to keep awake'}</span>
               </div>
-              <button
-                ref={timerButtonRef} onClick={handleStop}
-                className="mt-5 w-full min-h-[76px] bg-ink-50 active:bg-ink-100 text-plum-950 rounded-2xl px-7 py-4 flex items-center justify-center gap-3 font-semibold text-xl transition-colors"
-              >
-                <Square className="w-3.5 h-3.5" fill="currentColor" strokeWidth={0} />
-                Stop
-              </button>
+              </div>
             </div>
           )}
         </div>

@@ -21,9 +21,9 @@ export default class ErrorBoundary extends Component<{ children: ReactNode }, St
     const backup = this.state.backup;
     const current = backup?.current as { start?: string } | null;
     const start = current?.start && Number.isFinite(Date.parse(current.start)) ? current.start : null;
-    const button = { background: '#e8957a', color: '#120c10', border: 'none', borderRadius: 12,
+    const button = { background: '#E8AD8B', color: '#26382C', border: 'none', borderRadius: 12,
       padding: '14px 24px', fontSize: 16, fontWeight: 600, cursor: 'pointer', minHeight: 48 };
-    return <main style={{ minHeight: '100dvh', background: '#120c10', color: '#faf6f4', padding: 24,
+    return <main style={{ minHeight: '100dvh', background: '#26382C', color: '#F5F1E7', padding: 24,
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
       fontFamily: 'system-ui, sans-serif', textAlign: 'center', gap: 16 }}>
       <span aria-hidden="true" style={{ fontSize: 48 }}>🫒</span>
@@ -40,7 +40,7 @@ export default class ErrorBoundary extends Component<{ children: ReactNode }, St
       {this.state.exportError && <p role="alert">The backup could not be exported. Keep Olive installed and try reloading.</p>}
       <button style={button} onClick={() => window.location.reload()}>Reload Olive</button>
       <p style={{ maxWidth: 360 }}>If the problem continues, keep the app installed and contact support. An exported backup can be imported through Settings after Olive opens again.</p>
-      <a href="https://olive.ashbi.ca" style={{ color: '#e8957a', padding: 12 }}>Contact Olive support</a>
+      <a href="https://olive.ashbi.ca" style={{ color: '#E8AD8B', padding: 12 }}>Contact Olive support</a>
     </main>;
   }
 }

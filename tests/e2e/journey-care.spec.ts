@@ -27,6 +27,8 @@ test('care card saves optional parent-owned details across reload', async ({ pag
   await waitForApp(page);
   await page.getByRole('button', { name: /open birth journey/i }).click();
   await page.getByRole('dialog', { name: 'Birth journey' }).getByRole('button', { name: 'Care card' }).click();
+  await expect(page.locator('pre')).toContainText('Name: Bianca');
+  await page.getByRole('button', { name: 'Edit care card' }).click();
   await expect(page.getByLabel('Preferred name')).toHaveValue('Bianca');
   await expect(page.getByLabel('Birth location')).toHaveValue('North Star Birth Centre');
   await expect(page.getByLabel('Important notes entered by you')).toHaveValue('Allergic to latex');

@@ -1,5 +1,12 @@
 # Olive current release plan
 
+Build 7 continuation, 2026-10-07: apply the approved botanical brand, working
+Night/Daylight appearances, stable Start/Stop tap area, native launch/icon and
+privacy/support access. Build 6's earlier upload does not certify this candidate.
+See `docs/BRANDING.md` and `SHIPPING.md` for the current source scope. The issue
+inventory below is retained as historical planning context; physical-device,
+observed-user and clinical-copy reviews remain separate open gates.
+
 Reconciled 2026-10-05 against local source, origin/main, merged PR #77, all repository issues and the online consoles. Current scope: free native-only v1.3.0/build 6. This replaces the paid v1.2.1/relay launch route; older records remain historical.
 
 ## Issue reconciliation

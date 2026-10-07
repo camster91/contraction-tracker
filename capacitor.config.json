@@ -3,21 +3,21 @@
   "appName": "Olive",
   "webDir": "dist",
   "ios": {
-    "backgroundColor": "#1a1216",
+    "backgroundColor": "#26382C",
     "preferredContentMode": "mobile"
   },
   "android": {
-    "backgroundColor": "#1a1216"
+    "backgroundColor": "#26382C"
   },
   "plugins": {
     "SplashScreen": {
       "launchShowDuration": 1500,
-      "backgroundColor": "#1a1216",
+      "backgroundColor": "#26382C",
       "androidScaleType": "CENTER_CROP"
     },
     "StatusBar": {
       "style": "DARK",
-      "backgroundColor": "#1a1216"
+      "backgroundColor": "#26382C"
     }
   }
 }

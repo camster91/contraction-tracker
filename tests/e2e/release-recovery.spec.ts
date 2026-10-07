@@ -23,7 +23,12 @@ test('fresh install requires explicit opt-in before saved timing reminders are e
   await page.getByRole('button', { name: /settings/i }).first().click();
   const reminder = page.getByRole('checkbox', { name: 'Enable my saved care-team timing reminder' });
   await expect(reminder).not.toBeChecked();
+  await page.getByRole('spinbutton', { name: /Contractions every/ }).fill('5');
+  await page.getByRole('spinbutton', { name: /Lasting at least/ }).fill('60');
+  await page.getByRole('spinbutton', { name: /For at least/ }).fill('60');
   await reminder.check();
+  await page.getByRole('button', { name: 'Save reminder' }).click();
+  await expect(page.getByRole('status')).toContainText('saved and enabled');
   await page.reload();
   await page.getByRole('button', { name: /settings/i }).first().click();
   await expect(reminder).toBeChecked();

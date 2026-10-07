@@ -7,25 +7,25 @@ const root = resolve(import.meta.dirname, '..');
 const checks = [
   {
     name: 'support',
-    url: 'https://contractions.ashbi.ca/support',
+    url: 'https://olive.ashbi.ca/support',
     localPath: resolve(root, 'public/support/index.html'),
     required: ['<title>Olive Support</title>', 'mailto:cameron@ashbi.ca?subject=Olive%20support', 'not an emergency or clinical service'],
   },
   {
     name: 'support (fr-CA)',
-    url: 'https://contractions.ashbi.ca/fr-ca/support/',
+    url: 'https://olive.ashbi.ca/fr-ca/support/',
     localPath: resolve(root, 'public/fr-ca/support/index.html'),
     required: ['<html lang="fr-CA">', '<title>Soutien Olive</title>', 'mailto:cameron@ashbi.ca?subject=Soutien%20Olive', "n’est ni un service d’urgence ni un service clinique", 'services d’urgence locaux'],
   },
   {
     name: 'privacy',
-    url: 'https://contractions.ashbi.ca/privacy',
+    url: 'https://olive.ashbi.ca/privacy',
     localPath: resolve(root, 'public/privacy/index.html'),
     required: ['<title>Olive — Privacy Policy</title>', 'September 1, 2026', 'legacy photo or voice-memo attachments', 'preview before sending'],
   },
   {
     name: 'privacy (fr-CA)',
-    url: 'https://contractions.ashbi.ca/fr-ca/privacy/',
+    url: 'https://olive.ashbi.ca/fr-ca/privacy/',
     localPath: resolve(root, 'public/fr-ca/privacy/index.html'),
     required: ['<html lang="fr-CA">', '<title>Olive — Politique de confidentialité</title>', '1er septembre 2026', 'pièces jointes héritées sous forme de photo ou de mémo vocal', 'un aperçu avant l’envoi', 'ne diagnostique pas le travail'],
   },

@@ -158,13 +158,11 @@ export default function SettingsSheet({
                   onClick={() => setThemeVariant(v)}
                   className={`min-h-11 text-sm px-3 py-2 rounded-lg font-medium transition-colors ${
                     themeVariant === v
-                      ? v === 'calm'
-                        ? 'bg-rose-300/20 text-rose-200 border border-rose-300/40'
-                        : 'bg-blue-300/20 text-blue-200 border border-blue-300/40'
+                      ? 'bg-rose-300/20 text-rose-200 border border-rose-300/40'
                       : 'bg-ink-100/5 text-ink-400 border border-ink-200/30 active:bg-ink-100/10'
                   }`}
                 >
-                  {v === 'calm' ? '🌸 Calm' : '❄️ Cool'}
+                  {v === 'calm' ? 'Calm · Night' : 'Daylight'}
                 </button>
               ))}
             </div>
@@ -277,6 +275,15 @@ export default function SettingsSheet({
             {reminder.enabled && !reminderValid && <p className="mt-2 text-sm text-ink-200">Complete all three fields within the listed ranges before enabling.</p>}
             {reminderStatus && <p role="status" className="mt-2 text-sm text-sage-300">{reminderStatus}</p>}
           </div>
+
+          <section aria-label="Privacy and support" className="border-t border-ink-200/20 mt-3 pt-3">
+            <h2 className="text-base font-display text-ink-50">Private by design</h2>
+            <p className="text-sm text-ink-300 mt-2 leading-relaxed">No account or tracking. Records stay on this device. Export a backup before changing phones or uninstalling; uninstalling removes local records. Only a backup saved separately can restore them.</p>
+            <div className="flex flex-wrap gap-3 mt-3">
+              <a href="https://olive.ashbi.ca/privacy/" target="_blank" rel="noopener noreferrer" className="min-h-11 inline-flex items-center underline text-sm text-sage-300">Privacy policy</a>
+              <a href="https://olive.ashbi.ca/support/" target="_blank" rel="noopener noreferrer" className="min-h-11 inline-flex items-center underline text-sm text-sage-300">Help &amp; support</a>
+            </div>
+          </section>
 
           {/* Version */}
           <div className="border-t border-ink-200/20 mt-3 pt-3">

@@ -50,7 +50,7 @@ struct OliveLiveActivityWidget: Widget {
             HStack(spacing: 12) {
                 Image(systemName: "timer")
                     .font(.title2)
-                    .foregroundStyle(Color(red: 0.91, green: 0.58, blue: 0.48))
+                    .foregroundStyle(Color(red: 0.91, green: 0.68, blue: 0.55))
                 VStack(alignment: .leading, spacing: 2) {
                     Text("live_activity.timer_title")
                         .font(.headline)
@@ -62,13 +62,14 @@ struct OliveLiveActivityWidget: Widget {
                     .font(.caption.weight(.semibold))
             }
             .padding()
+            .foregroundStyle(Color(red: 0.96, green: 0.95, blue: 0.91))
             .widgetURL(URL(string: "olive://stop"))
-            .activityBackgroundTint(Color(red: 0.10, green: 0.07, blue: 0.09))
+            .activityBackgroundTint(Color(red: 0.15, green: 0.22, blue: 0.17))
             .activitySystemActionForegroundColor(.white)
         } dynamicIsland: { context in
             DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
-                    Image(systemName: "timer").foregroundStyle(Color(red: 0.91, green: 0.58, blue: 0.48))
+                    Image(systemName: "timer").foregroundStyle(Color(red: 0.91, green: 0.68, blue: 0.55))
                 }
                 DynamicIslandExpandedRegion(.center) {
                     Text("live_activity.timer_title").font(.headline)
@@ -78,13 +79,13 @@ struct OliveLiveActivityWidget: Widget {
                         .font(.system(.title2, design: .rounded).monospacedDigit())
                 }
             } compactLeading: {
-                Image(systemName: "timer").foregroundStyle(Color(red: 0.91, green: 0.58, blue: 0.48))
+                Image(systemName: "timer").foregroundStyle(Color(red: 0.91, green: 0.68, blue: 0.55))
             } compactTrailing: {
                 Text(timerInterval: context.state.startDate...Date.distantFuture, countsDown: false)
                     .monospacedDigit()
                     .frame(width: 48)
             } minimal: {
-                Image(systemName: "timer").foregroundStyle(Color(red: 0.91, green: 0.58, blue: 0.48))
+                Image(systemName: "timer").foregroundStyle(Color(red: 0.91, green: 0.68, blue: 0.55))
             }
         }
     }
