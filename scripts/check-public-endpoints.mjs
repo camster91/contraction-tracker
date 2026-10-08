@@ -4,6 +4,9 @@ import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
 const root = resolve(import.meta.dirname, '..');
+// English is the current launch scope. Check deferred French pages only when
+// explicitly requested; never treat that opt-in as localization approval.
+const includeFrench = process.argv.includes('--include-fr-ca');
 const checks = [
   {
     name: 'support',
@@ -21,7 +24,7 @@ const checks = [
     name: 'privacy',
     url: 'https://olive.ashbi.ca/privacy',
     localPath: resolve(root, 'public/privacy/index.html'),
-    required: ['<title>Olive — Privacy Policy</title>', 'September 1, 2026', 'legacy photo or voice-memo attachments', 'preview before sending'],
+    required: ['<title>Olive — Privacy Policy</title>', 'October 2026', 'system share sheet', 'uninstalling', 'does not diagnose labor', 'excluded from automatic device backups'],
   },
   {
     name: 'privacy (fr-CA)',
@@ -29,7 +32,7 @@ const checks = [
     localPath: resolve(root, 'public/fr-ca/privacy/index.html'),
     required: ['<html lang="fr-CA">', '<title>Olive — Politique de confidentialité</title>', '1er septembre 2026', 'pièces jointes héritées sous forme de photo ou de mémo vocal', 'un aperçu avant l’envoi', 'ne diagnostique pas le travail'],
   },
-];
+].filter(check => includeFrench || !check.name.includes('fr-CA'));
 
 const failures = [];
 const normalize = (value) => value.replace(/\r\n/g, '\n').trim();
@@ -68,4 +71,4 @@ if (failures.length > 0) {
   process.exit(1);
 }
 
-console.log('OK: public English and Canadian French support and privacy endpoints return the reviewed repository artifacts over HTTPS.');
+console.log(`OK: public ${includeFrench ? 'English and Canadian French' : 'English'} support and privacy endpoints return the reviewed repository artifacts over HTTPS.`);
