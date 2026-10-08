@@ -32,6 +32,23 @@ export function useModalDialog(onClose: () => void): RefObject<HTMLDivElement | 
     const candidates = focusableElements(dialog);
     (candidates[0] ?? dialog).focus();
 
+    // aria-modal describes the sheet but does not actually hide background
+    // controls from touch exploration or screen-reader navigation. Isolate
+    // siblings along its ancestor path, preserving any existing inert state.
+    const background: { element: HTMLElement; inert: boolean; ariaHidden: string | null }[] = [];
+    let branch: HTMLElement = dialog;
+    while (branch.parentElement) {
+      for (const sibling of branch.parentElement.children) {
+        if (sibling instanceof HTMLElement && sibling !== branch) {
+          background.push({ element: sibling, inert: sibling.inert, ariaHidden: sibling.getAttribute('aria-hidden') });
+          sibling.inert = true;
+          sibling.setAttribute('aria-hidden', 'true');
+        }
+      }
+      branch = branch.parentElement;
+      if (branch === document.body) break;
+    }
+
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.preventDefault();
@@ -61,6 +78,11 @@ export function useModalDialog(onClose: () => void): RefObject<HTMLDivElement | 
     document.addEventListener('keydown', handleKeyDown, true);
     return () => {
       document.removeEventListener('keydown', handleKeyDown, true);
+      for (const { element, inert, ariaHidden } of background) {
+        element.inert = inert;
+        if (ariaHidden === null) element.removeAttribute('aria-hidden');
+        else element.setAttribute('aria-hidden', ariaHidden);
+      }
       if (opener?.isConnected) opener.focus();
     };
   }, []);

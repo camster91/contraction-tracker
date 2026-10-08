@@ -1,6 +1,7 @@
 import { Capacitor } from '@capacitor/core';
 import { exportTextFile } from './lib/exportFile';
 import { shareSummary } from './lib/shareSummary';
+import { isShareCancellation } from './lib/shareCancellation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Play,
@@ -10,7 +11,6 @@ import {
   Pencil,
   X,
   Check,
-  Shield,
   Volume2,
   VolumeX,
   Undo2,
@@ -121,7 +121,6 @@ const SESSION_KEY = 'contraction-tracker:current';
 // every real build has VITE_APP_VERSION set.
 const APP_VERSION = import.meta.env.VITE_APP_VERSION ?? '0.0.0';
 const MUTED_KEY = 'contraction-tracker:muted';
-const BACKUP_REMINDER_KEY = 'contraction-tracker:backup-dismissed';
 
 type Stored = {
   contractions: Contraction[];
@@ -258,14 +257,6 @@ export default function App() {
   // Hidden file input for importing backups
   const fileInputRef = useRef<HTMLInputElement>(null);
   const journeyOpenerRef = useRef<HTMLButtonElement>(null);
-
-  // Backup reminder — show if not dismissed recently and there is data to lose
-  const [, setDismissedBannerAt] = useState<number | null>(() => {
-    const raw = localStorage.getItem(BACKUP_REMINDER_KEY);
-    return raw ? JSON.parse(raw) : null;
-  });
-  // Auto-backup already runs. Never cover the Start button during labor.
-  const showBackupBanner = false;
 
   // Onboarding tooltip steps: null = dismissed, 0/1/2 = step
   const [onboardingStep, setOnboardingStep] = useState<number | null>(() => {
@@ -521,7 +512,11 @@ export default function App() {
 
   const handleStop = () => {
     if (!current || current.end) return;
-    const finished: Contraction = { ...current, end: new Date().toISOString() };
+    const stoppedAt = Date.now();
+    const finished: Contraction = { ...current, end: new Date(stoppedAt).toISOString() };
+    // Render statistics against the saved end time immediately; the display
+    // tick can otherwise lag behind it and briefly exclude the new record.
+    setNow(stoppedAt);
     setContractions((prev) => [...prev, finished]);
     setCurrent(null);
     disableWakeLock();
@@ -803,8 +798,14 @@ export default function App() {
       checklists,
       journey,
     });
-    try { if (await downloadBackup(data)) rotateBackup(data); }
-    catch { toast.error('Could not export the backup. Please try again.'); }
+    try {
+      if (!await downloadBackup(data)) return false;
+      rotateBackup(data);
+      return true;
+    } catch {
+      toast.error('Could not export the backup. Please try again.');
+      return false;
+    }
   };
 
   // ---- Backup import ----
@@ -912,16 +913,16 @@ export default function App() {
     const file = new File([blob], `olive-backup-${date}.json`, { type: 'application/json' });
     if (navigator.canShare?.({ files: [file] })) {
       try {
-        await navigator.share({ files: [file], title: 'Labor backup', text: 'Here is my contraction log' });
+        await navigator.share({ files: [file], title: 'Olive backup', text: 'Full Olive backup, including private records and care details.' });
         return;
-      } catch { /* cancelled */ }
+      } catch (error) {
+        if (!isShareCancellation(error)) toast.error('Could not share the backup. Try Export backup instead.');
+        return;
+      }
     }
-    try {
-      await navigator.clipboard.writeText(json);
-      toast.success('Backup copied to clipboard. Paste it into a message to send.', { duration: 6000 });
-    } catch {
-      toast.error('Could not share the backup file.', { duration: 6000 });
-    }
+    // A full backup can contain private notes and contact details. Fall back
+    // to an explicit file download rather than copying it to the clipboard.
+    await handleExportBackup();
   };
 
   const finished = useMemo(
@@ -1268,7 +1269,10 @@ export default function App() {
           </button>
           {/* Settings */}
           <button
-            onClick={() => setShowSettings((s) => !s)}
+            onClick={(event) => {
+              event.currentTarget.focus();
+              setShowSettings((s) => !s);
+            }}
             className="min-h-11 min-w-11 inline-flex items-center justify-center p-2 rounded-lg text-ink-300 active:text-rose-300 active:bg-ink-100/10 transition-colors"
             aria-label="Settings"
             title="Settings"
@@ -1426,62 +1430,6 @@ export default function App() {
 
       {/* Active labor indicator */}
       <ActiveLaborBanner contractions={contractions} now={now} />
-
-      {/* Backup reminder banner — soft nudge if no local backup has been
-          exported recently. The "Back up now" CTA triggers the actual
-          file-download backup. Hidden during active timing and while
-          editing a contraction so it doesn't obstruct those flows. */}
-      {showBackupBanner && !current && !editingId && (
-        <div className="flex-shrink-0 mb-3 rounded-2xl border border-sage-300/30 bg-sage-300/10 px-4 py-3 animate-fade-in">
-          <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-full bg-sage-300/15 flex items-center justify-center flex-shrink-0">
-              <Shield className="w-4 h-4 text-sage-300" strokeWidth={1.75} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="text-sm font-semibold text-ink-100 font-display">Save a backup</div>
-              <div className="text-xs text-ink-300 mt-0.5 leading-relaxed">
-                Download a .json file with your full contraction history. Keep it somewhere safe.
-              </div>
-            </div>
-            <button
-              onClick={() => {
-                localStorage.setItem(BACKUP_REMINDER_KEY, JSON.stringify(Date.now()));
-                setDismissedBannerAt(Date.now());
-              }}
-              className="p-1 text-ink-400 active:text-ink-200 flex-shrink-0"
-              aria-label="Dismiss backup reminder"
-              title="Dismiss"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-          <div className="flex gap-2 mt-2.5">
-            <button
-              onClick={() => {
-                // Run the real export, then mark the banner as handled so it
-                // doesn't reappear on the next visit. handleExportBackup is
-                // synchronous (it triggers a file download), so the user
-                // sees the file dialog immediately.
-                handleExportBackup();
-                localStorage.setItem(BACKUP_REMINDER_KEY, JSON.stringify(Date.now()));
-                setDismissedBannerAt(Date.now());
-              }}
-              className="flex-1 text-xs font-semibold bg-sage-300/20 active:bg-sage-300/30 text-sage-100 rounded-lg px-3 py-2 transition-colors min-h-[44px]"
-            >
-              Back up now
-            </button>
-            <button
-              onClick={() => {
-                localStorage.setItem(BACKUP_REMINDER_KEY, JSON.stringify(Date.now()));
-                setDismissedBannerAt(Date.now());
-              }}
-              className="text-xs text-ink-400 active:text-ink-200 rounded-lg px-3 py-2 min-h-[44px] border border-ink-200/20"
-            >
-              Not now
-            </button>
-          </div>
-        </div>
-      )}
 
         {/* "Since last" hero stat — biggest reading on the page during active
             labor, between contractions. Hidden while a contraction is in

@@ -33,6 +33,8 @@ test('Sessions opens in the viewport, restores focus, and switches context', asy
   await expect(sheet).toBeHidden();
   await opener.click();
   await expect(sheet.getByText('Current session:')).toContainText('Example second session');
+  // The background is intentionally unavailable while a modal is open.
+  await page.keyboard.press('Escape');
   await expect(opener).toContainText('Sessions');
 });
 

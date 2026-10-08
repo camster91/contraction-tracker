@@ -61,7 +61,7 @@ export default function ProviderQuestionsPanel({ journey, onChange }: {
       <div className="space-y-2 mt-4">
         {journey.questions.length === 0 && (
           <div className="rounded-xl border border-dashed border-ink-200/25 px-4 py-5 text-center text-xs text-ink-500">
-            No questions yet. Questions stay private unless you deliberately include them in a future handoff.
+            No questions yet. Questions stay on this device and are included in full backups you choose to export.
           </div>
         )}
         {journey.questions.map((item) => (
