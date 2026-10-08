@@ -19,7 +19,7 @@ The source privacy manifest declares no off-device data collection or tracking a
 - Build 12 processing/compliance/beta is complete; final draft attachment persistence is tracked in task console evidence. Public review and acceptance remain unverified.
 - Physical iPhone/iPad journeys, VoiceOver, enlarged text, battery/background behavior and Live Activity actions.
 - Native backup export/import and recovery on devices, including denied permissions/storage failure.
-- Publish and verify build 12 privacy wording. Existing English pages are live; SSH failed during this review. Privacy label, age rating, content rights and free pricing are saved. Copyright, territories and applicable trader/medical-device declarations require owner facts.
+- Build 12 privacy wording is published and verified: English support/privacy HTTP 200 and exact source match; signed IPA privacy also matches. Named prior-page backup retained. Privacy label, age rating, content rights and free pricing are saved. Copyright, territories and applicable trader/medical-device declarations require owner facts.
 - Final screenshots reconciled to the processed binary, accurate metadata and English-only scope.
 - Review of care-team reminder wording and observed usability evidence tracked in issues #69/#70/#60.
 

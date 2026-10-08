@@ -79,7 +79,7 @@ Work in order: recording correctness → placement/accessibility → candidate v
 
 Maintain a short progress record identifying verified work, candidate identity, remaining gate, owner, and resume condition. Mark the goal complete only after the intended release outcomes, or after Cameron explicitly narrows the objective. Do not equate browser QA, local builds, upload processing, or a waiting store review with shipping completion.
 
-Current next action: restore access to publish build 12 privacy wording; obtain the owner declarations and actual physical/professional/observed-user evidence. Build 12 is processed, compliance saved and Testing in the existing groups. Build 11 beta and listing preparation are verified. Owner declarations, physical acceptance, professional/observed-user evidence, original Android key, Google verification and current-source CI remain open. Earlier implementation entries retain historical identities.
+Current next action: obtain the owner declarations and actual physical/professional/observed-user evidence. Build 12 is processed, compliance saved and Testing in the existing groups. Build 11 beta and listing preparation are verified. Owner declarations, physical acceptance, professional/observed-user evidence, original Android key, Google verification and current-source CI remain open. Earlier implementation entries retain historical identities.
 
 ## Implementation round 1 — October 7, 2026
 
@@ -221,6 +221,6 @@ October 8 final store preparation check: free pricing persisted after reload, wi
 
 ## October 8 Apple-readiness review
 
-Build 12 has signed iOS and matching unsigned Android artifact evidence. It adds private-data backup exclusion, verified on installed Simulator directories. All 33 unit tests and affected host/static checks passed; runtime dependency audit has no known vulnerabilities. UI assets match 11, so no new layout is claimed or required. Apple upload succeeded, processing completed, compliance saved and both existing groups are Testing with three invites. Public privacy must be updated to the new wording; two SSH attempts failed. Existing public pages remain live.
+Build 12 has signed iOS and matching unsigned Android artifact evidence. It adds private-data backup exclusion, verified on installed Simulator directories. All 33 unit tests and affected host/static checks passed; runtime dependency audit has no known vulnerabilities. UI assets match 11, so no new layout is claimed or required. Apple upload succeeded, processing completed, compliance saved and both existing groups are Testing with three invites. Public privacy was updated after SSH recovered; prior page backed up and both English endpoints verified HTTP 200 with exact source match, including signed IPA privacy.
 
 Remaining repository gates include observed-user sessions (#70), not only professional wording review (#69) and physical accessibility/native checks (#60/#65/#47). Current release CI (#50) needs the reviewed branch published and actual workflows executed through an explicitly authorized GitHub path. No issue has been closed; old umbrella tasks are retained as history.
