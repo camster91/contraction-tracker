@@ -41,7 +41,7 @@ jobs:
         run: npm run build
 
       - name: Run gauntlet
-        run: npx playwright test --reporter=github,html,line
+        run: npx playwright test --reporter=github,html,line,./scripts/strict-release-reporter.mjs
 
       - name: Upload HTML report
         if: always()
