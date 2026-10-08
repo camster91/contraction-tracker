@@ -51,7 +51,7 @@ Olive contains no advertising or sponsored content.
 ## Data retention
 
 - **All data** is stored on your device only. You can delete it at any time by deleting items in the app, uninstalling the app, or clearing the app's local storage from your device settings.
-- **No cloud storage** of session data is performed by Olive. Android system backups exclude Olive’s local records. iOS device backups may include local records according to your device settings; keep your device and backup account secure.
+- **No cloud storage** of session data is performed by Olive. Android system backups exclude Olive’s local records. Starting with version 1.3.0 build 12, Olive marks its private iOS app-data directories as excluded from automatic device backups. This is a system backup preference, not a guarantee that no older or restored backup contains records. Export an Olive backup yourself before changing devices. Manage any existing device backups in your device or backup-account settings.
 - **Files you export** are ordinary files in whichever destination you chose through the system share sheet; Olive creates a temporary cache file for the share sheet and attempts to remove it when sharing finishes. Your original on-device records remain until you delete them.
 
 ## Data sharing with third parties

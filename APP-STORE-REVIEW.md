@@ -1,6 +1,8 @@
 # Olive v1.3.0 Apple review readiness
 
-**Apple acceptance is unverified.** An unsigned archive cannot pass Apple signing or upload validation. The local app builds, but the final signed candidate still requires native-device testing and App Store Connect processing. Follow `SUBMISSION-CHECKLIST.md`.
+**Apple acceptance is unverified.** October 8 review: build 11 is signed, processed and attached to the public draft; its TestFlight groups are Testing. Build 12 supersedes it as the prepared runtime candidate after adding private-data backup exclusion. Build 12 source is `22dceb8fed88c9c5ce71da46fc123388fc359568`; strict signed-export and embedded provenance checks passed. Its upload/processing state is tracked in SHIPPING.md and task outputs/remediation-build12. Public status remains Prepare for Submission.
+
+Do not treat beta availability as public App Review approval. Apple's guidelines 1.4.1, 2.1, 4.2 and 5.1 remain the relevant review risks: health interpretation, completeness, native utility and privacy. See https://developer.apple.com/app-store/review/guidelines/. Two professional reviews and the observed-user study are repository gates, not a claim that Apple requires those exact studies.
 
 ## Prepared behavior
 
@@ -14,11 +16,15 @@ The source privacy manifest declares no off-device data collection or tracking a
 
 ## Outstanding review evidence
 
-- Paid Apple team, profiles, signed IPA and validation/upload receipt.
+- Build 12 processing/compliance/beta is complete; final draft attachment persistence is tracked in task console evidence. Public review and acceptance remain unverified.
 - Physical iPhone/iPad journeys, VoiceOver, enlarged text, battery/background behavior and Live Activity actions.
 - Native backup export/import and recovery on devices, including denied permissions/storage failure.
-- Current published support/privacy pages and actual console declarations/questionnaires.
+- Publish and verify build 12 privacy wording. Existing English pages are live; SSH failed during this review. Privacy label, age rating, content rights and free pricing are saved. Copyright, territories and applicable trader/medical-device declarations require owner facts.
 - Final screenshots reconciled to the processed binary, accurate metadata and English-only scope.
 - Review of care-team reminder wording and observed usability evidence tracked in issues #69/#70/#60.
 
 No claim is made that Apple has approved the name/trademark, age rating, legal declarations, device matrix, or medical wording. App Review is a separate decision after technical validation.
+
+## Backup privacy remediation
+
+Build 12 excludes Library (including WebKit localStorage) and Documents from automatic device backup at launch, activation and background transitions. Actual Simulator directories have the MobileBackup exclusion attribute. This is supplementary native evidence, not proof of physical iCloud backup behavior; older backups and manual exports remain user-managed. No records are deleted. Exact source, IPA and payload hashes are in task outputs/remediation-build12/ios-evidence.json.

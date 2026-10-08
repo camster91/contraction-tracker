@@ -1,6 +1,8 @@
+> October 8 review reconciliation: local placement/UI remediation and supplementary Simulator captures are complete. Physical keyboard/accessibility acceptance remains open. Build 11 completed iOS upload/beta/listing preparation; build 12 is the backup-exclusion replacement. Mixed-platform and public-release tasks stay open until both required outcomes are evidenced. See APP-STORE-REVIEW.md and SUBMISSION-CHECKLIST.md.
+
 # Olive shipping completion plan
 
-Created October 7, 2026. Active goal: finish the reviewed app and ship iOS and Android, with verified release outcomes rather than treating a local build or upload as completion.
+Created October 7, 2026. Objective: finish the reviewed app and ship iOS and Android, with verified release outcomes rather than treating a local build or upload as completion.
 
 ## Starting evidence
 
@@ -35,7 +37,7 @@ Owner: Codex. Follow the existing control inventory; preserve useful capabilitie
 - [x] Consolidate duplicate People/contacts, backup, Read, and empty-state Start routes; retain justified quick care access.
 - [x] Rename Care contacts/People and Exams/Hospital consistently. Make care setup open the relevant fields directly.
 - [x] Keep optional intensity, tags, pain location, and notes in record details. Add keyboard-operable pain-region controls and selected-state semantics.
-- [ ] Keep Close/Back reachable on long sheets and when the keyboard opens. Use persistent field labels and appropriate input sizing.
+- [x] Keep Close/Back reachable on long sheets and when the keyboard opens. Use persistent field labels and appropriate input sizing.
 - [x] Provide a touch/keyboard alternative for checklist reorder. Disable impossible end-time corrections.
 - [x] Review reminder labels and spoken copy against the actual configured plan; verify mute/snooze behavior. Preserve user opt-in and clinical-copy review gates.
 - [x] Audit unmounted charts/photo/voice source and stale tests; remove genuinely unused code only after checking references. Do not surface unused features just to fill space.
@@ -47,10 +49,10 @@ Exit evidence: each control has a purpose, one clear home or justified shortcut,
 Owner: Codex for host checks and candidate preparation; Cameron/testers for physical-device actions requiring hands-on access.
 
 - [x] Run lint, TypeScript/build, affected unit checks, and relevant Chromium/WebKit phone flows; resolve failures without disabling checks.
-- [ ] Capture fresh Night/Daylight and Big Text screens, active timer, history edit, Sessions, care setup, and long sheets. Check supported smaller screens, landscape, and tablet if offered.
-- [ ] Record exact source revision and web/native artifact hashes; increment native build numbers and synchronize assets for both platforms.
+- [x] Capture fresh Night/Daylight and Big Text screens, active timer, history edit, Sessions, care setup, and long sheets. Check supported smaller screens, landscape, and tablet if offered.
+- [x] Record exact source revision and web/native artifact hashes; increment native build numbers and synchronize assets for both platforms.
 - [ ] Verify icons, splash, bundled illustrations, listing screenshots, support/privacy URLs, and metadata reflect the final UI. Regenerate screenshots affected by fixes.
-- [ ] Build iOS archive and Android release candidate. Confirm signing identity, app identifiers, permissions, and embedded source provenance without exposing credentials.
+- [x] Build iOS archive and Android release candidate. Confirm signing identity, app identifiers, permissions, and embedded source provenance without exposing credentials.
 - [ ] Execute NATIVE-DEVICE-ACCEPTANCE.md on the exact distributed candidate: offline start; background/lock/relaunch timing; edit/cancel/delete/undo; Live Activity or Android notification; export/import; recovery; VoiceOver/TalkBack; text scaling; keyboard; privacy/support.
 - [ ] Reconcile existing clinical-copy and observed-user evidence against this candidate; address unresolved release-blocking findings.
 
@@ -60,9 +62,9 @@ Exit evidence: identified artifacts, successful affected checks, fresh rendered 
 
 Owner: Codex for authorized preparation and console work; Cameron for account verification, missing signing credentials, and new approvals; Apple/Google for processing and review decisions.
 
-- [ ] Refresh current App Store Connect and Play Console state; reconcile existing builds, external beta review, account verification, signing, and listing gaps without duplicating submissions.
+- [x] Refresh current App Store Connect and Play Console state; reconcile existing builds, external beta review, account verification, signing, and listing gaps without duplicating submissions.
 - [ ] Upload the new verified iOS candidate within the session's approved release scope; verify processing, compliance, beta metadata, and tester availability. Respect any pending external-beta review dependency.
-- [ ] Verify invitation status for the explicitly requested tester addresses; only send invitations already authorized and only when the build is installable.
+- [x] Verify invitation status for the explicitly requested tester addresses; only send invitations already authorized and only when the build is installable.
 - [ ] Prepare/complete Android signing and internal testing within authorized scope, then verify installation and processed release state.
 - [ ] Complete store privacy/data declarations, screenshots, support URLs, age/content information, review notes, and release metadata using actual app behavior.
 - [ ] Complete authorized submission/publication steps. Request any genuinely new external-action approval only when a concrete candidate is ready; do not treat this plan as authorization for purchases or unrelated mutations.
@@ -77,7 +79,7 @@ Work in order: recording correctness → placement/accessibility → candidate v
 
 Maintain a short progress record identifying verified work, candidate identity, remaining gate, owner, and resume condition. Mark the goal complete only after the intended release outcomes, or after Cameron explicitly narrows the objective. Do not equate browser QA, local builds, upload processing, or a waiting store review with shipping completion.
 
-Current next action: reconnect Chrome to verify build 10 processing/compliance and internal TestFlight availability, then execute physical-device acceptance on that exact candidate. Ten native iPhone/iPad listing images are prepared; professional copy review, the original Android upload key and Google account verification remain open. Earlier implementation entries below retain their original next actions as history.
+Current next action: restore access to publish build 12 privacy wording; obtain the owner declarations and actual physical/professional/observed-user evidence. Build 12 is processed, compliance saved and Testing in the existing groups. Build 11 beta and listing preparation are verified. Owner declarations, physical acceptance, professional/observed-user evidence, original Android key, Google verification and current-source CI remain open. Earlier implementation entries retain historical identities.
 
 ## Implementation round 1 — October 7, 2026
 
@@ -216,3 +218,9 @@ October 8 build 11 is now Testing in both approved TestFlight groups (Cameron an
 ## October 8 remaining public-release gates
 
 October 8 final store preparation check: free pricing persisted after reload, with all comparable prices zero. Mac and Vision Pro opt-ins are off for this mobile release; launch territories await owner decision. Current TestFlight build 11 is Testing for the three previously authorized tester addresses, and public listing attachment 11 persisted. Fresh Google check still requires identity, organization website and phone verification; app creation disabled. Website request has not been sent. Public release remains incomplete pending owner declarations, physical/professional acceptance, original Android key and Google account approval.
+
+## October 8 Apple-readiness review
+
+Build 12 has signed iOS and matching unsigned Android artifact evidence. It adds private-data backup exclusion, verified on installed Simulator directories. All 33 unit tests and affected host/static checks passed; runtime dependency audit has no known vulnerabilities. UI assets match 11, so no new layout is claimed or required. Apple upload succeeded, processing completed, compliance saved and both existing groups are Testing with three invites. Public privacy must be updated to the new wording; two SSH attempts failed. Existing public pages remain live.
+
+Remaining repository gates include observed-user sessions (#70), not only professional wording review (#69) and physical accessibility/native checks (#60/#65/#47). Current release CI (#50) needs the reviewed branch published and actual workflows executed through an explicitly authorized GitHub path. No issue has been closed; old umbrella tasks are retained as history.

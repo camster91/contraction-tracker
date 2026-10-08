@@ -1,3 +1,5 @@
+> Current October 8 reconciliation: candidate build 12/source 22dceb8fed88c9c5ce71da46fc123388fc359568 adds private-data backup exclusion. Build 11 is signed, uploaded, Testing in authorized groups and attached to the public draft. Apple privacy, rating, content rights, free price, listing copy and ten native images are saved. Owner declarations, physical/professional/observed-user gates, original Android key, Google verification and release CI remain open. The v1.2.1/build 6/7 dispositions below are historical; they are not current console evidence. French, relay, monetization and wearable expansion remain deferred. GitHub issues have been read, not closed or otherwise changed by this review.
+
 # Olive current release plan
 
 Build 7 continuation, 2026-10-07: apply the approved botanical brand, working

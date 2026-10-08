@@ -1,6 +1,10 @@
 # Olive v1.3.0 submission checklist
 
-Prepared locally; no store upload or submission has occurred. Build 6 must be confirmed unused in App Store Connect before signing/uploading. Do not infer review timing or approval from a local test.
+Current October 8 state: signed build 11 has been uploaded, processed and made available in the existing TestFlight groups. Public App Store submission has not occurred. Build 12 is the replacement backup-privacy candidate, source `22dceb8fed88c9c5ce71da46fc123388fc359568`; follow SHIPPING.md for its processing state. The numbered procedure below is retained as the full release protocol, not a list of ten untouched tasks.
+
+Completed: reviewed UI remediation, branding/assets, matching native provenance, signed iOS export, build 11 upload/TestFlight, native iPhone/iPad listing images, Apple privacy publication, age rating/content rights, listing copy and free pricing. Local build 12 checks and Simulator backup flags passed.
+
+Open: owner copyright/territories and applicable factual declarations; physical iOS/Android acceptance; independent professional review; observed-user evidence; original Android key and Google account verification; current-source release CI/publication; build 12 privacy-page deployment and store processing; public submission/approval/availability. Independent studies and CI are repository acceptance gates, not Apple questionnaire requirements. Do not mark them complete based on host tests.
 
 1. Complete current source checks and retain a source manifest with artifact hashes. Review `docs/RELEASE-PLAN.md` and reconcile all remaining current-scope issues.
 2. Cameron signs into App Store Connect and confirms paid Apple Developer membership, Team ID, app record `com.ashbi.olive`, and build availability. Configure the app and Live Activity extension under that same team and valid profiles.
