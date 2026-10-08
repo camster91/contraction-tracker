@@ -1,10 +1,10 @@
 {
   "schema": "olive-store-metadata-v1",
   "version": "1.3.0",
-  "build": 10,
+  "build": 11,
   "bundleId": "com.ashbi.olive",
   "locale": "en",
-  "name": "Olive — Contraction Timer",
+  "name": "Olive \u2014 Contraction Timer",
   "subtitle": "Private labor timer",
   "shortDescription": "Private contraction timing, history and care-team reminders, without an account",
   "description": "Olive is a private contraction timer and birth-journey organizer. Tap Start when a contraction begins and Stop when it ends. Review the recorded duration and interval, add a missed contraction, or correct an earlier entry.\n\nYOUR TIMING, IN ONE PLACE\nRecord contraction timing, optional intensity, notes and tags. Review a factual history and export a care summary when you want to share it.\n\nYOUR CARE TEAM'S PLAN\nTiming reminders are off by default. Enter instructions from your own care team and choose whether to enable a saved reminder. Olive reports observed timing; it does not diagnose labor or tell you whether it is safe to wait.\n\nBEFORE AND AFTER LABOR\nKeep a private care card, questions for your provider, practical responsibilities, a hospital-bag checklist and postpartum notes. Log exam measurements reported to you by your care team without interpreting progress.\n\nLOCAL AND OFFLINE\nCore timing and records work offline. No account, ads or analytics are required. Olive stores your records on your device and does not send them to the developer. Export a backup before changing devices or uninstalling the app. Files you choose to save or share may leave the device through the destination you select.\n\nOlive organizes your observations and notes. It does not replace professional care. Follow your care team's instructions and contact them when you have concerns.\n\nPrivacy: https://olive.ashbi.ca/privacy/",

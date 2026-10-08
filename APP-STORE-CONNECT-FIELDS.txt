@@ -24,7 +24,7 @@ olive-contract-timer-v1
 
 VERSION / BUILD
 ────────────────────────────────────────────────────────────────────────
-1.3.0 / 10 (Xcode upload succeeded; processing and console selection unverified)
+1.3.0 / 11 (licence-notice candidate; native build and console selection pending)
 
 
 USER ACCESS (for App Review)
