@@ -29,7 +29,7 @@ const SHOTS: Shot[] = [
 ];
 
 for (const shot of SHOTS) {
-  test(`screenshot: ${shot.name}`, async ({ page }) => {
+  test(`screenshot: ${shot.name}`, async ({ page }, info) => {
     await page.goto(BASE_URL, { waitUntil: 'domcontentloaded' });
     await helpers.waitForApp(page);
     await helpers.skipOnboardingIfPresent(page);
@@ -106,10 +106,22 @@ for (const shot of SHOTS) {
       // deviceScaleFactor=3 is set in playwright.config.ts; combined with
       // 430x932 viewport, the resulting PNG is 1290x2796.
     });
-    const out = `${OUT}/${shot.name}.png`;
+    const out = `${OUT}/${info.project.name.replace(/[^a-z0-9]+/gi, "-")}-${shot.name}.png`;
     fs.writeFileSync(out, buffer);
-    console.log(`wrote ${out} (${buffer.length} bytes, ${buffer.length > 100_000 ? 'ok' : 'TOO SMALL'})`);
+    console.log(`wrote ${out} (${buffer.length} bytes)`);
 
-    expect(buffer.length).toBeGreaterThan(100_000);
+    // PNG compression varies by engine and platform. Verify the actual
+    // listing dimensions and rendered state rather than an arbitrary file size.
+    expect(buffer.subarray(0, 8).toString('hex')).toBe('89504e470d0a1a0a');
+    expect(buffer.readUInt32BE(16)).toBe(1290);
+    expect(buffer.readUInt32BE(20)).toBe(2796);
+    if (shot.name === '02-contraction-active') {
+      await expect(page.getByRole('button', { name: 'Stop', exact: true })).toBeInViewport();
+    } else if (shot.name === '05-care-plan-reminder') {
+      await expect(page.getByText('Saved care-plan reminder')).toBeVisible();
+    } else {
+      await expect(page.getByRole('button', { name: /^Start/ })).toBeInViewport();
+      if (shot.name === '03-history') await expect(page.getByRole('button', { name: 'Edit', exact: true })).toBeVisible();
+    }
   });
 }

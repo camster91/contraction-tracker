@@ -11,21 +11,10 @@
  *
  * Run with: npx playwright test e2e/cross-browser.spec.ts --project='iPhone 14 (webkit)'
  *
- * NOT run in CI by default â€” these tests require the live PWA to
- * load, and on slow CI networks the `retries: 2` config can amplify
- * a slow first attempt into a 10+ minute hang. Use as a release
- * validation tool: `npx playwright install webkit && npx playwright
- * test e2e/cross-browser.spec.ts --project='iPhone 14 (webkit)'`.
+ * CI runs both engines against the local production build.
  */
 import { test, expect } from '@playwright/test';
 import * as helpers from './helpers';
-
-// Skip the entire file in CI â€” the chromium project already covers
-// the same flows against the same live URL, with the same retry
-// behavior. Cross-browser is opt-in for release validation, not CI.
-test.beforeAll(({ }) => {
-  if (process.env.CI) test.skip(true, 'cross-browser suite is opt-in for release validation');
-});
 
 const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:8765/';
 

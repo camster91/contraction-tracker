@@ -55,7 +55,7 @@ test('pausing sounds persists across reload and retains factual summary and call
   await expect(page.getByRole('button', { name: 'Resume reminder sounds' })).toBeVisible();
   expect(await spoken(page)).toEqual([]);
   await expect(page.getByRole('navigation', { name: 'Care access' }).getByRole('link', { name: 'Call Example care team' })).toHaveAttribute('href', 'tel:+15550100');
-  await page.screenshot({ path: `/Users/Cameron/Documents/Codex/2026-10-05/let-s-work-on-the-olive/outputs/remediation-round-4/${info.project.name.includes('webkit') ? 'webkit' : 'chromium'}-paused-reminder.png` });
+  await page.screenshot({ path: info.outputPath('paused-reminder.png') });
   await page.getByRole('button', { name: 'Resume reminder sounds' }).click();
   await expect.poll(() => spoken(page)).toHaveLength(1);
 });

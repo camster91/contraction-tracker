@@ -1,7 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { waitForApp } from './helpers';
 
-const output = '/Users/Cameron/Documents/Codex/2026-10-05/let-s-work-on-the-olive/outputs/remediation-round-3';
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
     if (sessionStorage.getItem('navigation-fixture')) return;
@@ -20,7 +19,7 @@ test('care setup opens directly and returns focus to the correct shortcut', asyn
   const dialog = page.getByRole('dialog', { name: 'Birth journey' });
   await expect(dialog.getByLabel('Care provider or team')).toBeVisible();
   await expect(dialog.getByRole('button', { name: 'Close birth journey' })).toBeInViewport();
-  await page.screenshot({ path: `${output}/${info.project.name.includes('webkit') ? 'webkit' : 'chromium'}-care-setup.png` });
+  await page.screenshot({ path: info.outputPath('care-setup.png') });
   await page.keyboard.press('Escape');
   await expect(shortcut).toBeFocused();
   await page.getByRole('button', { name: 'Care contacts', exact: true }).click();
@@ -28,7 +27,7 @@ test('care setup opens directly and returns focus to the correct shortcut', asyn
   await contacts.getByRole('button', { name: 'Add', exact: true }).click();
   await expect(contacts.getByText('Phone number', { exact: true })).toBeVisible();
   await expect(contacts.getByText('Email address', { exact: true })).toBeVisible();
-  await page.screenshot({ path: `${output}/${info.project.name.includes('webkit') ? 'webkit' : 'chromium'}-contact-form.png` });
+  await page.screenshot({ path: info.outputPath('contact-form.png') });
   await page.setViewportSize({ width: 390, height: 450 });
   await contacts.getByLabel('Email address').focus();
   await expect(contacts.getByRole('button', { name: 'Close care contacts' })).toBeInViewport();
@@ -41,7 +40,7 @@ test('care setup opens directly and returns focus to the correct shortcut', asyn
 test('preparation tools return to one journey and checklist order survives reload', async ({ page }, info) => {
   await page.getByRole('button', { name: 'Open birth journey' }).click();
   await expect(page.getByRole('dialog')).toHaveCount(1);
-  await page.screenshot({ path: `${output}/${info.project.name.includes('webkit') ? 'webkit' : 'chromium'}-journey.png` });
+  await page.screenshot({ path: info.outputPath('journey.png') });
   await page.getByRole('button', { name: /Hospital bag Packing checklist/ }).click();
   const sheet = page.getByRole('dialog', { name: 'Hospital bag' });
   await expect(page.getByRole('dialog')).toHaveCount(1);
@@ -52,7 +51,7 @@ test('preparation tools return to one journey and checklist order survives reloa
   await down.focus();
   await page.keyboard.press('Space');
   await expect(sheet.getByRole('button', { name: /^Mark .* as packed$/ }).nth(1)).toHaveAttribute('aria-label', `Mark ${firstName} as packed`);
-  await page.screenshot({ path: `${output}/${info.project.name.includes('webkit') ? 'webkit' : 'chromium'}-checklist-reorder.png` });
+  await page.screenshot({ path: info.outputPath('checklist-reorder.png') });
   await sheet.getByRole('button', { name: 'Close hospital bag' }).click();
   await expect(page.getByRole('dialog', { name: 'Birth journey' })).toBeVisible();
   await page.getByRole('button', { name: 'Close birth journey' }).click();
@@ -83,7 +82,7 @@ test('optional annotations use keyboard buttons and persist only on Save', async
   await page.getByRole('button', { name: 'Intensity 6', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Intensity 6', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await page.getByLabel('Note (optional)').fill('Fabricated review note');
-  await page.screenshot({ path: `${output}/${info.project.name.includes('webkit') ? 'webkit' : 'chromium'}-record-details.png` });
+  await page.screenshot({ path: info.outputPath('record-details.png') });
   await page.getByRole('button', { name: 'Save', exact: true }).click();
   await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('contraction-tracker:v1')!).contractions[0].painLocations)).toEqual(['lower back (back)']);
   await page.reload({ waitUntil: 'domcontentloaded' });
