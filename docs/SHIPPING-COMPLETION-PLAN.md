@@ -152,3 +152,9 @@ Next: complete native images and device acceptance on build 8. Apple allows only
 ## Native UI continuation — October 7, 2026
 
 The standalone Device Hub display restored touch interaction. Eight actual native PNGs at 1206 × 2622 are now captured and hashed. Sessions/Stop, a changed edit draft followed by non-destructive Cancel, and enlarged Big Text timer were exercised in the isolated Simulator. Background/reopen continuity was observed, without independent-clock accuracy or lock/process-kill verification. Details and limits are recorded in NATIVE-DEVICE-ACCEPTANCE.md; the final listing set and physical acceptance remain open.
+
+## Header alignment correction — October 7, 2026
+
+Cameron flagged the logo relative to Sessions, speaker and Settings. The leaf makes the lettering sit low within the wordmark bounds, while inline SVG layout offsets the two icon controls. Added a 2px optical lift to the wordmark and explicit centered flex layout for both 44px icon buttons. Eight fresh rendered checks passed in Chromium/WebKit at 320/390px, normal/Big Text; icon centers match and all header touch targets remain at least 44px and within the viewport. Lint, TypeScript and production build passed. Evidence: task outputs/header-alignment.
+
+This source correction is after the distributed build 8. Build 8 remains the verified prior candidate; the alignment change needs a new native build and refreshed affected screenshots before claiming it is distributed. Do not reuse build-8 provenance for the changed payload.

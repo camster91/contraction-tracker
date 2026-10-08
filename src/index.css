@@ -74,6 +74,8 @@ html, body, #root {
   height: 33px;
   flex-shrink: 0;
   background: var(--color-ink-50);
+  /* Center the lettering optically; the leaf above the O makes its body sit low. */
+  transform: translateY(-2px);
   mask: url('/branding/wordmark.png') center / contain no-repeat;
   -webkit-mask: url('/branding/wordmark.png') center / contain no-repeat;
 }

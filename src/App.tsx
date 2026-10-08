@@ -1284,7 +1284,7 @@ export default function App() {
           {/* Sound on/off */}
           <button
             onClick={handleMuteToggle}
-            className={`p-2 rounded-lg transition-colors ${
+            className={`min-h-11 min-w-11 inline-flex items-center justify-center p-2 rounded-lg transition-colors ${
               muted ? 'text-ink-500 active:text-ink-300' : 'text-ink-300 active:text-rose-300'
             }`}
             aria-label={muted ? 'Sound off — tap to enable' : 'Sound on — tap to mute'}
@@ -1295,7 +1295,7 @@ export default function App() {
           {/* Settings */}
           <button
             onClick={() => setShowSettings((s) => !s)}
-            className="min-h-11 min-w-11 p-2 rounded-lg text-ink-300 active:text-rose-300 active:bg-ink-100/10 transition-colors"
+            className="min-h-11 min-w-11 inline-flex items-center justify-center p-2 rounded-lg text-ink-300 active:text-rose-300 active:bg-ink-100/10 transition-colors"
             aria-label="Settings"
             title="Settings"
           >
