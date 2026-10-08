@@ -188,7 +188,7 @@ export default function SettingsSheet({
                 <Download className="w-4 h-4 text-sage-300" strokeWidth={1.75} />
                 <div className="flex-1 min-w-0">
                   <div className="font-medium">Export backup</div>
-                  <div className="text-xs text-ink-300">Download .json file</div>
+                  <div className="text-xs text-ink-300">Save a full .json backup separately</div>
                 </div>
               </button>
               <button
@@ -197,8 +197,8 @@ export default function SettingsSheet({
               >
                 <Share2 className="w-4 h-4 text-rose-300" strokeWidth={1.75} />
                 <div className="flex-1 min-w-0">
-                  <div className="font-medium">Send via…</div>
-                  <div className="text-xs text-ink-300">AirDrop, message, email</div>
+                  <div className="font-medium">Share backup</div>
+                  <div className="text-xs text-ink-300">Full .json file · includes private care details</div>
                 </div>
               </button>
               <button
@@ -212,6 +212,7 @@ export default function SettingsSheet({
                 </div>
               </button>
             </div>
+            <p className="text-xs text-ink-300 mt-3 leading-relaxed">A backup includes your records, notes, and contacts. For a readable contraction message, use Share summary in History.</p>
           </div>
 
           <section aria-label="Privacy and support" className="border-t border-ink-200/20 mt-3 pt-3">

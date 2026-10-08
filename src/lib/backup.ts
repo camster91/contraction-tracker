@@ -88,9 +88,9 @@ export function migrateBackup(
 }
 
 /** Trigger a browser download of the backup JSON file. */
-export async function downloadBackup(data: BackupData): Promise<void> {
+export async function downloadBackup(data: BackupData): Promise<boolean> {
   const date = new Date().toISOString().split('T')[0];
-  await exportTextFile(JSON.stringify(data, null, 2), `olive-backup-${date}.json`, 'application/json', 'Olive backup');
+  return exportTextFile(JSON.stringify(data, null, 2), `olive-backup-${date}.json`, 'application/json', 'Olive backup');
 }
 
 /** Read and parse a backup file selected by the user. */

@@ -128,7 +128,7 @@ test('care summary shares an objective provider-ready handoff', async ({ page })
 
   const shared = await page.evaluate(() => (window as unknown as { __oliveShared: { text?: string } }).__oliveShared);
   expect(shared.text).toContain('Olive care summary');
-  expect(shared.text).toContain('Recent pattern');
+  expect(shared.text).toContain('Last 60 minutes');
   expect(shared.text).toContain('does not diagnose labor');
 });
 

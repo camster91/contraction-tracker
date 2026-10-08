@@ -213,7 +213,7 @@ export function buildSummary(contractions: Contraction[], now: number = Date.now
   const avgDuration = Math.round(durations.reduce((a, b) => a + b, 0) / durations.length);
 
   const lines: string[] = [];
-  lines.push(`Contraction log — ${new Date().toLocaleString()}`);
+  lines.push(`Contraction log — ${new Date(now).toLocaleString()}`);
   lines.push(`Total: ${finished.length} contractions over ${totalElapsedMin} min`);
   lines.push(`Average duration: ${avgDuration}s`);
 
@@ -244,46 +244,49 @@ export function buildCareSummary(
   plan: ContractionReminderPlan,
   now: number = Date.now(),
 ): string {
-  const finished = contractions
-    .filter((c) => c.end)
-    .sort((a, b) => a.start.localeCompare(b.start));
-  if (finished.length === 0) return 'Olive care summary\nNo contractions recorded yet.';
-
-  const recentCutoff = now - plan.windowMinutes * 60_000;
-  const recent = finished.filter((c) => new Date(c.start).getTime() >= recentCutoff);
-  const sample = recent.length > 0 ? recent : finished.slice(-6);
-  const durations = sample.map((c) => durationSeconds(c, now));
-  const averageDuration = Math.round(durations.reduce((sum, value) => sum + value, 0) / durations.length);
-  const gaps = sample.slice(1).map((c, index) => intervalSeconds(sample[index], c));
-  const averageGap = gaps.length
-    ? Math.round(gaps.reduce((sum, value) => sum + value, 0) / gaps.length)
-    : null;
-  const last = finished[finished.length - 1];
-
-  const lines = [
-    `Olive care summary — ${new Date(now).toLocaleString()}`,
-    'This is an observed timing summary and does not diagnose labor.',
-  ];
-  if (plan.providerName) lines.push(`Care provider/team: ${plan.providerName}`);
-  if (plan.providerPhone) lines.push(`Care provider phone: ${plan.providerPhone}`);
-  lines.push('');
-  lines.push(`Recent pattern (${plan.windowMinutes}-minute window):`);
-  lines.push(`• ${recent.length} completed contraction${recent.length === 1 ? '' : 's'}`);
-  lines.push(`• Average duration: ${formatDuration(averageDuration)}`);
-  lines.push(`• Average interval: ${averageGap === null ? 'not available' : formatDuration(averageGap)}`);
-  lines.push(`• Last contraction ended: ${formatRelative(new Date(last.end || last.start), now)}`);
-  lines.push('');
-  lines.push(`Saved reminder: every ${plan.intervalMinutes} min, lasting ${plan.durationSeconds}s, for ${plan.windowMinutes} min`);
-  lines.push('');
-  lines.push('Most recent entries:');
-  for (const contraction of finished.slice(-6).reverse()) {
-    const details = [
-      `${formatClock(contraction.start)} — ${formatDuration(durationSeconds(contraction, now))}`,
-      contraction.intensity ? `intensity ${contraction.intensity}/10` : '',
-      contraction.note?.trim() || '',
-    ].filter(Boolean);
-    lines.push(`• ${details.join(' · ')}`);
+  const finished = contractions.filter((record) => {
+    const start = Date.parse(record.start);
+    const end = record.end ? Date.parse(record.end) : NaN;
+    return Number.isFinite(start) && Number.isFinite(end) && end >= start && end <= now;
+  }).sort((a, b) => Date.parse(a.start) - Date.parse(b.start));
+  const dateTime = (time: number | string) => new Intl.DateTimeFormat(undefined, {
+    year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZoneName: 'short',
+  }).format(new Date(time));
+  const lines = ['Olive care summary', `Prepared ${dateTime(now)}`, ''];
+  if (!finished.length) {
+    lines.push('No completed contractions recorded yet.');
+  } else {
+    const recent = finished.filter((record) => Date.parse(record.start) >= now - plan.windowMinutes * 60_000);
+    const averageDuration = recent.length
+      ? Math.round(recent.reduce((sum, record) => sum + durationSeconds(record, now), 0) / recent.length)
+      : null;
+    const gaps = recent.slice(1).map((record, index) => intervalSeconds(recent[index], record));
+    const averageGap = gaps.length ? Math.round(gaps.reduce((sum, gap) => sum + gap, 0) / gaps.length) : null;
+    lines.push(`Last ${plan.windowMinutes} minutes`,
+      `Completed contractions: ${recent.length}`,
+      `Average duration: ${averageDuration === null ? 'not available' : formatElapsed(averageDuration)}`,
+      `Average start-to-start interval: ${averageGap === null ? 'not available' : formatElapsed(averageGap)}`, '');
+    lines.push(`Latest ${Math.min(6, finished.length)} completed ${finished.length === 1 ? 'contraction' : 'contractions'} (may include earlier records)`);
+    for (const record of finished.slice(-6).reverse()) {
+      const details = [
+        `${dateTime(record.start)} — ${formatElapsed(durationSeconds(record, now))}`,
+        record.source === 'manual' ? 'added manually' : '',
+        record.intensity ? `intensity ${record.intensity}/10` : '',
+        record.note?.trim() || '',
+        getTags(record).length ? `tags: ${getTags(record).join(', ')}` : '',
+        record.painLocations?.length ? `pain location: ${record.painLocations.join(', ')}` : '',
+      ].filter(Boolean);
+      lines.push(`• ${details.join(' · ')}`);
+    }
+    lines.push('');
   }
+  if (plan.enabled === true) {
+    if (plan.providerName) lines.push(`Care team: ${plan.providerName}`);
+    lines.push(`Your saved timing reminder: every ${plan.intervalMinutes} min, lasting at least ${plan.durationSeconds}s, for ${plan.windowMinutes} min`);
+  } else {
+    lines.push('Timing reminders: off');
+  }
+  lines.push('', 'This summary reports recorded observations and does not diagnose labor.');
   return lines.join('\n');
 }
 

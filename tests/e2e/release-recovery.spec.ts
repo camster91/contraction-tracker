@@ -2,7 +2,13 @@ import { expect, test } from '@playwright/test';
 
 test('a startup render failure offers a saved-data export without exposing the error', async ({ page }) => {
   await page.addInitScript(() => {
-    localStorage.setItem('contraction-tracker:backup-dismissed', 'invalid-json-private-marker');
+    // Inject a render-time read failure independently of any particular UI
+    // feature; the retired backup reminder no longer causes a startup crash.
+    const getItem = Storage.prototype.getItem;
+    Storage.prototype.getItem = function (key: string) {
+      if (key === 'contraction-tracker:onboarding-seen') throw new Error('invalid-json-private-marker');
+      return getItem.call(this, key);
+    };
     localStorage.setItem('contraction-tracker:v1', JSON.stringify({ contractions: [
       { id: 'fake-c1', start: '2026-10-05T12:00:00.000Z', end: '2026-10-05T12:01:00.000Z' },
     ] }));
@@ -15,6 +21,7 @@ test('a startup render failure offers a saved-data export without exposing the e
   await page.getByRole('button', { name: 'Export recovered backup' }).click();
   expect((await download).suggestedFilename()).toMatch(/^olive-backup-.*\.json$/);
   await expect(page.getByRole('button', { name: 'Reload Olive' })).toBeEnabled();
+  await expect(page.getByRole('link', { name: 'Contact Olive support' })).toHaveAttribute('href', 'https://olive.ashbi.ca/support/');
 });
 
 test('fresh install requires explicit opt-in before saved timing reminders are enabled', async ({ page }) => {

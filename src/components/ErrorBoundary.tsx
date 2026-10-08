@@ -40,7 +40,7 @@ export default class ErrorBoundary extends Component<{ children: ReactNode }, St
       {this.state.exportError && <p role="alert">The backup could not be exported. Keep Olive installed and try reloading.</p>}
       <button style={button} onClick={() => window.location.reload()}>Reload Olive</button>
       <p style={{ maxWidth: 360 }}>If the problem continues, keep the app installed and contact support. An exported backup can be imported through Settings after Olive opens again.</p>
-      <a href="https://olive.ashbi.ca" style={{ color: '#E8AD8B', padding: 12 }}>Contact Olive support</a>
+      <a href="https://olive.ashbi.ca/support/" style={{ color: '#E8AD8B', padding: 12 }}>Contact Olive support</a>
     </main>;
   }
 }

@@ -1,3 +1,36 @@
+## Approved execution plan — October 8, 2026
+
+This section supersedes older next-action and candidate status below. Cameron approved planning and continuation after the UX/code review. Preserve earlier build receipts as history. The objective remains verified iOS and Android release, with one consolidated candidate per correction round.
+
+Current evidence: reviewed implementation `13017b17d7191f29238706af51b0cc24775150de`; documentation `7bb9a4d`. Local lint, typecheck and production build passed, with 37 unit and 82 affected Chromium/WebKit tests and zero skips. These fixes are not in uploaded build 13. PR #79 was merged, but its CI does not cover this newer local source. Build 13 upload succeeded; processing and current tester availability await authenticated console verification. Public privacy/support were restored and verified against source. No physical acceptance or public Apple approval is recorded.
+
+| Stage | Owner | Work and exit evidence |
+| --- | --- | --- |
+| 1. Freeze candidate 14 | Codex | Consolidate readable phone sharing, private backup handling, modal accessibility, immediate Stop count and recovery support fixes. Synchronize all native build numbers. Publish the reviewed source through the authorized GitHub path; obtain green checks on its exact revision. Build from a clean isolated source, record provenance and hashes, sign and inspect app plus extension. Preserve every existing archive and signing file. |
+| 2. Make it installable | Codex; Cameron for login | Verify Apple processing before creating any duplicate upload. Upload the inspected candidate once, verify compliance and What to Test, then confirm Testing for the existing Cameron and Bianca groups. Resume console work when Cameron completes the existing Apple sign-in request. |
+| 3. Test the exact build | Cameron and testers; Codex fixes failures | Record device, OS and build. Test offline Start/Stop, lock/background/relaunch, history editing/Cancel/Delete/Undo, native Mail/Messages summary and cancellation, backup export/import/cancellation, recovery, keyboard, Big Text, VoiceOver and iPad layout where supported. Use fabricated data and consented recipients. Actual results are required; Simulator/browser checks are supplementary. |
+| 4. Finish review and listing | Codex; Cameron; independent reviewers | Refresh affected screenshots from the native final candidate. Verify support/privacy, accurate feature copy, privacy and age declarations, review notes and selected build. Cameron supplies factual owner/trader/medical-device/territory declarations where required. Reconcile the repository's two independent maternity-professional copy reviews and observed-user acceptance gates; document decisions and resolve release-blocking feedback. |
+| 5. Submit and release iOS | Codex within existing approved scope; Apple | Submit the verified candidate after the gates above. Record submission receipt, handle actionable feedback, and distinguish Waiting for Review from acceptance. Verify the released listing and installable version; retain support and rollback records. Do not promise Apple approval. |
+| 6. Complete Android | Cameron for original key/account; Codex for build/listing; Google | Recover the original upload keystore and protected configuration without replacing the certificate. Complete Google organization/website/phone verification. Sign the matching candidate, inspect it, run physical Android/TalkBack acceptance, prepare accurate Play assets/declarations, verify internal testing, then submit and verify the intended release. This dependency does not prevent iOS preparation. |
+
+Scope is completion of existing features and review fixes. Defer new features, monetization, wearables, localization expansion and broad refactors. Optional UX polish enters this candidate only if it fixes a demonstrated blocker in the required journeys.
+
+### Candidate and decision rules
+
+- Each upload uses an unused build number confirmed against App Store Connect, one immutable source revision and measured artifact identity. Build 14 is reserved locally, not confirmed unused in Apple's console yet.
+- A failing required check blocks merge/upload. Never substitute earlier build or PR results for the new source.
+- A phone test failure produces a bounded fix and a replacement candidate only when needed; retain the original evidence.
+- Public acceptance, tester invitation, installation, and local test results remain separate states. Existing invitations are not installation evidence.
+- Do not fabricate owner declarations, professional approval or device results. Continue independent preparation while those dependencies remain open.
+
+### Immediate next action
+
+Prepare the synchronized build-14 source and recover enough task-owned disposable compiler space for an isolated signed archive. At the start of this round disk free space was only 186 MiB. A recorded cleanup removed only build-13 DerivedData and Android compiler output; archives, exports, keys and source were retained. No build-14 binary or upload is claimed yet. In parallel, the existing Apple sign-in request remains the console dependency.
+
+### Completion criteria
+
+The iOS milestone is an accepted, installable App Store release with verified candidate identity and completed device/review evidence. The Android milestone is an accepted, installable Play release signed with the original certificate and completed device evidence. The overall shipping objective stays incomplete until both milestones are evidenced or Cameron explicitly changes the scope.
+
 > October 8 review reconciliation: local placement/UI remediation and supplementary Simulator captures are complete. Physical keyboard/accessibility acceptance remains open. Build 11 completed iOS upload/beta/listing preparation; build 12 is the backup-exclusion replacement. Mixed-platform and public-release tasks stay open until both required outcomes are evidenced. See APP-STORE-REVIEW.md and SUBMISSION-CHECKLIST.md.
 
 # Olive shipping completion plan
@@ -79,7 +112,7 @@ Work in order: recording correctness → placement/accessibility → candidate v
 
 Maintain a short progress record identifying verified work, candidate identity, remaining gate, owner, and resume condition. Mark the goal complete only after the intended release outcomes, or after Cameron explicitly narrows the objective. Do not equate browser QA, local builds, upload processing, or a waiting store review with shipping completion.
 
-Current next action: obtain the owner declarations and actual physical/professional/observed-user evidence. Build 12 is processed, compliance saved and Testing in the existing groups. Build 11 beta and listing preparation are verified. Owner declarations, physical acceptance, professional/observed-user evidence, original Android key, Google verification and current-source CI remain open. Earlier implementation entries retain historical identities.
+Current next action: obtain the owner declarations and actual physical/professional/observed-user evidence. Build 12 is processed, compliance saved and Testing in the existing groups. Build 11 beta and listing preparation are verified. Owner declarations, physical acceptance, professional/observed-user evidence, original Android key, Google verification and public-store review remain open. Actual current-source CI passed on draft PR #79 head 1cc398a: Build, Lint, GitGuardian and 218 browser tests with zero skips. Merge remains unconfirmed. Earlier implementation entries retain historical identities.
 
 ## Implementation round 1 — October 7, 2026
 
@@ -224,3 +257,7 @@ October 8 final store preparation check: free pricing persisted after reload, wi
 Build 12 has signed iOS and matching unsigned Android artifact evidence. It adds private-data backup exclusion, verified on installed Simulator directories. All 33 unit tests and affected host/static checks passed; runtime dependency audit has no known vulnerabilities. UI assets match 11, so no new layout is claimed or required. Apple upload succeeded, processing completed, compliance saved and both existing groups are Testing with three invites. Public privacy was updated after SSH recovered; prior page backed up and both English endpoints verified HTTP 200 with exact source match, including signed IPA privacy.
 
 Remaining repository gates include observed-user sessions (#70), not only professional wording review (#69) and physical accessibility/native checks (#60/#65/#47). Current release CI (#50) needs the reviewed branch published and actual workflows executed through an explicitly authorized GitHub path. No issue has been closed; old umbrella tasks are retained as history.
+
+## October 8 evening test preparation
+
+Build 12 is the evening TestFlight candidate. Release checks passed on PR #79 head 1cc398a with 218 browser tests and no skips. The CI changes do not alter the build 12 runtime. A short physical test guide and unfilled structured results template are prepared in task outputs/remediation-build12 (TONIGHT-TEST.md and device-results-blank.json). Actual device results, professional decisions and owner declarations remain unrecorded. No replacement Android key, additional app upload, public review submission or merge occurred.
