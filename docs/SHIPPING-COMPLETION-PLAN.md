@@ -77,7 +77,7 @@ Work in order: recording correctness → placement/accessibility → candidate v
 
 Maintain a short progress record identifying verified work, candidate identity, remaining gate, owner, and resume condition. Mark the goal complete only after the intended release outcomes, or after Cameron explicitly narrows the objective. Do not equate browser QA, local builds, upload processing, or a waiting store review with shipping completion.
 
-Current next action: execute physical-device acceptance on internal TestFlight build 8, finish native listing images and professional copy review, and restore the original Android upload key while Google account verification proceeds. Earlier implementation entries below retain their original next actions as history.
+Current next action: reconnect Chrome to verify build 10 processing/compliance and internal TestFlight availability, then execute physical-device acceptance on that exact candidate. Ten native iPhone/iPad listing images are prepared; professional copy review, the original Android upload key and Google account verification remain open. Earlier implementation entries below retain their original next actions as history.
 
 ## Implementation round 1 — October 7, 2026
 
