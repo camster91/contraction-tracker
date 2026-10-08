@@ -114,6 +114,10 @@ input, textarea {
 }
 /* Native iOS date widgets have an intrinsic width; keep them within their field. */
 input[type='date'], input[type='time'], input[type='datetime-local'] {
+  appearance: none;
+  -webkit-appearance: none;
+  box-sizing: border-box;
+  display: block;
   min-width: 0;
   max-width: 100%;
 }
