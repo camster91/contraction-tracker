@@ -112,6 +112,11 @@ button {
 input, textarea {
   font-family: inherit;
 }
+/* Native iOS date widgets have an intrinsic width; keep them within their field. */
+input[type='date'], input[type='time'], input[type='datetime-local'] {
+  min-width: 0;
+  max-width: 100%;
+}
 
 /* Display font for the big timer numerals */
 .font-display {

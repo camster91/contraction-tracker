@@ -56,11 +56,11 @@ export default function ManualContractionSheet({ onClose, onSave }: Props) {
             <button onClick={onClose} className="min-h-11 min-w-11 rounded-xl text-ink-300" aria-label={t('manual.close')}><X className="mx-auto h-5 w-5" /></button>
           </div>
           <p className="mb-4 text-sm leading-relaxed text-ink-300">{t('manual.description')}</p>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <label className="text-sm text-ink-200">{t('manual.started')}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <label className="min-w-0 text-sm text-ink-200">{t('manual.started')}
               <input type="datetime-local" value={startValue} onChange={(event) => { setStartValue(event.target.value); setError(null); }} className="mt-1 min-h-12 w-full rounded-xl border border-ink-200/30 bg-ink-100/5 px-3 text-base text-ink-50" />
             </label>
-            <label className="text-sm text-ink-200">{t('manual.ended')}
+            <label className="min-w-0 text-sm text-ink-200">{t('manual.ended')}
               <input type="datetime-local" value={endValue} onChange={(event) => { setEndValue(event.target.value); setError(null); }} className="mt-1 min-h-12 w-full rounded-xl border border-ink-200/30 bg-ink-100/5 px-3 text-base text-ink-50" />
             </label>
           </div>
