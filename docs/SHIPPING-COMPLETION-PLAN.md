@@ -196,3 +196,7 @@ Apple version 1.3.0 remains Prepare for Submission. Prepared description, promot
 ## App information and privacy draft — October 7, 2026
 
 Subtitle Private labor timer and primary Health & Fitness category persisted after returning to App Information. Verified privacy-policy URL and Data Not Collected response persisted in App Privacy. Final Publish opens an agreement attesting accuracy, legal compliance and future updates; the owner was asked for action-time approval and no final Publish occurred. Age rating, content rights, regulated-medical-device declaration, trader status, copyright and launch countries remain incomplete or awaiting owner facts. Screenshot upload permission, physical/professional acceptance and Android/account gates remain open. Evidence: task outputs/remediation-build10/apple-app-info-evidence.json and apple-privacy-publish-confirmation.png.
+
+## October 7 saved age questionnaire
+
+Apple questionnaire completed and reload verified for Olive: calculated 9+ in 172 regions; Vietnam/Brazil 12+, Korea All, earlier operating systems global 4+ with exceptions. No override. Current observations and preparation tools support wellness Yes, with no diagnostic/treatment guidance or objectionable content. This is separate from owner medical-device status. Chrome 5 reconnect allowed questionnaire work, but screenshot upload still reports disabled extension file-URL access; none uploaded. Privacy publishing attestation, owner facts, physical acceptance, professional reviews, Google verification and original Android key remain open.
