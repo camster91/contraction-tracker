@@ -1,0 +1,49 @@
+Control family,Purpose,Current home,Implementation evidence,Remaining acceptance
+Olive wordmark,Identify the app,Main header,Retained; reviewed placement in current source and rounds 1–4,Final candidate device/accessibility acceptance
+Start / Stop,Record a contraction,Main timer; persistent Stop while active,Retained; reviewed placement in current source and rounds 1–4,Final candidate device/accessibility acceptance
+Duration / progress,See current recording,Main timer,Retained; reviewed placement in current source and rounds 1–4,Final candidate device/accessibility acceptance
+Started at / adjust details,Correct a running start,Collapsed timer details,Retained; reviewed placement in current source and rounds 1–4,Final candidate device/accessibility acceptance
+Picture in picture,See timing while using another browser window,Browser-only timer utility,Native-platform guard on UI and handler; browser capability detection,Verify hidden in installed native candidates
+Screen awake status,Explain wake-lock behavior,Small active-timer status,Cancel does not disable wake lock; availability-sensitive wording,Physical screen-lock/wake-lock testing
+Since last,See rest interval,Main between-contractions state,Retained; reviewed placement in current source and rounds 1–4,Final candidate device/accessibility acceptance
+Last hour averages,See recent timing summary,Main summary above history,Retained; reviewed placement in current source and rounds 1–4,Final candidate device/accessibility acceptance
+Read summary,Hear the summary,History share/read action,Retained; reviewed placement in current source and rounds 1–4,Final candidate device/accessibility acceptance
+Save / share summary,Give care team a record,History share menu,Retained; reviewed placement in current source and rounds 1–4,Final candidate device/accessibility acceptance
+Delete last,Remove mistaken record,Record overflow/details,Retained; reviewed placement in current source and rounds 1–4,Final candidate device/accessibility acceptance
+Stopped late corrections,Correct end time,Record details,Retained; reviewed placement in current source and rounds 1–4,Final candidate device/accessibility acceptance
+Undo toast,Recover accidental changes,Temporary status near bottom,Retained; reviewed placement in current source and rounds 1–4,Final candidate device/accessibility acceptance
+Recent history,Review previous recordings,Main screen directly after summary,Retained; reviewed placement in current source and rounds 1–4,Final candidate device/accessibility acceptance
+Edit / Save / Cancel,Correct saved record,Record editor,Retained; reviewed placement in current source and rounds 1–4,Final candidate device/accessibility acceptance
+Intensity 1–10,Optional subjective annotation,Collapsed record details,Retained; reviewed placement in current source and rounds 1–4,Final candidate device/accessibility acceptance
+Tags / filters,Annotate and find records,Record details / history filter,Retained; reviewed placement in current source and rounds 1–4,Final candidate device/accessibility acceptance
+Pain location,Optional annotation,Collapsed record details,Retained; reviewed placement in current source and rounds 1–4,Final candidate device/accessibility acceptance
+Notes,Optional context,Record details,Retained; reviewed placement in current source and rounds 1–4,Final candidate device/accessibility acceptance
+Add missed contraction,Recover forgotten recording,History,Retained; reviewed placement in current source and rounds 1–4,Final candidate device/accessibility acceptance
+Clickable empty-state Start,Repeat primary Start,Informational empty state only,Duplicate handler removed; primary Start retained,None for duplicate removal
+Sessions selector,Switch recording context,Main header → bounded sheet,Retained; reviewed placement in current source and rounds 1–4,Final candidate device/accessibility acceptance
+Create session,Begin separate recording context,Sessions sheet,Retained; reviewed placement in current source and rounds 1–4,Final candidate device/accessibility acceptance
+End / view / delete session,Manage session lifecycle,Sessions sheet,Retained; reviewed placement in current source and rounds 1–4,Final candidate device/accessibility acceptance
+Care team Call,Reach saved provider,Main screen,Retained; reviewed placement in current source and rounds 1–4,Final candidate device/accessibility acceptance
+Care contacts,Reach trusted support,Main screen → Care contacts,Retained; reviewed placement in current source and rounds 1–4,Final candidate device/accessibility acceptance
+Contact Add / edit / call / email,Maintain support people,Care contacts,Retained; reviewed placement in current source and rounds 1–4,Final candidate device/accessibility acceptance
+Care setup CTA,Set provider details and personal reminder plan,Care destination,Retained; reviewed placement in current source and rounds 1–4,Final candidate device/accessibility acceptance
+Birth journey entry,Open preparation and care tools,Main secondary destination,Retained; reviewed placement in current source and rounds 1–4,Final candidate device/accessibility acceptance
+Care card Save / Copy,Store and share practical information,Birth journey,Retained; reviewed placement in current source and rounds 1–4,Final candidate device/accessibility acceptance
+Provider questions Add / category,Prepare care-team discussion,Birth journey,Retained; reviewed placement in current source and rounds 1–4,Final candidate device/accessibility acceptance
+Responsibilities Add / assignee,Coordinate support,Birth journey,Retained; reviewed placement in current source and rounds 1–4,Final candidate device/accessibility acceptance
+Hospital bag checklist / add / delete / reorder,Prepare supplies,Birth journey,Retained; reviewed placement in current source and rounds 1–4,Final candidate device/accessibility acceptance
+Exam log / Save / Delete,Record user-supplied examination details,Birth journey / care tools,Retained; reviewed placement in current source and rounds 1–4,Final candidate device/accessibility acceptance
+Journey phase,Show preparation/labor/postpartum context,Birth journey,Retained; reviewed placement in current source and rounds 1–4,Final candidate device/accessibility acceptance
+First 12 weeks entries,Record postpartum logistics,Birth journey; phase-aware prominence,First module in postpartum phase; lower-priority in other phases,Physical-device journey acceptance
+Settings entry,Open preferences,Main header,Retained; reviewed placement in current source and rounds 1–4,Final candidate device/accessibility acceptance
+Night / Daylight,Choose appearance,Settings,Retained; reviewed placement in current source and rounds 1–4,Final candidate device/accessibility acceptance
+Big Text,Increase readability,Settings,Retained; reviewed placement in current source and rounds 1–4,Final candidate device/accessibility acceptance
+12 / 24 hour,Choose clock format,Settings,Retained; reviewed placement in current source and rounds 1–4,Final candidate device/accessibility acceptance
+Sound / Quiet hours,Control spoken/audio cues,Settings; one justified quick sound toggle,Saved-plan values in speech; reliable 10-minute repeat; persisted 24-hour pause; mute and quiet-hour checks,Actual native speaker playback and background behavior
+Backup Export / Send / Import,Protect and restore local records,Settings → Backup,Retained; reviewed placement in current source and rounds 1–4,Final candidate device/accessibility acceptance
+Privacy / Support / version,Explain local storage and get help,Settings,Retained; reviewed placement in current source and rounds 1–4,Final candidate device/accessibility acceptance
+Close / Back,Exit every sheet,Persistent sheet header,Persistent sheet headers; reduced-viewport browser focus tests,"Real keyboard, VoiceOver/TalkBack acceptance"
+Alerts / recovery notices,Explain actionable state,Contextual status,Retained; reviewed placement in current source and rounds 1–4,Final candidate device/accessibility acceptance
+Onboarding Next / Got it / dismiss,Learn core flow,First-use inline card,Retained; reviewed placement in current source and rounds 1–4,Final candidate device/accessibility acceptance
+Illustrations / patterns,Support warmth and orientation,"Onboarding, empty states, journey",Retained; reviewed placement in current source and rounds 1–4,Final candidate device/accessibility acceptance
+Unused charts / photo / voice components,No mounted current flow,Removed from source; historical files remain in Git,"No mounted imports; removed charts, photo/voice pickers, unused TodayPanel and recognition module",Full candidate suite checks

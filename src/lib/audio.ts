@@ -95,7 +95,7 @@ export function chimeStop() {
   setTimeout(() => playTone(523.25, 0.5, 0.16), 140); // C5
 }
 
-/** Single low tone for the 5-1-1 alert — attention without alarm. */
+/** Single low tone for a saved care-plan reminder — attention without alarm. */
 export function chimeAlert() {
   if (muted) return;
   // Three soft pulses
@@ -137,9 +137,9 @@ if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
 }
 
 let lastSpeechAt = 0;
-export function speak(text: string, opts: { rate?: number; pitch?: number; force?: boolean } = {}) {
-  // Quiet hours mute everything except the 5-1-1 alert (force=true).
-  if (muted || (inQuietHours && !opts.force)) return;
+export function speak(text: string, opts: { rate?: number; pitch?: number } = {}) {
+  // Quiet hours apply to all speech, including saved reminders.
+  if (muted || inQuietHours) return;
   if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
   // Throttle to avoid talking over itself
   if (Date.now() - lastSpeechAt < 800) return;

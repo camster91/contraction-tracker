@@ -1,7 +1,7 @@
 // Settings sheet — bottom overlay with theme, time format, quiet hours, backup, and version
 import { type Dispatch, type SetStateAction } from 'react';
 import { Cog, Moon, Download, Share2, Upload } from 'lucide-react';
-import { type CarePlan, type MuteSchedule, isInQuietHours } from '../lib/settings';
+import { type MuteSchedule, isInQuietHours } from '../lib/settings';
 import { useModalDialog } from '../hooks/useModalDialog';
 
 interface SettingsSheetProps {
@@ -9,8 +9,6 @@ interface SettingsSheetProps {
   setBigTextState: Dispatch<SetStateAction<boolean>>;
   muteSchedule: MuteSchedule;
   setMuteScheduleState: Dispatch<SetStateAction<MuteSchedule>>;
-  carePlan: CarePlan;
-  onCarePlanChange: (value: CarePlan) => void;
   themeVariant: 'calm' | 'cool';
   setThemeVariant: (v: 'calm' | 'cool') => void;
   hour12: boolean;
@@ -27,8 +25,6 @@ export default function SettingsSheet({
   setBigTextState,
   muteSchedule,
   setMuteScheduleState,
-  carePlan,
-  onCarePlanChange,
   themeVariant,
   setThemeVariant,
   hour12,
@@ -58,83 +54,23 @@ export default function SettingsSheet({
         <div className="flex justify-center pt-3 pb-2">
           <div className="w-8 h-1 rounded-full bg-ink-200/40" />
         </div>
-        <div className="flex-1 overflow-y-auto px-5 pb-6">
-          <div className="flex items-center gap-2 mb-3">
+          <div className="flex shrink-0 items-center gap-2 px-5 pb-3">
             <Cog className="w-4 h-4 text-ink-300" strokeWidth={1.75} />
-            <div className="text-sm font-semibold text-ink-50 font-display">Settings</div>
+            <div className="flex-1 text-sm font-semibold text-ink-50 font-display">Settings</div>
+            <button type="button" aria-label="Close settings" onClick={onClose} className="min-h-11 min-w-11 rounded-lg text-ink-200">Close</button>
           </div>
 
-          <div className="border-t border-ink-200/20 mt-3 pt-3">
-            <div className="text-[10px] uppercase tracking-[0.15em] text-ink-400 font-semibold mb-1.5">
-              Care-plan reminder
-            </div>
-            <p className="text-[10px] text-ink-500 leading-relaxed mb-3">
-              Save the timing instructions given by your care team. Olive reports observed timing only and does not diagnose labor.
-            </p>
-            <label htmlFor="care-provider-input" className="block text-[11px] text-ink-300 mb-1">
-              Care provider or team
-            </label>
-            <input
-              id="care-provider-input"
-              type="text"
-              value={carePlan.providerName}
-              onChange={(event) => onCarePlanChange({ ...carePlan, providerName: event.target.value })}
-              placeholder="e.g. North Star Midwives"
-              maxLength={80}
-              className="w-full bg-ink-100/5 border border-ink-200/30 rounded-xl px-3 py-2 text-sm text-ink-50 placeholder:text-ink-500 focus:outline-none focus:border-rose-300/50"
-            />
-            <label htmlFor="care-provider-phone" className="block text-[11px] text-ink-300 mb-1 mt-3">
-              Care provider phone
-            </label>
-            <input
-              id="care-provider-phone"
-              type="tel"
-              inputMode="tel"
-              value={carePlan.providerPhone}
-              onChange={(event) => onCarePlanChange({ ...carePlan, providerPhone: event.target.value })}
-              placeholder="e.g. +1 416 555 0142"
-              maxLength={30}
-              className="w-full bg-ink-100/5 border border-ink-200/30 rounded-xl px-3 py-2 text-base text-ink-50 placeholder:text-ink-500 focus:outline-none focus:border-rose-300/50"
-            />
-            <div className="grid grid-cols-3 gap-2 mt-3">
-              <CarePlanNumberField
-                id="care-plan-interval"
-                label="Contractions every (minutes)"
-                value={carePlan.intervalMinutes}
-                min={2}
-                max={15}
-                onChange={(value) => onCarePlanChange({ ...carePlan, intervalMinutes: value })}
-              />
-              <CarePlanNumberField
-                id="care-plan-duration"
-                label="Lasting at least (seconds)"
-                value={carePlan.durationSeconds}
-                min={30}
-                max={180}
-                onChange={(value) => onCarePlanChange({ ...carePlan, durationSeconds: value })}
-              />
-              <CarePlanNumberField
-                id="care-plan-window"
-                label="For at least (minutes)"
-                value={carePlan.windowMinutes}
-                min={15}
-                max={180}
-                onChange={(value) => onCarePlanChange({ ...carePlan, windowMinutes: value })}
-              />
-            </div>
-            <div className="mt-2 text-[10px] text-sage-300">
-              Every {carePlan.intervalMinutes} min · lasting {carePlan.durationSeconds} sec · for {carePlan.windowMinutes} min
-            </div>
-          </div>
-
+        <div className="flex-1 min-h-0 overflow-y-auto px-5 pb-6">
+          <h2 className="text-base font-display text-ink-50 mb-2">Preferences</h2>
           {/* Big text toggle */}
           <label className="flex items-center justify-between py-2 cursor-pointer">
             <span className="text-sm text-ink-200">Big text</span>
             <button
               role="switch"
+              aria-label="Big text"
               aria-checked={bigText}
               onClick={() => setBigTextState((v) => !v)}
-              className={`w-10 h-6 rounded-full transition-colors ${bigText ? 'bg-rose-300/60' : 'bg-ink-100/20'}`}
+                className={`w-10 h-6 rounded-full transition-colors ${bigText ? 'bg-rose-300/60' : 'bg-ink-100/20'}`}
             >
               <span
                 className={`block w-5 h-5 rounded-full bg-ink-50 shadow transition-transform ${bigText ? 'translate-x-5' : 'translate-x-0.5'}`}
@@ -150,6 +86,7 @@ export default function SettingsSheet({
               </span>
               <button
                 role="switch"
+                aria-label="Quiet hours"
                 aria-checked={muteSchedule.enabled}
                 onClick={() =>
                   setMuteScheduleState((s) => ({ ...s, enabled: !s.enabled }))
@@ -165,6 +102,7 @@ export default function SettingsSheet({
               <div className="flex items-center gap-2 mt-2 text-xs text-ink-400">
                 <span>From</span>
                 <select
+                  aria-label="Quiet hours start time"
                   value={muteSchedule.startHour}
                   onChange={(e) =>
                     setMuteScheduleState((s) => ({ ...s, startHour: Number(e.target.value) }))
@@ -177,6 +115,7 @@ export default function SettingsSheet({
                 </select>
                 <span>to</span>
                 <select
+                  aria-label="Quiet hours end time"
                   value={muteSchedule.endHour}
                   onChange={(e) =>
                     setMuteScheduleState((s) => ({ ...s, endHour: Number(e.target.value) }))
@@ -191,28 +130,27 @@ export default function SettingsSheet({
             )}
             {muteSchedule.enabled && isInQuietHours(muteSchedule) && (
               <div className="text-[10px] text-amber-300 mt-2">
-                Quiet hours are active now. Only your saved care-plan reminder will play.
+                Quiet hours are active now. All sounds, including saved care-plan reminders, are quiet.
               </div>
             )}
           </div>
 
           {/* Theme variant */}
           <div className="border-t border-ink-200/20 mt-3 pt-3">
-            <div className="text-[10px] uppercase tracking-[0.15em] text-ink-400 font-semibold mb-2">Theme</div>
+            <div className="text-xs uppercase tracking-[0.12em] text-ink-300 font-semibold mb-2">Theme</div>
             <div className="flex gap-1.5">
               {(['calm', 'cool'] as const).map((v) => (
                 <button
                   key={v}
+                  aria-pressed={themeVariant === v}
                   onClick={() => setThemeVariant(v)}
-                  className={`text-[11px] px-3 py-1.5 rounded-lg font-medium transition-colors ${
+                  className={`min-h-11 text-sm px-3 py-2 rounded-lg font-medium transition-colors ${
                     themeVariant === v
-                      ? v === 'calm'
-                        ? 'bg-rose-300/20 text-rose-200 border border-rose-300/40'
-                        : 'bg-blue-300/20 text-blue-200 border border-blue-300/40'
+                      ? 'bg-rose-300/20 text-rose-200 border border-rose-300/40'
                       : 'bg-ink-100/5 text-ink-400 border border-ink-200/30 active:bg-ink-100/10'
                   }`}
                 >
-                  {v === 'calm' ? '🌸 Calm' : '❄️ Cool'}
+                  {v === 'calm' ? 'Calm · Night' : 'Daylight'}
                 </button>
               ))}
             </div>
@@ -220,13 +158,14 @@ export default function SettingsSheet({
 
           {/* Time format */}
           <div className="mt-3">
-            <div className="text-[10px] uppercase tracking-[0.15em] text-ink-400 font-semibold mb-2">Time</div>
+            <div className="text-xs uppercase tracking-[0.12em] text-ink-300 font-semibold mb-2">Time</div>
             <div className="flex gap-1.5">
               {([false, true] as const).map((v) => (
                 <button
                   key={String(v)}
+                  aria-pressed={hour12 === v}
                   onClick={() => setHour12(v)}
-                  className={`text-[11px] px-3 py-1.5 rounded-lg font-medium transition-colors ${
+                  className={`min-h-11 text-sm px-3 py-2 rounded-lg font-medium transition-colors ${
                     hour12 === v
                       ? 'bg-rose-300/20 text-rose-200 border border-rose-300/40'
                       : 'bg-ink-100/5 text-ink-400 border border-ink-200/30 active:bg-ink-100/10'
@@ -240,7 +179,7 @@ export default function SettingsSheet({
 
           {/* Backup section */}
           <div className="border-t border-ink-200/20 mt-3 pt-3">
-            <div className="text-[10px] uppercase tracking-[0.15em] text-ink-400 font-semibold mb-2">Backup</div>
+            <div className="text-xs uppercase tracking-[0.12em] text-ink-300 font-semibold mb-2">Backup</div>
             <div className="space-y-2">
               <button
                 onClick={handleExportBackup}
@@ -249,7 +188,7 @@ export default function SettingsSheet({
                 <Download className="w-4 h-4 text-sage-300" strokeWidth={1.75} />
                 <div className="flex-1 min-w-0">
                   <div className="font-medium">Export backup</div>
-                  <div className="text-[10px] text-ink-500">Download .json file</div>
+                  <div className="text-xs text-ink-300">Download .json file</div>
                 </div>
               </button>
               <button
@@ -259,7 +198,7 @@ export default function SettingsSheet({
                 <Share2 className="w-4 h-4 text-rose-300" strokeWidth={1.75} />
                 <div className="flex-1 min-w-0">
                   <div className="font-medium">Send via…</div>
-                  <div className="text-[10px] text-ink-500">AirDrop, message, email</div>
+                  <div className="text-xs text-ink-300">AirDrop, message, email</div>
                 </div>
               </button>
               <button
@@ -269,51 +208,35 @@ export default function SettingsSheet({
                 <Upload className="w-4 h-4 text-sage-300" strokeWidth={1.75} />
                 <div className="flex-1 min-w-0">
                   <div className="font-medium">Import from backup</div>
-                  <div className="text-[10px] text-ink-500">Restore from .json file</div>
+                  <div className="text-xs text-ink-300">Restore from .json file</div>
                 </div>
               </button>
             </div>
           </div>
 
+          <section aria-label="Privacy and support" className="border-t border-ink-200/20 mt-3 pt-3">
+            <h2 className="text-base font-display text-ink-50">Private by design</h2>
+            <p className="text-sm text-ink-300 mt-2 leading-relaxed">No account or tracking. Records stay on this device. Export a backup before changing phones or uninstalling; uninstalling removes local records. Only a backup saved separately can restore them.</p>
+            <div className="flex flex-wrap gap-3 mt-3">
+              <a href="https://olive.ashbi.ca/privacy/" target="_blank" rel="noopener noreferrer" className="min-h-11 inline-flex items-center underline text-sm text-sage-300">Privacy policy</a>
+              <a href="https://olive.ashbi.ca/support/" target="_blank" rel="noopener noreferrer" className="min-h-11 inline-flex items-center underline text-sm text-sage-300">Help &amp; support</a>
+            </div>
+          </section>
+
           {/* Version */}
           <div className="border-t border-ink-200/20 mt-3 pt-3">
             <div className="flex items-center justify-between mb-2">
               <div>
-                <div className="text-[10px] uppercase tracking-[0.15em] text-ink-400 font-semibold">App version</div>
+                <div className="text-xs uppercase tracking-[0.12em] text-ink-300 font-semibold">App version</div>
                 <div className="text-[11px] text-ink-300 mt-0.5">Olive v{appVersion}</div>
               </div>
             </div>
-            <div className="text-[9px] text-ink-600 mt-1.5 text-center">
+            <div className="text-xs text-ink-300 mt-1.5 text-center">
               Updates arrive through the App Store or Play Store.
             </div>
           </div>
         </div>
       </div>
     </>
-  );
-}
-
-function CarePlanNumberField({ id, label, value, min, max, onChange }: {
-  id: string;
-  label: string;
-  value: number;
-  min: number;
-  max: number;
-  onChange: (value: number) => void;
-}) {
-  return (
-    <label htmlFor={id} className="text-[10px] text-ink-400 leading-tight">
-      <span className="block min-h-9">{label}</span>
-      <input
-        id={id}
-        type="number"
-        inputMode="numeric"
-        min={min}
-        max={max}
-        value={value}
-        onChange={(event) => onChange(Number(event.target.value))}
-        className="mt-1 w-full min-h-11 bg-ink-100/5 border border-ink-200/30 rounded-lg px-2 py-2 text-base text-ink-50 focus:outline-none focus:border-rose-300/50"
-      />
-    </label>
   );
 }

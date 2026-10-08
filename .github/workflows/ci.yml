@@ -47,3 +47,12 @@ jobs:
           # CI-safe defaults so the build doesn't depend on real env vars
           NODE_ENV: production
           CI: true
+
+      - name: Unit tests
+        run: node --test tests/unit/*.mjs
+
+      - name: Native package and store asset consistency
+        run: |
+          node scripts/check-offline-build.mjs
+          node scripts/check-store-metadata.mjs
+          node scripts/check-store-assets.mjs

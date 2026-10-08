@@ -8,49 +8,98 @@
 @import "@fontsource/inter/latin-600.css";
 @import "@fontsource/inter/latin-700.css";
 
+/* Legacy token names remain stable for all existing care/history components. */
 @theme {
   --font-display: 'Fraunces', Georgia, serif;
   --font-sans: 'Inter', system-ui, sans-serif;
-  --color-ink-50: #faf6f4;
-  --color-ink-100: #f3ebe6;
-  --color-ink-200: #e8d9d1;
-  --color-ink-300: #d3b8ac;
-  --color-ink-400: #b89184;
-  --color-ink-500: #a47a6e;
-  --color-rose-50: #fdf3f0;
-  --color-rose-100: #f9dfd6;
-  --color-rose-200: #f3bca9;
-  --color-rose-300: #e8957a;
-  --color-rose-400: #d97459;
-  --color-rose-500: #c25a3f;
-  --color-sage-100: #e8ede4;
-  --color-sage-300: #a8b89f;
-  --color-sage-500: #7a8d6e;
-  --color-plum-900: #1a1216;
-  --color-plum-950: #120c10;
+  --color-ink-50: #F5F1E7;
+  --color-ink-100: #EAE8DC;
+  --color-ink-200: #DFDFD0;
+  --color-ink-300: #C9C7BB;
+  --color-ink-400: #B8C5A2;
+  --color-ink-500: #B8BDB0;
+  --color-rose-50: #FAEFE6;
+  --color-rose-100: #F5DDCB;
+  --color-rose-200: #EEC3A8;
+  --color-rose-300: #E8AD8B;
+  --color-rose-400: #DFB695;
+  --color-rose-500: #D9B18F;
+  --color-sage-100: #E8EBDD;
+  --color-sage-300: #B8C5A2;
+  --color-sage-500: #99AD88;
+  --color-plum-900: #304234;
+  --color-plum-950: #26382C;
 }
 
-:root {
-  color-scheme: dark;
+:root { color-scheme: dark; }
+html[data-appearance='day'] {
+  color-scheme: light;
+  --color-ink-50: #26382C;
+  --color-ink-100: #304234;
+  --color-ink-200: #3C5140;
+  --color-ink-300: #465A49;
+  --color-ink-400: #50614F;
+  --color-ink-500: #54614F;
+  --color-rose-50: #26382C;
+  --color-rose-100: #26382C;
+  --color-rose-200: #304234;
+  --color-rose-300: #334B37;
+  --color-rose-400: #3C5540;
+  --color-rose-500: #415D44;
+  --color-sage-100: #26382C;
+  --color-sage-300: #405B43;
+  --color-sage-500: #405B43;
+  --color-plum-900: #EAE8DC;
+  --color-plum-950: #F5F1E7;
+  --color-amber-200: #764500;
+  --color-amber-300: #764500;
+  --color-amber-400: #764500;
+  --color-red-200: #963429;
+  --color-red-300: #963429;
+  --color-red-400: #963429;
 }
-
 html, body, #root {
   height: 100%;
   margin: 0;
-  background: #120c10;
-  color: #faf6f4;
+  background: var(--color-plum-950);
+  color: var(--color-ink-50);
   font-family: 'Inter', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior: none;
 }
-
-body {
-  background:
-    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(232, 149, 122, 0.12), transparent),
-    radial-gradient(ellipse 60% 40% at 100% 100%, rgba(168, 184, 159, 0.06), transparent),
-    #120c10;
-  background-attachment: fixed;
+.brand-wordmark {
+  display: inline-block;
+  width: 82px;
+  height: 33px;
+  flex-shrink: 0;
+  background: var(--color-ink-50);
+  /* Center the lettering optically; the leaf above the O makes its body sit low. */
+  transform: translateY(-2px);
+  mask: url('/branding/wordmark.png') center / contain no-repeat;
+  -webkit-mask: url('/branding/wordmark.png') center / contain no-repeat;
+}
+.brand-illustration {
+  object-fit: cover;
+  border-radius: 16px;
+  flex-shrink: 0;
+}
+.olive-app {
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+[role='dialog'] { padding-bottom: env(safe-area-inset-bottom, 0px); }
+button, a { touch-action: manipulation; }
+@layer base { button { min-height: 44px; } }
+button[aria-label], a[aria-label] { min-width: 44px; }
+:focus-visible { outline: 2px solid var(--color-sage-300); outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 button {
@@ -62,6 +111,15 @@ button {
 
 input, textarea {
   font-family: inherit;
+}
+/* Native iOS date widgets have an intrinsic width; keep them within their field. */
+input[type='date'], input[type='time'], input[type='datetime-local'] {
+  appearance: none;
+  -webkit-appearance: none;
+  box-sizing: border-box;
+  display: block;
+  min-width: 0;
+  max-width: 100%;
 }
 
 /* Display font for the big timer numerals */
@@ -94,18 +152,6 @@ input, textarea {
 html.big-text {
   font-size: 110%;
 }
-html.big-text .font-display.text-6xl,
-html.big-text .font-display.text-7xl {
-  font-size: 1.5em;
-}
-html.big-text .font-display.text-3xl,
-html.big-text .font-display.text-2xl {
-  font-size: 1.35em;
-}
-html.big-text .font-display.text-xl {
-  font-size: 1.18em;
-}
-
 /* Subtle breathing for the in-progress state */
 @keyframes pulse-live {
   0%, 100% { opacity: 1; }
@@ -114,4 +160,24 @@ html.big-text .font-display.text-xl {
 
 .animate-pulse-live {
   animation: pulse-live 1.6s ease-in-out infinite;
+}
+
+/* History time fields: hide the native clock-picker indicator — it
+   overlapped the digits at 4rem width and made rows look garbled. */
+input[type='time']::-webkit-calendar-picker-indicator {
+  display: none;
+}
+
+/* The active Stop remains above scrolling content and inside any open sheet. */
+.active-timer-dock {
+  top: calc(env(safe-area-inset-top, 0px) + 4.5rem);
+  left: max(1.25rem, calc((100vw - 28rem) / 2 + 1.25rem));
+  right: max(1.25rem, calc((100vw - 28rem) / 2 + 1.25rem));
+}
+.olive-app[data-timer-active='true'] [role='dialog'] {
+  /* Backdrop filters create a containing block for fixed portal children.
+     Keep the standard property last so production CSS retains both forms. */
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  max-height: calc(100dvh - env(safe-area-inset-top, 0px) - 9rem);
 }

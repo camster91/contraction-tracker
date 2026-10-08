@@ -12,7 +12,7 @@ test.beforeEach(async ({ page }) => {
       createdAt: '2026-08-01T00:00:00.000Z',
     }]));
   });
-  await page.goto('/');
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
   await waitForApp(page);
   await page.getByRole('button', { name: /open birth journey/i }).click();
 });
@@ -39,6 +39,8 @@ test('responsibility can be assigned and completed offline', async ({ page }) =>
 test('postpartum timeline records a private appointment without scoring recovery', async ({ page }) => {
   const dialog = page.getByRole('dialog', { name: 'Birth journey' });
   await dialog.getByRole('button', { name: 'Postpartum' }).click();
+  const modules = dialog.getByRole('button').filter({ hasText: /First 12 weeks|Care-team contact & reminder/ });
+  await expect(modules.first()).toContainText('First 12 weeks');
   await dialog.getByRole('button', { name: 'First 12 weeks' }).click();
   await page.getByLabel('Timeline entry').fill('Midwife follow-up');
   await page.getByLabel('Entry type').selectOption('appointment');

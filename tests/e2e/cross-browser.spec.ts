@@ -11,21 +11,10 @@
  *
  * Run with: npx playwright test e2e/cross-browser.spec.ts --project='iPhone 14 (webkit)'
  *
- * NOT run in CI by default â€” these tests require the live PWA to
- * load, and on slow CI networks the `retries: 2` config can amplify
- * a slow first attempt into a 10+ minute hang. Use as a release
- * validation tool: `npx playwright install webkit && npx playwright
- * test e2e/cross-browser.spec.ts --project='iPhone 14 (webkit)'`.
+ * CI runs both engines against the local production build.
  */
 import { test, expect } from '@playwright/test';
 import * as helpers from './helpers';
-
-// Skip the entire file in CI â€” the chromium project already covers
-// the same flows against the same live URL, with the same retry
-// behavior. Cross-browser is opt-in for release validation, not CI.
-test.beforeAll(({ }) => {
-  if (process.env.CI) test.skip(true, 'cross-browser suite is opt-in for release validation');
-});
 
 const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:8765/';
 
@@ -42,7 +31,8 @@ test('cross-browser: main app loads without errors', async ({ page }) => {
   // Main app rendered
   const body = (await page.locator('body').textContent()) || '';
   expect(body.length, 'App should render content').toBeGreaterThan(100);
-  expect(body, 'Brand "Olive" should be visible').toContain('Olive');
+  await expect(page.getByRole('heading', { name: 'Olive', exact: true })).toBeVisible();
+  await expect(page.getByRole('img', { name: 'Olive', exact: true })).toBeVisible();
 
   // No fatal errors
   const fatal = consoleErrors.filter((e) =>
@@ -82,7 +72,8 @@ test('cross-browser: short clusters stay observational in every engine', async (
   await page.waitForTimeout(3_000);
 
   const body = (await page.locator('body').textContent()) || '';
-  expect(body).toMatch(/Frequent contractions|Pattern building/);
+  expect(body).toContain('3 contractions logged');
+  expect(body).not.toMatch(/Frequent contractions|Pattern building/);
   expect(body).not.toContain('Saved care-plan reminder');
   expect(body).not.toMatch(/active labor|time to call/i);
 });

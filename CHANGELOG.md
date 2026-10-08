@@ -1,5 +1,14 @@
 # Olive — Changelog
 
+## v1.3.0 build 7 (October 2026) — Botanical branding candidate
+
+- Integrated the approved leaf-O wordmark, olive/ivory palette and original illustrations.
+- Added persistent Night/Daylight appearances, native icon and launch branding, and matching Live Activity colors.
+- Kept Start and Stop in the same large tap area and added an accessible elapsed-time label.
+- Added safe-area spacing, reduced-motion handling and direct privacy/support access in Settings.
+- Refreshed listing icons and screenshots; records and backup formats remain compatible.
+- This is a new beta candidate, not public App Store acceptance.
+
 ## v1.3.0 (September 2026) — Private-by-default, native-only release
 
 - Retired the public web app; Olive is now distributed only through the App Store and Play Store.

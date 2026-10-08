@@ -48,16 +48,14 @@ export function useModalDialog(onClose: () => void): RefObject<HTMLDivElement | 
         return;
       }
 
-      const first = currentCandidates[0];
-      const last = currentCandidates[currentCandidates.length - 1];
-      const active = document.activeElement;
-      if (event.shiftKey && (active === first || !dialog.contains(active))) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && (active === last || !dialog.contains(active))) {
-        event.preventDefault();
-        first.focus();
-      }
+      // Safari can omit buttons from its native Tab order. Move through the
+      // dialog's actual controls explicitly so focus never escapes the sheet.
+      event.preventDefault();
+      const index = currentCandidates.indexOf(document.activeElement as HTMLElement);
+      const next = event.shiftKey
+        ? (index <= 0 ? currentCandidates.length - 1 : index - 1)
+        : (index + 1) % currentCandidates.length;
+      currentCandidates[next].focus();
     };
 
     document.addEventListener('keydown', handleKeyDown, true);

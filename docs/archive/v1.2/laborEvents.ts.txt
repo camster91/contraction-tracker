@@ -1,0 +1,64 @@
+import { csvCell } from './csv.ts';
+import { t, type MessageKey } from './i18n.ts';
+
+export type LaborEventKind = 'waters' | 'care-team' | 'left-home' | 'arrived' | 'note';
+
+export type LaborEvent = {
+  id: string;
+  sessionId: string;
+  kind: LaborEventKind;
+  occurredAt: string;
+  note?: string;
+  createdAt: string;
+};
+
+export const LABOR_EVENT_KINDS = ['waters', 'care-team', 'left-home', 'arrived', 'note'] as const;
+
+const LABOR_EVENT_MESSAGE_KEYS: Record<LaborEventKind, MessageKey> = {
+  waters: 'events.waters',
+  'care-team': 'events.careTeam',
+  'left-home': 'events.leftHome',
+  arrived: 'events.arrived',
+  note: 'events.note',
+};
+
+const KEY = 'contraction-tracker:labor-events';
+
+export function getLaborEvents(): LaborEvent[] {
+  for (const key of [KEY, `${KEY}::shadow`]) {
+    try {
+      const value = JSON.parse(localStorage.getItem(key) || '[]');
+      if (Array.isArray(value)) return value.filter(isLaborEvent);
+    } catch { /* try the shadow */ }
+  }
+  return [];
+}
+
+export function saveLaborEvents(events: LaborEvent[]): boolean {
+  try {
+    const value = JSON.stringify(events);
+    localStorage.setItem(KEY, value);
+    try { localStorage.setItem(`${KEY}::shadow`, value); } catch { /* best effort */ }
+    return true;
+  } catch { return false; }
+}
+
+export function buildLaborEventsCsv(events: LaborEvent[]): string {
+  const rows = [[t('events.csvOccurredAt'), t('events.csvEvent'), t('events.csvNote')]];
+  for (const event of [...events].sort((a, b) => a.occurredAt.localeCompare(b.occurredAt))) {
+    rows.push([event.occurredAt, t(LABOR_EVENT_MESSAGE_KEYS[event.kind]), event.note ?? '']);
+  }
+  return rows.map((row) => row.map(csvCell).join(',')).join('\r\n');
+}
+
+function isLaborEvent(value: unknown): value is LaborEvent {
+  if (!value || typeof value !== 'object') return false;
+  const event = value as Partial<LaborEvent>;
+  return typeof event.id === 'string'
+    && typeof event.sessionId === 'string'
+    && typeof event.occurredAt === 'string'
+    && typeof event.createdAt === 'string'
+    && typeof event.kind === 'string'
+    && LABOR_EVENT_KINDS.includes(event.kind as LaborEventKind)
+    && Number.isFinite(Date.parse(event.occurredAt));
+}

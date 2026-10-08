@@ -1,6 +1,7 @@
 // Cervical exam log sheet — "Hospital" tab in the header.
 import { useState } from 'react';
 import { X, Plus, Trash2, Stethoscope } from 'lucide-react';
+import { toast } from '../lib/toast';
 import { addExam, deleteExam, getExams, type CervicalExam } from '../lib/hospital';
 import { isHour12Preferred } from '../lib/contractions';
 import { useModalDialog } from '../hooks/useModalDialog';
@@ -10,26 +11,34 @@ type Props = {
   onClose: () => void;
 };
 
-const DILATION_OPTIONS = [1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10];
 const STATION_OPTIONS = [-3, -2, -1, 0, +1, +2, +3];
 
 export default function HospitalSheet({ sessionId, onClose }: Props) {
   const dialogRef = useModalDialog(onClose);
   const [exams, setExams] = useState<CervicalExam[]>(() => getExams(sessionId));
   const [adding, setAdding] = useState(false);
-  const [dilation, setDilation] = useState<number>(3);
-  const [effacement, setEffacement] = useState<number>(50);
-  const [station, setStation] = useState<number>(0);
+  const [dilation, setDilation] = useState<number | null>(null);
+  const [effacement, setEffacement] = useState<number | null>(null);
+  const [station, setStation] = useState<number | null>(null);
   const [notes, setNotes] = useState('');
 
+  const validMeasurement = (value: number | null, min: number, max: number) => value === null || (Number.isFinite(value) && value >= min && value <= max);
+  const canSave = (dilation !== null || effacement !== null || station !== null || !!notes.trim())
+    && validMeasurement(dilation, 0, 10) && validMeasurement(effacement, 0, 100) && validMeasurement(station, -3, 3);
+  const startAdding = () => {
+    setDilation(null); setEffacement(null); setStation(null); setNotes(''); setAdding(true);
+  };
+
   const handleAdd = () => {
-    addExam(sessionId, {
+    if (!canSave) return;
+    const exam = addExam(sessionId, {
       time: new Date().toISOString(),
       dilationCm: dilation,
       effacementPct: effacement,
       station,
       notes: notes.trim() || undefined,
     });
+    if (!exam) { toast.error('Could not save this exam. Free up space and try again.'); return; }
     setExams(getExams(sessionId));
     setAdding(false);
     setNotes('');
@@ -51,7 +60,7 @@ export default function HospitalSheet({ sessionId, onClose }: Props) {
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
-        aria-label="Hospital exams"
+        aria-label="Exams"
         tabIndex={-1}
         className="fixed inset-x-0 bottom-0 z-50 rounded-t-3xl border-t border-ink-200/30 bg-plum-950/98  shadow-[0_-8px_32px_-8px_rgba(0,0,0,0.6)] max-h-[85dvh] flex flex-col animate-slide-up"
       >
@@ -67,7 +76,7 @@ export default function HospitalSheet({ sessionId, onClose }: Props) {
               <Stethoscope className="w-4 h-4 text-rose-300" strokeWidth={1.75} />
             </div>
             <div>
-              <div className="text-base font-semibold text-ink-50 font-display">Hospital</div>
+              <div className="text-base font-semibold text-ink-50 font-display">Exams</div>
               <div className="text-[11px] text-ink-400 mt-0.5">
                 {exams.length === 0 ? 'No exams logged' : `${exams.length} exam${exams.length === 1 ? '' : 's'} logged`}
               </div>
@@ -76,7 +85,7 @@ export default function HospitalSheet({ sessionId, onClose }: Props) {
           <div className="flex items-center gap-1">
             {!adding && (
               <button
-                onClick={() => setAdding(true)}
+                onClick={startAdding}
                 className="text-xs text-rose-300 active:text-rose-200 font-semibold flex items-center gap-1 px-2.5 py-1.5 rounded-lg active:bg-rose-300/10 transition-colors"
               >
                 <Plus className="w-3.5 h-3.5" />
@@ -93,76 +102,44 @@ export default function HospitalSheet({ sessionId, onClose }: Props) {
           </div>
         </div>
 
+        <div className="flex-1 min-h-0 overflow-y-auto">
         {/* Add exam form */}
         {adding && (
           <div className="mx-5 mb-3 rounded-2xl border border-ink-200/30 bg-ink-100/5 p-4 space-y-3">
             <div className="text-sm font-semibold text-ink-50 font-display">New exam</div>
 
-            {/* Dilation */}
-            <div>
-              <div className="text-[10px] uppercase tracking-[0.15em] text-ink-400 font-semibold mb-1.5">Dilation (cm)</div>
-              <div className="flex flex-wrap gap-1.5">
-                {DILATION_OPTIONS.map((d) => (
-                  <button
-                    key={d}
-                    onClick={() => setDilation(d)}
-                    className={`w-9 h-9 rounded-xl text-xs font-semibold transition-colors ${
-                      dilation === d
-                        ? 'bg-rose-300 text-plum-950'
-                        : 'bg-ink-100/10 text-ink-300 active:bg-ink-100/20'
-                    }`}
-                  >
-                    {d}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Effacement */}
-            <div>
-              <div className="text-[10px] uppercase tracking-[0.15em] text-ink-400 font-semibold mb-1.5">Effacement (%)</div>
-              <div className="flex items-center gap-3">
-                <input
-                  type="range"
-                  min={0}
-                  max={100}
-                  step={5}
-                  value={effacement}
-                  onChange={(e) => setEffacement(Number(e.target.value))}
-                  className="flex-1 accent-rose-300"
-                />
-                <span className="text-sm text-ink-100 font-display w-10 text-right">{effacement}%</span>
-              </div>
-            </div>
-
-            {/* Station */}
-            <div>
-              <div className="text-[10px] uppercase tracking-[0.15em] text-ink-400 font-semibold mb-1.5">Station</div>
-              <div className="flex gap-1.5">
-                {STATION_OPTIONS.map((s) => (
-                  <button
-                    key={s}
-                    onClick={() => setStation(s)}
-                    className={`w-9 h-9 rounded-xl text-xs font-semibold transition-colors ${
-                      station === s
-                        ? 'bg-rose-300 text-plum-950'
-                        : 'bg-ink-100/10 text-ink-300 active:bg-ink-100/20'
-                    }`}
-                  >
-                    {s > 0 ? `+${s}` : s}
-                  </button>
-                ))}
-              </div>
-            </div>
+            <p className="text-xs text-ink-300">Enter only measurements reported to you. Leave anything unknown blank.</p>
+            <label className="block text-sm text-ink-300">
+              Dilation (cm)
+              <input type="number" inputMode="decimal" min={0} max={10} step={0.5}
+                value={dilation ?? ''} onChange={event => setDilation(event.target.value === '' ? null : Number(event.target.value))}
+                placeholder="Not recorded" className="mt-1 w-full min-h-11 rounded-xl bg-ink-100/5 border border-ink-200/30 px-3 text-base text-ink-50" />
+            </label>
+            <label className="block text-sm text-ink-300">
+              Effacement (%)
+              <input type="number" inputMode="numeric" min={0} max={100} step={1}
+                value={effacement ?? ''} onChange={event => setEffacement(event.target.value === '' ? null : Number(event.target.value))}
+                placeholder="Not recorded" className="mt-1 w-full min-h-11 rounded-xl bg-ink-100/5 border border-ink-200/30 px-3 text-base text-ink-50" />
+            </label>
+            <label className="block text-sm text-ink-300">
+              Station
+              <select value={station ?? ''} onChange={event => setStation(event.target.value === '' ? null : Number(event.target.value))}
+                className="mt-1 w-full min-h-11 rounded-xl bg-plum-950 border border-ink-200/30 px-3 text-base text-ink-50">
+                <option value="">Not recorded</option>
+                {STATION_OPTIONS.map(value => <option key={value} value={value}>{value > 0 ? `+${value}` : value}</option>)}
+              </select>
+            </label>
 
             {/* Notes */}
+            <label className="block text-sm text-ink-300">Notes (optional)
             <input
               type="text"
               placeholder="Notes (fetal position, anything else...)"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="w-full bg-ink-100/5 border border-ink-200/30 rounded-xl px-3 py-2 text-sm text-ink-50 placeholder-ink-400 focus:outline-none focus:border-rose-300/50"
+              className="w-full bg-ink-100/5 border border-ink-200/30 rounded-xl px-3 py-2 text-base text-ink-50 placeholder-ink-400 focus:outline-none focus:border-rose-300/50"
             />
+            </label>
 
             <div className="flex gap-2 pt-1">
               <button
@@ -173,7 +150,8 @@ export default function HospitalSheet({ sessionId, onClose }: Props) {
               </button>
               <button
                 onClick={handleAdd}
-                className="flex-1 text-xs bg-rose-300 active:bg-rose-400 text-plum-950 rounded-xl py-2 font-semibold transition-colors"
+                disabled={!canSave}
+                className="flex-1 min-h-11 text-sm bg-rose-300 active:bg-rose-400 text-plum-950 rounded-xl py-2 font-semibold transition-colors disabled:opacity-40"
               >
                 Save exam
               </button>
@@ -182,7 +160,7 @@ export default function HospitalSheet({ sessionId, onClose }: Props) {
         )}
 
         {/* Exams list */}
-        <div className="flex-1 overflow-y-auto px-5 pb-6">
+        <div className="px-5 pb-6">
           {exams.length === 0 && !adding && (
             <div className="text-center py-8">
               <div className="text-sm text-ink-400">No exams logged yet.</div>
@@ -213,18 +191,18 @@ export default function HospitalSheet({ sessionId, onClose }: Props) {
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
-                <div className="mt-2 flex gap-4">
+                <div className="mt-2 grid grid-cols-3 gap-3">
                   <div className="text-center">
-                    <div className="text-2xl font-display font-light text-rose-300">{exam.dilationCm}</div>
+                    <div className={`${exam.dilationCm == null ? 'text-xs' : 'text-2xl font-display font-light'} text-rose-300`}>{exam.dilationCm ?? 'Not recorded'}</div>
                     <div className="text-[9px] uppercase tracking-wider text-ink-500 mt-0.5">cm</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-display font-light text-ink-200">{exam.effacementPct}%</div>
+                    <div className={`${exam.effacementPct == null ? 'text-xs' : 'text-2xl font-display font-light'} text-ink-200`}>{exam.effacementPct == null ? 'Not recorded' : `${exam.effacementPct}%`}</div>
                     <div className="text-[9px] uppercase tracking-wider text-ink-500 mt-0.5">effaced</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-display font-light text-ink-200">
-                      {exam.station > 0 ? `+${exam.station}` : exam.station}
+                    <div className={`${exam.station == null ? 'text-xs' : 'text-2xl font-display font-light'} text-ink-200`}>
+                      {exam.station == null ? 'Not recorded' : exam.station > 0 ? `+${exam.station}` : exam.station}
                     </div>
                     <div className="text-[9px] uppercase tracking-wider text-ink-500 mt-0.5">station</div>
                   </div>
@@ -235,6 +213,7 @@ export default function HospitalSheet({ sessionId, onClose }: Props) {
               </div>
             );
           })}
+        </div>
         </div>
       </div>
     </>

@@ -3,7 +3,7 @@
 // locally only and never sent to a server (we have no server).
 
 import { useState } from 'react';
-import { Plus, Trash2, ArrowLeft, Mail, Phone, User, MessageSquare } from 'lucide-react';
+import { Plus, Trash2, ArrowLeft, Phone, User, MessageSquare } from 'lucide-react';
 import { addPerson, deletePerson, getPeople, type Person } from '../lib/sessions';
 import { toast } from '../lib/toast';
 import { useModalDialog } from '../hooks/useModalDialog';
@@ -38,12 +38,13 @@ export default function PeopleSheet({ onClose, finished = [] }: Props) {
 
   const handleAdd = () => {
     if (!name.trim()) return;
-    addPerson({
+    const person = addPerson({
       name: name.trim(),
       relationship,
       phone: phone.trim() || undefined,
       email: email.trim() || undefined,
     });
+    if (!person) { toast.error('Could not save this contact. Free up space and try again.'); return; }
     setPeople(getPeople());
     setAdding(false);
     setName('');
@@ -68,29 +69,28 @@ export default function PeopleSheet({ onClose, finished = [] }: Props) {
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
-        aria-label="People"
+        aria-label="Care contacts"
         tabIndex={-1}
         className="fixed inset-x-0 bottom-0 z-50 rounded-t-3xl border-t border-ink-200/30 bg-plum-950/98  shadow-[0_-8px_32px_-8px_rgba(0,0,0,0.6)] max-h-[85dvh] flex flex-col animate-slide-up"
       >
         <div className="flex justify-center pt-3 pb-2">
           <div className="w-8 h-1 rounded-full bg-ink-200/40" />
         </div>
-        <div className="flex-1 overflow-y-auto px-5 pb-6">
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex shrink-0 items-center justify-between px-5 pb-3">
         <div className="flex items-center gap-2">
           <button
             onClick={onClose}
-            className="p-1 -ml-1 text-ink-400 active:text-ink-200"
-            aria-label="Back"
+            className="min-h-11 min-w-11 p-2 -ml-1 text-ink-400 active:text-ink-200"
+            aria-label="Close care contacts"
           >
             <ArrowLeft className="w-4 h-4" />
           </button>
-          <div className="text-sm font-semibold text-ink-50 font-display">People</div>
+          <div className="text-sm font-semibold text-ink-50 font-display">Care contacts</div>
         </div>
         {!adding && (
           <button
             onClick={() => setAdding(true)}
-            className="text-xs text-rose-300 active:text-rose-200 font-semibold flex items-center gap-1 px-2 py-1 rounded-lg active:bg-rose-300/10"
+            className="min-h-11 text-xs text-rose-300 active:text-rose-200 font-semibold flex items-center gap-1 px-2 py-1 rounded-lg active:bg-rose-300/10"
           >
             <Plus className="w-3.5 h-3.5" />
             Add
@@ -98,9 +98,10 @@ export default function PeopleSheet({ onClose, finished = [] }: Props) {
         )}
       </div>
 
+        <div className="flex-1 min-h-0 overflow-y-auto px-5 pb-6">
       {adding && (
         <div className="mb-3 rounded-xl border border-ink-200/30 bg-ink-100/5 p-3 space-y-2">
-          <label htmlFor="person-name-input" className="sr-only">
+          <label htmlFor="person-name-input" className="block text-xs text-ink-300">
             Person name
           </label>
           <input
@@ -109,17 +110,17 @@ export default function PeopleSheet({ onClose, finished = [] }: Props) {
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Name (required)"
-            className="w-full bg-transparent text-sm text-ink-50 placeholder-ink-400 focus:outline-none"
+            className="w-full bg-transparent min-w-0 text-base text-ink-50 placeholder-ink-400 focus:outline-none"
             autoFocus
           />
-          <label htmlFor="person-relationship-select" className="sr-only">
+          <label htmlFor="person-relationship-select" className="block text-xs text-ink-300">
             Relationship
           </label>
           <select
             id="person-relationship-select"
             value={relationship}
             onChange={(e) => setRelationship(e.target.value)}
-            className="w-full bg-ink-100/10 text-sm text-ink-100 rounded px-2 py-1.5"
+            className="w-full bg-ink-100/10 text-base text-ink-100 rounded px-2 py-1.5"
           >
             {RELATIONSHIPS.map((r) => (
               <option key={r} value={r}>
@@ -127,9 +128,8 @@ export default function PeopleSheet({ onClose, finished = [] }: Props) {
               </option>
             ))}
           </select>
-          <div className="flex items-center gap-2 bg-ink-100/5 rounded px-2 py-1.5">
-            <Phone className="w-3.5 h-3.5 text-ink-500" aria-hidden="true" />
-            <label htmlFor="person-phone-input" className="sr-only">
+          <div className="space-y-1 bg-ink-100/5 rounded px-2 py-2">
+                        <label htmlFor="person-phone-input" className="block text-xs text-ink-300">
               Phone number
             </label>
             <input
@@ -138,12 +138,11 @@ export default function PeopleSheet({ onClose, finished = [] }: Props) {
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder="Phone (optional)"
-              className="flex-1 bg-transparent text-sm text-ink-50 placeholder-ink-500 focus:outline-none"
+              className="w-full bg-transparent min-w-0 text-base text-ink-50 placeholder-ink-500 focus:outline-none"
             />
           </div>
-          <div className="flex items-center gap-2 bg-ink-100/5 rounded px-2 py-1.5">
-            <Mail className="w-3.5 h-3.5 text-ink-500" aria-hidden="true" />
-            <label htmlFor="person-email-input" className="sr-only">
+          <div className="space-y-1 bg-ink-100/5 rounded px-2 py-2">
+                        <label htmlFor="person-email-input" className="block text-xs text-ink-300">
               Email address
             </label>
             <input
@@ -152,7 +151,7 @@ export default function PeopleSheet({ onClose, finished = [] }: Props) {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Email (optional)"
-              className="flex-1 bg-transparent text-sm text-ink-50 placeholder-ink-500 focus:outline-none"
+              className="w-full bg-transparent min-w-0 text-base text-ink-50 placeholder-ink-500 focus:outline-none"
             />
           </div>
           <div className="flex gap-2 pt-1">

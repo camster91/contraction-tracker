@@ -1,69 +1,45 @@
-# Olive v1.3.0 — Release Readiness
+> October 8 GitHub release handoff: draft PR #79 is open for codex/olive-v1.3-release-preparation. CI Build, gauntlet and Lint were disabled_manually; all three existing workflows are verified active within the approved release-check scope. Lint activation required a retry after a GitHub HTTP 502. Build and gauntlet started on PR synchronization; this documentation correction synchronizes the PR after Lint activation. Workflow results remain pending. No merge or public-store release occurred.
 
-Last updated: 2026-09-23. Status: **v1.3.0 READY FOR STORE SUBMISSION. PRIVATE-BY-DEFAULT, NATIVE-ONLY RELEASE; PUBLIC WEB APP AND RELAY DECOMMISSIONED.**
+> October 8 Apple-readiness review: replacement build 12/source 22dceb8fed88c9c5ce71da46fc123388fc359568 adds explicit backup exclusion for private iOS data. Lint/typecheck/build, 33 unit tests, metadata/assets, dependency audit, native compilation, strict signed IPA/provenance and installed Simulator backup attributes passed. Xcode upload succeeded at 10:23 Toronto; Apple processed 12, export compliance is saved and both existing TestFlight groups are Testing with three invites. Matching Android AAB/APK passed after disk cleanup but remain unsigned. UI assets are byte-identical to 11. Build 12 is selected on the public draft; reload verification is recorded in task console evidence. Build 12 privacy is published: English support/privacy return HTTP 200 and exactly match reviewed source; bundled signed IPA privacy matches. Prior privacy page was backed up at /var/backups/olive-privacy-20261008T145312Z/index.html. Owner facts, physical/professional/observed-user evidence, current-source release CI, original Android key, Google verification, public submission and acceptance remain open. Evidence: task outputs/remediation-build12. Prior entries are historical.
 
-Olive v1.3.0 removes partner sharing, the relay backend, the memory book PDF, and the Baby-is-here modal, and retires the public web app. The native iOS/Android apps (built from the same web bundle, shipped inside the app) are the only distribution channel. Store upload and submission remain separate actions.
+> October 8 final store preparation check: free pricing persisted after reload, with all comparable prices zero. Mac and Vision Pro opt-ins are off for this mobile release; launch territories await owner decision. Current TestFlight build 11 is Testing for the three previously authorized tester addresses, and public listing attachment 11 persisted. Fresh Google check still requires identity, organization website and phone verification; app creation disabled. Website request has not been sent. Public release remains incomplete pending owner declarations, physical/professional acceptance, original Android key and Google account approval.
 
-## Release scope
+> October 8 build 11 is now Testing in both approved TestFlight groups (Cameron and two Bianca addresses), with processing, compliance and testing instructions complete. Public version 1.3.0 attaches build 11, verified after reload; ten uploaded screenshots remain representative of identical UI assets. No public App Store submission or release occurred. Owner declarations, launch territories, physical/professional acceptance and Android verification/signing still remain.
 
-- Local-first birth journey spanning preparation, labor, postpartum, and archive phases
-- Unified care card and private provider questions without automated clinical answers
-- Practical responsibilities kept on this device
-- First-12-weeks timeline for appointments, support, reminders, notes, and milestones
-- Backup schema v2 with valid v1.1 migration and IndexedDB recovery mirror; imports tolerate (and ignore) the `shares` key written by older versions
-- No network requests: no relay, no sync server, no analytics, no tracking
+> October 8 current candidate: build 11, source 0bad4f0733ae3805595638a00e558584aeaa7c6c. Added 16 bundled dependency licence notices; UI assets are byte-identical to build 10. Lint/typecheck/web/metadata checks and signed iOS/source/payload verification passed; Xcode upload succeeded. Android host tests/instrumentation compilation and matching unsigned AAB/APK passed; original key absent. Privacy published with specific approval, licensed content rights saved/reload verified. Processing/internal/listing selection for 11 and owner/device/professional/account/store gates remain open. Evidence: task outputs/remediation-build11.
 
-The contraction timer remains the primary labor action. Olive does not infer a medical state, score recovery, diagnose symptoms, or provide medication advice.
+> October 8 screenshot upload: five native build-10 iPhone screenshots and five native iPad screenshots are now uploaded to Apple version 1.3.0, with both device slots verified after reload. Chrome file permission and disk-space blockers for this upload are resolved. No public review submission or release occurred. Pending: privacy publication attestation approval, owner declarations, physical/professional acceptance, Google verification and original Android signing key. Evidence: task outputs/remediation-build10/apple-screenshot-upload-evidence.json.
 
-## Local verification evidence
+> October 7 age-rating update: App Store Connect questionnaire saved and verified after reload. Apple calculated 9+ in 172 countries/regions, 12+ in Vietnam/Brazil and All in Korea; earlier operating systems show global 4+ with regional exceptions. No override or Made for Kids category. This does not establish medical-device classification. A fresh Chrome upload attempt still failed on extension file-URL permission; screenshots remain prepared, zero uploaded. Evidence: task outputs/remediation-build10/apple-age-rating-evidence.json and apple-age-rating.png.
 
-- `npm run verify` (lint + production build) passed.
-- Playwright Chromium suite passed after removing the share-only specs; `changelog` and `privacy` specs pass against the new policy copy and privacy URL.
-- `node --test tests/unit/*.mjs` passed.
-- Production dependency audit: 0 known vulnerabilities (`npm audit --omit=dev`; the remaining findings are dev-only tooling).
-- GitHub-hosted Actions are billing-blocked on this account, so local verification is authoritative for this release.
+> October 7 current handoff: build 10 source c354b34621b8055082f363d523f357c899d4287b has a verified signed iOS export and successful Xcode upload. Ten native iPhone/iPad screenshots are prepared with source, dimensions and hashes. Canonical listing metadata and Apple build field now name build 10; these draft fields are not claimed saved in the console. Public privacy/support pages were freshly verified HTTP 200 and byte-identical. Current distribution/device/professional/account gates remain open; the entries below retain historical evidence.
 
-## Decommissioned infrastructure
+> October 7 build-10 continuation: native date-field overflow was fixed and verified with Apple picker behavior. Final source c354b34621b8055082f363d523f357c899d4287b, 1.3.0 (10). Signed iOS/source/payload checks passed and Xcode upload succeeded; Apple processing/compliance/TestFlight await Chrome reconnection. Android host tests and unsigned candidates passed; original key absent. Five actual native iPhone images and unreviewed professional packet are prepared. Physical/iPad/Android/professional/account/store-release gates remain open. Earlier candidate records below are history.
 
-- The public PWA at contractions.ashbi.ca and the relay at relay.ashbi.ca are shut down; their deploy workflows, Dockerfile, service worker, and monitoring scripts were removed from the repo.
-- Relay share data is wiped per the old privacy policy's expiry promise.
-- The privacy policy now lives at https://olive.ashbi.ca/privacy (static page), reachable for App Store / Play Store review.
+> October 7 build-9 continuation: header alignment correction is frozen at eaad99ecb5152a50a1cb79d2c2305d132e5bcf8e, 1.3.0 (9). Signed iOS export/source/payload verified and Xcode upload succeeded. Processing, compliance and TestFlight availability await Chrome reconnect. Android host tests and unsigned AAB/APK builds passed; original upload key absent. Five native Simulator captures and keyboard Close evidence retained in task outputs/remediation-build9. Physical and professional review gates remain open. Build-8 status below is historical evidence for that candidate.
 
-## Android
+> October 7 build-8 status: source 235e91f6ab596a230c0e04115fdb9405a430efd6. Signed iOS export verified and Xcode upload succeeded; Apple processing completed, export compliance was saved, and build 8 is Testing in Olive Internal Testing (Cameron only). What to Test instructions were saved. Build 7 remains the pending external beta review; both Bianca tester records currently have No Builds Available. Android AAB/APK built with matching embedded payload/source identity but remains unsigned. Protected original upload key is still required from CAM-DESKTOP. Evidence: task outputs/remediation-build8. Native Simulator launch is supplementary; physical-device acceptance and two professional copy reviews remain open. Older evidence below retains its original source/build identity.
 
-- Version: `1.3.0` (`versionCode 6`)
-- Release command: `.\android\gradlew.bat -p android bundleRelease assembleRelease`
-- Signed AAB: `android/app/build/outputs/bundle/release/app-release.aab`
-- Built 2026-09-23 from main `c1bed1e` on CAM-DESKTOP (Temurin JDK 21, Android SDK build-tools 36.1.0):
-  - AAB SHA-256: `8c1f1ff9b79e314ff88f29b734c28a60662a22d8968d3e4d14981da77640fbc5` (4,916,615 bytes)
-  - Tester APK SHA-256: `76c148b85a07dd60c0cd2cc9ee4aea6d47fee42e6fa2b700ecbf8893f8b333e5` (5,127,001 bytes, `app-release.apk`)
-  - JAR-signature check: `jarsigner -verify app-release.aab` → "jar verified."; `apksigner verify` on the APK confirms the upload key (SHA-256 `795331565b4325bd05c84817b30ddfbc9dc3c674fe432af6ef423b24c7739407`, CN=Olive, OU=Mobile, O=Ashbi)
-  - Badging: `package: name='com.ashbi.olive' versionCode='6' versionName='1.3.0'`
-- Upload keystore: `android/app/olive-upload.keystore` (alias `olive`, generated 2026-09-23, validity 25,000 days). It is gitignored; passwords are in `android/app/keystore.properties` (also gitignored). **Back up both — losing the upload key requires a Google Play key reset to ever update the app.**
+# Olive v1.3.0 release readiness
 
-## iOS
+Updated 2026-10-07. **Build 7 is the botanical rebrand candidate; public store acceptance is still open.**
 
-- Marketing version: `1.3.0` (build 6)
-- A production archive still requires macOS, Xcode, an Apple Developer team, and the correct provisioning profile. Those external tools and credentials are not present in this Windows workspace.
+The current remediation candidate uses version 1.3.0/build 8 and bundle/package ID `com.ashbi.olive`. It is free and native-only. Build 6 was previously signed and uploaded to TestFlight; it is a separate source/artifact and must not be represented as the rebrand. Partner relay sharing, the public web app, memory-book PDF and Baby-is-here modal were removed in PR #77. Preserve the original Android upload key.
 
-## Store package
+See [the current release plan](docs/RELEASE-PLAN.md) for the reconciled issue inventory and [the submission checklist](SUBMISSION-CHECKLIST.md) for the remaining steps. Earlier Windows AAB/APK hashes describe earlier source and cannot certify this candidate.
 
-- App name: Olive — Contraction Timer
-- Bundle ID: `com.ashbi.olive`
-- Category: Health & Fitness (primary), Medical (secondary)
-- Price: free; v1.3.0 has no in-app purchase
-- Privacy URL: `https://olive.ashbi.ca/privacy`
-- Support URL: `https://olive.ashbi.ca`
-- Metadata: `APP-STORE-CONNECT-FIELDS.txt`, `PLAY-STORE-CONSOLE-FIELDS.txt`, `WHATS-NEW.txt`, and `play-store-release-notes.txt`
+## Local checks
 
-## Explicitly excluded actions
+Run `npm ci`, `npm run verify`, `node --test tests/unit/*.mjs`, `npx playwright test`, `npm audit`, `node scripts/check-store-assets.mjs`, and `node scripts/check-store-metadata.mjs`. Current-feature tests remain active; retired-feature coverage is retained in `tests/legacy/v1.2/` with its rationale. Tests and unsigned builds are preparation evidence, not store acceptance.
 
-- No app-store upload or submission
-- No QA-team delegation
+`./scripts/build-ios-archive.sh` creates a fresh unsigned archive. `DEVELOPMENT_TEAM=YOUR_TEAM ./scripts/build-ios.sh` prepares a signed export when an authorized paid developer team and provisioning are configured. Neither script uploads. `./scripts/build-android.sh` requires the existing keystore and its protected properties file; it does not generate a replacement key.
 
-## External handoff gates
+## External gates observed
 
-1. Build and sign the iOS archive on macOS/Xcode.
-2. Reconfirm Apple and Google privacy/data declarations in their current consoles (both now "Data Not Collected").
-3. Stand up the olive.ashbi.ca static privacy page before submitting — the stores validate the privacy URL.
-4. Upload the signed Android AAB and iOS archive only after explicit approval.
+- Prior task evidence records build 6 uploaded, internal testing available and external beta review pending. Verify current App Store Connect state before changing distribution. Build 7 needs its own signed artifact and processing evidence.
+- Google Play Console's Ashbi Design organization cannot create an app until identity, organization website and phone verification are complete. Olive is not in the visible app list.
+- The original Android upload key is not on this Mac; issue #78 identifies the protected copy on CAM-DESKTOP.
+- Physical iPhone/iPad and Android device checks remain open, especially background timing, Live Activity, notification permission and native file sharing.
+- English privacy/support URLs returned HTTP 200 and exactly matched the reviewed repository HTML on 2026-10-07. French public pages remain outside the current English release scope. The public endpoint checker now uses the canonical Olive domain.
+
+Store URLs: privacy `https://olive.ashbi.ca/privacy/`; prepared support `https://olive.ashbi.ca/support/`. Verify these against the published pages and actual console fields before uploading. No current console declaration or age questionnaire is claimed complete.

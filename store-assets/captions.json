@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "locale": "en",
+  "screenshots": {
+    "01-hero-timer": {
+      "headline": "Time each contraction with one calm tap",
+      "accessibilityDescription": "Olive idle timer with a large Start button, birth-journey tools, and manual-entry access."
+    },
+    "02-contraction-active": {
+      "headline": "Keep the live timer clear and easy to reach",
+      "accessibilityDescription": "Olive timing an active contraction with elapsed time, start time, and Stop control."
+    },
+    "03-history": {
+      "headline": "Review and correct a clear factual history",
+      "accessibilityDescription": "Olive contraction history showing timestamps, durations, intervals, and edit controls."
+    },
+    "04-add-missed": {
+      "headline": "Missed one? Add it in seconds",
+      "accessibilityDescription": "Olive manual entry sheet with start and end time fields for a missed contraction."
+    },
+    "05-care-plan-reminder": {
+      "headline": "Follow the reminder saved from your own care plan",
+      "accessibilityDescription": "Olive showing an observational timing reminder configured from the user's care-team plan."
+    }
+  }
+}

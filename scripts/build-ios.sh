@@ -1,90 +1,22 @@
 #!/usr/bin/env bash
-# Build the iOS Olive app for App Store submission.
-#
-# === BEFORE RUNNING THIS ===
-#   1. Accept Xcode license: `sudo xcodebuild -license` (one-time, 5 min)
-#   2. Open ios/App/App.xcodeproj in Xcode
-#   3. Signing & Capabilities → verify Team is set to your Apple ID
-#   4. PrivacyInfo.xcprivacy is already wired into the project (verify
-#      with ./scripts/verify-ios.sh — should report 11/11)
-#
-# === FOR THE UNSIGNED ARCHIVE PATH (no Apple ID needed for archive step) ===
-#   Use scripts/build-ios-archive.sh instead — it does the part
-#   that doesn't need Apple credentials. You sign + upload manually
-#   in Xcode Organizer.
-#
-# What this script does:
-#   1. npx cap sync ios  (regenerates native iOS code)
-#   2. xcodebuild archive (creates a signed release archive for App Store)
-#   3. xcodebuild -exportArchive (creates a signed IPA)
-#
-# Output:
-#   ios/build/Runner.xcarchive
-#   ios/build/Olive.ipa
-#
-# Both can be uploaded to App Store Connect via Transporter.app or
-# `xcrun altool --upload-package`.
+# Create a signed App Store IPA locally; never upload automatically.
 set -euo pipefail
-
 cd "$(dirname "$0")/.."
-
-# Use the full Xcode install, not the command-line tools
-export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
-export PATH="$DEVELOPER_DIR/usr/bin:$DEVELOPER_DIR/Toolchains/XcodeDefault.xctoolchain/usr/bin:$PATH"
-
-# Regenerate the iOS native project (in case dist/ changed)
-echo "==> Step 1/3: npx cap sync ios"
+: "${DEVELOPMENT_TEAM:?Set DEVELOPMENT_TEAM to the paid Apple Developer team ID}"
+export DEVELOPER_DIR="${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer}"
+BUILD_ROOT="${OLIVE_BUILD_ROOT:-$PWD/ios/build/$(date -u +%Y%m%dT%H%M%SZ)}"
+if [[ -e "$BUILD_ROOT/Olive.xcarchive" ]]; then
+  printf 'Archive already exists; choose a fresh OLIVE_BUILD_ROOT.\n' >&2
+  exit 1
+fi
+mkdir -p "$BUILD_ROOT"
+npm run verify
+node scripts/write-native-provenance.mjs
 npx cap sync ios
-
-# Pick the build number from the latest git SHA
-BUILD_NUMBER=$(git rev-list --count HEAD)
-SHORT_SHA=$(git rev-parse --short HEAD)
-VERSION=$(grep -oP "const APP_VERSION = '\K[^']+" src/App.tsx)
-
-echo "==> Step 2/3: xcodebuild archive"
-echo "    Version: $VERSION"
-echo "    Build:   $BUILD_NUMBER ($SHORT_SHA)"
-xcodebuild \
-  -workspace ios/App/App.xcodeproj/project.xcworkspace \
-  -scheme App \
-  -configuration Release \
-  -destination 'generic/platform=iOS' \
-  -archivePath ios/build/Runner.xcarchive \
-  CODE_SIGNING_ALLOWED=YES \
-  CODE_SIGN_STYLE=Automatic \
-  DEVELOPMENT_TEAM="${DEVELOPMENT_TEAM:-}" \
-  -allowProvisioningUpdates \
-  CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
-  MARKETING_VERSION="$VERSION" \
-  archive 2>&1 | tail -40
-
-echo ""
-echo "==> Step 3/3: xcodebuild -exportArchive (App Store IPA)"
-# Export the archive as an App Store-ready IPA
-xcodebuild \
-  -exportArchive \
-  -archivePath ios/build/Runner.xcarchive \
-  -exportPath ios/build \
-  -exportOptionsPlist ios/build/ExportOptions.plist 2>&1 | tail -20
-
-echo ""
-echo "==> Done!"
-ls -la ios/build/Olive.ipa 2>/dev/null
-ls -la ios/build/Runner.xcarchive 2>/dev/null
-
-# Show the next-step commands
-cat <<EOF
-
-To upload to App Store Connect:
-  1. Open Transporter.app (free download from App Store)
-  2. Sign in with your Apple ID
-  3. Drag ios/build/Olive.ipa into Transporter
-  4. Click Deliver
-
-OR via command line (after accepting Xcode license):
-  xcrun altool --upload-package \\
-    --type ios \\
-    --file ios/build/Olive.ipa \\
-    --username "\${APPLE_ID_EMAIL}"
-
-EOF
+xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release \
+  -destination 'generic/platform=iOS' -derivedDataPath "$BUILD_ROOT/DerivedData" \
+  -archivePath "$BUILD_ROOT/Olive.xcarchive" DEVELOPMENT_TEAM="$DEVELOPMENT_TEAM" \
+  CODE_SIGNING_ALLOWED=YES CODE_SIGN_STYLE=Automatic archive
+xcodebuild -exportArchive -archivePath "$BUILD_ROOT/Olive.xcarchive" \
+  -exportPath "$BUILD_ROOT/export" -exportOptionsPlist ios/ExportOptions.plist
+printf '\nIPA export: %s/export\nValidate with Apple before submission.\n' "$BUILD_ROOT"

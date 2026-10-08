@@ -101,15 +101,12 @@ else
   ok "App Group: not referenced (no shared UserDefaults between app and widget)"
 fi
 
-# 9. OliveLiveActivity fate
-if [ -d ios/App/OliveLiveActivity ]; then
-  warn "OliveLiveActivity/ Swift file exists but is not wired as a Widget Extension target"
-  echo "       Two options:"
-  echo "         1. Delete it: rm -rf ios/App/OliveLiveActivity"
-  echo "         2. Wire it as a Widget Extension target in Xcode (advanced)"
-  echo "       Recommended: delete for v1.0.0, ship simple."
+# 9. Confirm the actual Widget Extension target, rather than guessing from a directory.
+if grep -q 'productType = "com.apple.product-type.app-extension"' ios/App/App.xcodeproj/project.pbxproj && \
+   grep -q 'OliveLiveActivity.appex' ios/App/App.xcodeproj/project.pbxproj; then
+  ok "Live Activity extension target and embedded product are configured"
 else
-  ok "OliveLiveActivity/: not present (shipped without for v1.0.0)"
+  fail "Live Activity extension target or embedded product is missing"
 fi
 
 # 10. capabilities.json present
@@ -130,12 +127,5 @@ if [ "$FAIL" -gt 0 ]; then
   exit 1
 fi
 
-echo "✓ Project is structurally ready for App Store submission."
-echo ""
-echo "Next steps:"
-echo "  1. Open ios/App/App.xcodeproj in Xcode"
-echo "  2. Verify Team in Signing & Capabilities"
-echo "  3. Add PrivacyInfo.xcprivacy to App target (right-click App group → Add Files)"
-echo "  4. Accept Xcode license: sudo xcodebuild -license"
-echo "  5. Build: ./scripts/build-ios.sh"
-echo "  6. Upload: ./scripts/upload-app-store.sh ios/build/Olive.ipa"
+echo "✓ Local structural checks passed. Signing, physical-device testing and Apple validation remain required."
+echo "See SUBMISSION-CHECKLIST.md; this script does not certify App Review acceptance."

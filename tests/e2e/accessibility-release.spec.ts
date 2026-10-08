@@ -1,11 +1,13 @@
 import { expect, test, type Page } from '@playwright/test';
+import { waitForApp } from './helpers';
 
 async function resetApp(page: Page, seed?: () => void) {
-  await page.goto('/');
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await waitForApp(page);
   await page.evaluate(() => localStorage.clear());
   await page.evaluate(() => localStorage.setItem('contraction-tracker:onboarding-seen', '1'));
   if (seed) await page.evaluate(seed);
-  await page.reload();
+  await page.reload({ waitUntil: 'domcontentloaded' });
   await expect(page.getByRole('heading', { name: 'Olive' })).toBeVisible();
 }
 
@@ -28,7 +30,7 @@ async function expectModalDialog(page: Page, name: string | RegExp) {
 }
 
 test('mobile viewport permits user zoom', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
   const viewport = await page.locator('meta[name="viewport"]').getAttribute('content');
   expect(viewport).not.toMatch(/user-scalable\s*=\s*no/i);
   expect(viewport).not.toMatch(/maximum-scale\s*=\s*1(?:\.0)?(?:,|$)/i);
@@ -37,15 +39,15 @@ test('mobile viewport permits user zoom', async ({ page }) => {
 test('bottom sheets expose modal semantics and keep keyboard focus inside', async ({ page }) => {
   const sheets: Array<{ button: string | RegExp; dialog: string | RegExp }> = [
     { button: 'Settings', dialog: 'Settings' },
-    { button: 'Hospital bag: 0/12 packed', dialog: 'Hospital bag' },
-    { button: 'Exams: Log exam', dialog: 'Hospital exams' },
-    { button: 'People: Add contacts', dialog: 'People' },
+    { button: /Hospital bag/, dialog: 'Hospital bag' },
+    { button: /Exams/, dialog: 'Exams' },
+    { button: 'Care contacts', dialog: 'Care contacts' },
   ];
 
   for (const sheet of sheets) {
     await resetApp(page);
-    if (/Hospital bag|Exams|People/.test(String(sheet.button))) {
-      await page.getByRole('button', { name: 'More tools' }).click();
+    if (/Hospital bag|Exams/.test(String(sheet.button))) {
+      await page.getByRole('button', { name: 'Open birth journey' }).click();
     }
     await page.getByRole('button', { name: sheet.button, exact: true }).click();
     await expectModalDialog(page, sheet.dialog);
@@ -64,18 +66,19 @@ test('bottom sheets expose modal semantics and keep keyboard focus inside', asyn
   await expectModalDialog(page, /Accessibility QA/);
 });
 
-test('secondary timer control activates with Space', async ({ page }) => {
+test('primary timer control activates with Space', async ({ page }) => {
   await resetApp(page);
-  const start = page.getByRole('button', { name: 'Tap to start a contraction' });
+  const start = page.getByRole('button', { name: /Start Tap when it begins/i });
   await start.focus();
   await page.keyboard.press('Space');
   await expect(page.getByRole('button', { name: /Stop/i })).toBeVisible();
 });
 
 test('onboarding step controls have at least 24 by 24 CSS pixel targets', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await waitForApp(page);
   await page.evaluate(() => localStorage.clear());
-  await page.reload();
+  await page.reload({ waitUntil: 'domcontentloaded' });
 
   for (const step of [1, 2]) {
     const box = await page.getByRole('button', { name: `Go to step ${step}` }).boundingBox();

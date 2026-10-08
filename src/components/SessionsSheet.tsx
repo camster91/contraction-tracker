@@ -3,7 +3,8 @@
 // past and current labor sessions.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Plus, Square, Trash2, Users, ArrowLeft, Play, Eye } from 'lucide-react';
+import { toast } from '../lib/toast';
+import { Plus, Square, Trash2, ArrowLeft, Play, Eye } from 'lucide-react';
 import {
   PRIMARY_SESSION_ID,
   type Session,
@@ -16,13 +17,14 @@ import {
 } from '../lib/sessions';
 import { contractionsInSession } from '../lib/sessions';
 import type { Contraction } from '../lib/contractions';
+import { BrandIllustration } from './Brand';
+import { useModalDialog } from '../hooks/useModalDialog';
 
 type Props = {
   contractions: Contraction[];
   activeSessionId: string;
   onActiveChange: (id: string) => void;
   onClose: () => void;
-  onOpenPeople: () => void;
   onViewSession: (session: Session) => void;
 };
 
@@ -31,9 +33,9 @@ export default function SessionsSheet({
   activeSessionId,
   onActiveChange,
   onClose,
-  onOpenPeople,
   onViewSession,
 }: Props) {
+  const dialogRef = useModalDialog(onClose);
   const [sessions, setSessions] = useState<Session[]>(() => getSessions());
   // Live tick — refreshes the "5h 23m" duration display every 60s
   const [_, setTick] = useState(0);
@@ -51,6 +53,7 @@ export default function SessionsSheet({
 
   const handleCreate = () => {
     const sess = createSession(name);
+    if (!sess) { toast.error('Could not save this session. Free up space and try again.'); return; }
     setSessions(getSessions());
     switchTo(sess.id);
     setCreating(false);
@@ -105,13 +108,17 @@ export default function SessionsSheet({
   };
 
   return (
-    <div className="absolute right-5 top-full mt-1 z-40 w-80 max-w-[calc(100vw-2.5rem)] rounded-2xl border border-ink-200/30 bg-plum-950/95  shadow-[0_8px_32px_-8px_rgba(0,0,0,0.6)] p-4 animate-fade-in">
-      <div className="flex items-center justify-between mb-3">
+    <>
+      <div className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm" onClick={onClose} aria-hidden="true" />
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="Sessions" tabIndex={-1}
+        className="fixed inset-x-0 bottom-0 z-50 max-h-[85dvh] flex flex-col rounded-t-3xl border-t border-ink-200/30 bg-plum-950/98 shadow-[0_-8px_32px_-8px_rgba(0,0,0,0.6)] p-5 animate-slide-up">
+
+      <div className="flex shrink-0 items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <button
             onClick={onClose}
             className="p-1 -ml-1 text-ink-400 active:text-ink-200"
-            aria-label="Back"
+            aria-label="Close Sessions"
           >
             <ArrowLeft className="w-4 h-4" />
           </button>
@@ -128,9 +135,11 @@ export default function SessionsSheet({
         )}
       </div>
 
+      <div className="min-h-0 overflow-y-auto pb-[env(safe-area-inset-bottom)]">
+      <p className="text-sm text-ink-300 mb-3">Current session: <strong className="text-ink-50">{sessions.find((s) => s.id === activeSessionId)?.name ?? 'Primary'}</strong></p>
       {creating && (
         <div className="mb-3 rounded-xl border border-ink-200/30 bg-ink-100/5 p-3">
-          <label htmlFor="session-name-input" className="sr-only">
+          <label htmlFor="session-name-input" className="block text-sm text-ink-300 mb-2">
             Session name
           </label>
           <input
@@ -139,7 +148,7 @@ export default function SessionsSheet({
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Name (e.g. First labor)"
-            className="w-full bg-transparent text-sm text-ink-50 placeholder-ink-400 focus:outline-none mb-2"
+            className="w-full bg-transparent text-base text-ink-50 placeholder-ink-400 focus:outline-none mb-2"
             autoFocus
           />
           <div className="flex gap-2">
@@ -162,7 +171,12 @@ export default function SessionsSheet({
         </div>
       )}
 
-      <ul className="space-y-1.5 max-h-80 overflow-y-auto">
+      {contractions.length === 0 && <div className="flex items-center gap-3 mb-3">
+        <BrandIllustration name="records" className="w-14 h-14" />
+        <p className="text-xs text-ink-300 leading-relaxed">Keep each timing session together. Records are saved privately on this device.</p>
+      </div>}
+
+      <ul className="space-y-1.5">
         {sessions.map((s) => {
           const isActive = s.id === activeSessionId;
           const count = contractionsInSession(contractions, s.id).length;
@@ -178,6 +192,7 @@ export default function SessionsSheet({
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => switchTo(s.id)}
+                  aria-pressed={isActive}
                   className="flex-1 text-left min-w-0"
                 >
                   <div className="text-sm font-medium text-ink-50 truncate flex items-center gap-1.5">
@@ -241,15 +256,8 @@ export default function SessionsSheet({
         })}
       </ul>
 
-      <div className="border-t border-ink-200/20 mt-3 pt-3">
-        <button
-          onClick={onOpenPeople}
-          className="w-full text-left text-sm text-ink-200 active:text-rose-300 px-2 py-1.5 rounded-lg active:bg-ink-100/10 flex items-center gap-2 transition-colors"
-        >
-          <Users className="w-4 h-4" />
-          Manage people
-        </button>
       </div>
     </div>
+    </>
   );
 }

@@ -1,71 +1,28 @@
 #!/usr/bin/env bash
-# Build the Android Olive AAB for Play Store submission.
-#
-# Prerequisites (one-time):
-#   1. Generate the upload keystore (one-liner in SHIPPING.md)
-#   2. Fill in android/app/keystore.properties with the passwords
-#
-# What this script does:
-#   1. npx cap sync android (regenerates native Android code)
-#   2. gradle bundleRelease (creates a signed App Bundle)
-#   3. Verify the AAB is signed with the upload key
-#
-# Output:
-#   android/app/build/outputs/bundle/release/app-release.aab
+# Build a store-signed AAB; require the original upload key, never replace it.
 set -euo pipefail
-
 cd "$(dirname "$0")/.."
-
-export ANDROID_HOME=/opt/homebrew/share/android-commandlinetools
-export ANDROID_SDK_ROOT=$ANDROID_HOME
-
-# Step 1: regenerate Android native code
-echo "==> Step 1/3: npx cap sync android"
+if [[ ! -f android/app/keystore.properties ]]; then
+  printf 'Restore the original upload key and android/app/keystore.properties before building a release.\n' >&2
+  exit 1
+fi
+if [[ -z "${JAVA_HOME:-}" && -d /opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home ]]; then
+  export JAVA_HOME=/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home
+fi
+: "${JAVA_HOME:?Set JAVA_HOME to a Java 21 installation}"
+export ANDROID_HOME="${ANDROID_HOME:-/opt/homebrew/share/android-commandlinetools}"
+export ANDROID_SDK_ROOT="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+npm run verify
+node scripts/write-native-provenance.mjs
 npx cap sync android
-
-# Step 2: build the signed release AAB
-echo "==> Step 2/3: gradle bundleRelease"
-(cd android && ./gradlew bundleRelease)
-
-# Step 3: verify signing
-echo "==> Step 3/3: verify AAB signing"
-AAB="android/app/build/outputs/bundle/release/app-release.aab"
-SOURCE_KEYSTORE="android/app/olive-upload.keystore"
-
-# Extract the universal APK to verify signing
-TMPDIR=$(mktemp -d)
-trap "rm -rf $TMPDIR" EXIT
-
-# Get the keystore password from keystore.properties
-KS_PASS=$(grep '^KEYSTORE_PASSWORD=' android/app/keystore.properties | cut -d= -f2)
-KEY_PASS=$(grep '^KEY_PASSWORD=' android/app/keystore.properties | cut -d= -f2)
-
-# Build a signed APKS archive
-bundletool build-apks \
-  --bundle="$AAB" \
-  --output="$TMPDIR/olive.apks" \
-  --mode=universal \
-  --ks="$SOURCE_KEYSTORE" \
-  --ks-pass="pass:$KS_PASS" \
-  --ks-key-alias=olive \
-  --key-pass="pass:$KEY_PASS" 2>&1 | tail -3
-
-# Extract and verify
-unzip -o "$TMPDIR/olive.apks" -d "$TMPDIR/apks" > /dev/null
-apksigner verify --print-certs "$TMPDIR/apks/universal.apk" 2>&1 | head -10
-
-echo ""
-echo "==> Done!"
-ls -la "$AAB"
-echo ""
-echo "To upload to Google Play Console:"
-echo "  1. Open https://play.google.com/console"
-echo "  2. Olive → Production → Create new release"
-echo "  3. Upload $AAB"
-echo "  4. Review and rollout"
-echo ""
-echo "OR via the Google Play API (gcloud):"
-echo "  gcloud auth login"
-echo "  gcloud config set project YOUR_PROJECT_ID"
-echo "  # Use the play-developer-api Python client for full automation"
-echo "  python -c \"from googleapiclient.discovery import build; ...\""
+(cd android && ./gradlew testDebugUnitTest bundleRelease assembleRelease)
+AAB=android/app/build/outputs/bundle/release/app-release.aab
+"$JAVA_HOME/bin/jarsigner" -verify "$AAB"
+# A successful jarsigner exit alone does not prove that a signature exists.
+OLIVE_SIGNER_SHA256=$("$JAVA_HOME/bin/keytool" -J-Duser.language=en -J-Duser.country=US -printcert -jarfile "$AAB" | awk '/SHA256:/ {print $2; exit}' | tr -d ':' | tr '[:upper:]' '[:lower:]')
+if [[ "$OLIVE_SIGNER_SHA256" != 795331565b4325bd05c84817b30ddfbc9dc3c674fe432af6ef423b24c7739407 ]]; then
+  printf 'AAB signer differs from the original upload certificate recorded in issue #78.\n' >&2
+  exit 1
+fi
+shasum -a 256 "$AAB"
+printf '\nSigned Android artifact prepared locally. Store upload remains a separate action.\n'

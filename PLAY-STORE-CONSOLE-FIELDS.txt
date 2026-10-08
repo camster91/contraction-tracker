@@ -1,228 +1,112 @@
-# Google Play Console — pre-filled fields for Olive v1.3.0
-# Copy/paste from here into Play Console. Each section is exactly
-# what the field expects.
-
-════════════════════════════════════════════════════════════════════════════
-APP DETAILS
-════════════════════════════════════════════════════════════════════════════
-App name: Olive
-Default language: English (United States)
-
-Pricing: Free (v1.3.0 has no IAP)
-
-In-app products: None
-Contains ads: No
+# Google Play Console — Olive v1.3.0 fields
+Prepared locally; not uploaded or entered in a console.
 
 
-════════════════════════════════════════════════════════════════════════════
-STORE LISTING (English)
-════════════════════════════════════════════════════════════════════════════
+APP NAME (max 30 chars)
+────────────────────────────────────────────────────────────────────────
+Olive — Contraction Timer
+
 
 SHORT DESCRIPTION (max 80 chars)
 ────────────────────────────────────────────────────────────────────────
-A private birth journey and a calm labor timer — all on your device.
+Private contraction timing, history and care-team reminders, without an account
 
 
 FULL DESCRIPTION (max 4000 chars)
 ────────────────────────────────────────────────────────────────────────
-Olive is a private birth-journey companion with the contraction timer you open at 3am when nothing else feels calm. One tap starts the timer. The screen stays awake so you can see the numbers. When the contraction ends, tap again. The app remembers everything.
+Olive is a private contraction timer and birth-journey organizer. Tap Start when a contraction begins and Stop when it ends. Review the recorded duration and interval, add a missed contraction, or correct an earlier entry.
 
-Real labor is hard to time. You're focused on breathing, your partner is timing on their phone, and neither of you is sure when the last one started. Olive is designed for that moment.
+YOUR TIMING, IN ONE PLACE
+Record contraction timing, optional intensity, notes and tags. Review a factual history and export a care summary when you want to share it.
 
-Before and after labor, Olive keeps a private care card, provider questions, practical responsibilities, and a factual first-12-weeks postpartum timeline. You choose the phase, and everything stays on your phone.
+YOUR CARE TEAM'S PLAN
+Timing reminders are off by default. Enter instructions from your own care team and choose whether to enable a saved reminder. Olive reports observed timing; it does not diagnose labor or tell you whether it is safe to wait.
 
-WHAT IT DOES
-• One-tap Start/Stop timer — no menus, no settings, just a big button
-• Screen stays on while timing (wake lock API)
-• Provider-configurable timing reminders with an optional care-team call action
-• Voice control — say "start" or "stop" hands-free
-• Hospital bag checklist with pre-loaded items
-• Contraction history with intensity (1-10), tags, and pain location
-• Per-contraction notes
-• Objective frequent-pattern indicator without diagnostic claims
-• One-file backup and restore for your full history
-• Care summary handoff to your provider, right from the timer screen
+BEFORE AND AFTER LABOR
+Keep a private care card, questions for your provider, practical responsibilities, a hospital-bag checklist and postpartum notes. Log exam measurements reported to you by your care team without interpreting progress.
 
-DESIGNED FOR REAL LABOR
-• Quiet interface — no flashing colors, no alarmist messaging
-• User-controlled care-plan reminder with clear limitations and provider handoff
-• Works offline — the timer doesn't need a network connection
-• Reliable on real devices — wake lock keeps the screen on for 3+ hours
-• Self-hosted fonts, instant load, dark mode first
+LOCAL AND OFFLINE
+Core timing and records work offline. No account, ads or analytics are required. Olive stores your records on your device and does not send them to the developer. Export a backup before changing devices or uninstalling the app. Files you choose to save or share may leave the device through the destination you select.
 
-PRIVATE BY DEFAULT
-Everything you record — contractions, journey details, notes, care-team contacts — stays on your device. Olive makes no network requests, has no account system, and contains zero analytics, zero tracking, and zero third-party SDKs. See https://olive.ashbi.ca/privacy for the full policy.
+Olive organizes your observations and notes. It does not replace professional care. Follow your care team's instructions and contact them when you have concerns.
 
-Built by a dad for his wife. Now for you.
+Privacy: https://olive.ashbi.ca/privacy/
 
 
-════════════════════════════════════════════════════════════════════════════
+VERSION / BUILD
+────────────────────────────────────────────────────────────────────────
+1.3.0 / 8 (confirm unused versionCode before upload)
+
+
 APP ICON (512x512)
-════════════════════════════════════════════════════════════════════════════
-Source: ~/.hermes/cache/indie-ship/APPS/olive-contractions/app-icon-master.png
-(Auto-resized to required sizes when you upload)
+────────────────────────────────────────────────────────────────────────
+store-assets/app-icon-512.png — opaque PNG, 512x512.
 
 
-════════════════════════════════════════════════════════════════════════════
 FEATURE GRAPHIC (1024x500)
-════════════════════════════════════════════════════════════════════════════
-Source: ~/.hermes/cache/indie-ship/APPS/olive-contractions/play-feature-graphic-1024x500.png
-Size: 28.5KB JPEG
-Note: The AI-generated graphic has stylized text. If you want
-crisp typography, run the graphic through Figma/Canva and overlay
-real text. The current version is functional and on-brand.
+────────────────────────────────────────────────────────────────────────
+store-assets/play-feature-graphic-1024x500.png — opaque PNG, 1024x500.
+Alt text: Olive wordmark with the message Calm, private contraction timing on a dark background.
 
 
-════════════════════════════════════════════════════════════════════════════
 SCREENSHOTS
-════════════════════════════════════════════════════════════════════════════
-Minimum required: 2 phone screenshots
-Recommended: 4-8 screenshots
-
-Source: ~/.hermes/cache/indie-ship/APPS/olive-contractions/screenshots/6.7_iphone/
-
-Upload in this order (first shown in search results):
-1. 01-hero-timer.png        (Main timer)
-2. 02-contraction-active.png (Active contraction)
-3. 03-history.png           (History view)
-4. 05-care-plan-reminder.png (saved care-plan reminder)
-
-Note: These are 1290x2796 (iPhone 15 Pro Max 6.7"). Play Store
-also accepts 1080x1920. To generate Android phone-size screenshots
-at 1080x1920, run the test with a different viewport.
-
-For tablet: ~/.hermes/cache/indie-ship/APPS/olive-contractions/screenshots/12.9_ipad/
+────────────────────────────────────────────────────────────────────────
+Phone: store-assets/screenshots/play_phone/ (1080x1920).
+7-inch tablet: store-assets/screenshots/play_tablet_7/ (1440x2560).
+10-inch tablet: store-assets/screenshots/play_tablet_10/ (1800x3200).
+Upload 01, 02, 03, 04, 05 in that order. Browser-generated candidates require reconciliation with the signed device build. Use captions.json for alt text. Do not upload tall iPhone images as Play phone screenshots.
 
 
-════════════════════════════════════════════════════════════════════════════
 PRICING
-════════════════════════════════════════════════════════════════════════════
-RELEASE DECISION: Free.
-The current build does not implement in-app purchases, so do not configure
-or advertise an IAP for v1.3.0.
+────────────────────────────────────────────────────────────────────────
+Free; no in-app purchases or subscriptions.
 
-
-════════════════════════════════════════════════════════════════════════════
-PRIVACY & APP CONTENT
-════════════════════════════════════════════════════════════════════════════
 
 PRIVACY POLICY URL
 ────────────────────────────────────────────────────────────────────────
-https://olive.ashbi.ca/privacy
+https://olive.ashbi.ca/privacy/
+
+
+SUPPORT EMAIL
+────────────────────────────────────────────────────────────────────────
+cameron@ashbi.ca
+
+
+SUPPORT URL
+────────────────────────────────────────────────────────────────────────
+https://olive.ashbi.ca/support/
 
 
 APP ACCESS
 ────────────────────────────────────────────────────────────────────────
-All functionality is available without a login or account. The app
-makes no network requests; all data stays on the device.
+No account or login. Core timing and saved records work offline. Users can choose to export files or open support/privacy links.
 
 
-DATA SAFETY (the new 2024 form)
+DATA SAFETY
 ────────────────────────────────────────────────────────────────────────
-Q: Does your app collect or share any of the required user data types?
-A: No. As of v1.3.0 the app makes no network requests and sends
-   nothing off-device. All data (contraction history, journey details,
-   notes, contacts) is stored locally and never transmitted.
-
-Q: Is all of the user data collected by your app encrypted in transit?
-A: Not applicable — no data is collected or transmitted.
-
-Q: Do you provide a way for users to request that their data be deleted?
-A: Yes. Users can delete local data in the app at any time; since
-   nothing leaves the device, deletion in the app is complete deletion.
-
-Q: Is your app designed for children?
-A: No, the app is for expecting parents (18+).
-
-Q: Does your app contain ads?
-A: No.
-
-Q: Does your app have in-app purchases?
-A: No. The v1.3.0 build has no in-app purchase implementation.
-
-Q: Does your app use any data for tracking?
-A: No, the app does not track users.
-
-Q: Does your app target children under 13?
-A: No.
+Prepared answer: the developer does not collect or share app records. No analytics, ads or tracking. Records stay local unless the user chooses an export destination. Apply current Google definitions/exemptions to exports and support communications, and inspect the final signed binary before declaring. No server account/deletion request endpoint exists; uninstalling or clearing app storage removes local records. Previously exported files require separate deletion.
 
 
 HEALTH APP DECLARATION
 ────────────────────────────────────────────────────────────────────────
-Is this a health app? YES — it records user-entered contraction timing
-  on the user's device.
-
-Does it read or write health data? YES — it stores contraction
-  history locally (intensity, duration, timestamps). The data
-  never leaves the device.
-
-Does it connect to medical devices? NO.
-
-Compliance: This is an informational timing and communication tool,
-  not a medical device. Reminder thresholds are saved by the user from
-  their care team's instructions. Olive reports observations and does
-  not claim to diagnose or treat any medical condition.
+The app records user-entered contraction timing and notes. It does not connect to medical devices or use Health Connect. Saved reminders use values entered from the user's care team. Complete the actual health declaration and required disclosures from the final app; do not claim clinical validation or regulatory approval.
 
 
-CONTENT RATING
+CONTENT RATING / TARGET AUDIENCE
 ────────────────────────────────────────────────────────────────────────
-Complete the IARC questionnaire:
-
-Violence: None
-Sexual content: None
-Language: None
-Controlled substances: None
-
-Expected rating: Everyone (E) or Everyone 10+ (E10+)
-
-Age groups: 18+, not designed for children under 13
+Complete the current IARC and audience questionnaires. Intended for expecting parents/support people; no children's marketing. Owner confirms audience and rating; no automatic rating is claimed.
 
 
-TARGET AUDIENCE
+RELEASE NOTES
 ────────────────────────────────────────────────────────────────────────
-Age 18+, not designed for children
+Use play-store-release-notes.txt (English, under 500 characters).
 
 
-NEWS APP
+INTERNAL TESTING
 ────────────────────────────────────────────────────────────────────────
-No
+Open Testing > Internal testing in the actual console. Upload the inspected signed AAB using the original upload certificate. Record actual artifact hash, release/build ID and processing result. Do not use historical Windows artifact hashes. Tester invitations are a separate named-recipient action.
 
 
-COVID-19 APP
+REMAINING ACCOUNT STEPS
 ────────────────────────────────────────────────────────────────────────
-No
-
-
-════════════════════════════════════════════════════════════════════════════
-APP RELEASE
-════════════════════════════════════════════════════════════════════════════
-
-INTERNAL TESTING TRACK (recommended for first release)
-────────────────────────────────────────────────────────────────────────
-1. Production > Create new release
-2. Upload the signed AAB: android/app/build/outputs/bundle/release/app-release.aab
-3. Release name: 1.3.0 (6)
-4. Release notes (paste from play-store-release-notes.txt)
-
-5. Review and roll out to internal testing
-6. Internal testing reviews in 1-3 days
-7. Once approved, promote to production from the same page
-
-
-PRODUCTION TRACK (after internal testing passes)
-────────────────────────────────────────────────────────────────────────
-1. Production > Promote release
-2. Choose the internal testing build
-3. Roll out: 100% staged (recommended for first release, not full
-   instant)
-4. Wait for production review (1-7 days for first submission)
-5. Once approved, app is live on the Play Store
-
-
-════════════════════════════════════════════════════════════════════════════
-WHAT TO UPLOAD
-════════════════════════════════════════════════════════════════════════════
-- Signed AAB: android/app/build/outputs/bundle/release/app-release.aab
-  Signed with Olive upload key (CN=Olive, OU=Mobile, O=Ashbi, L=Toronto, ST=Ontario, C=CA)
-  SHA-256: 8c1f1ff9b79e314ff88f29b734c28a60662a22d8968d3e4d14981da77640fbc5
-  Valid until: 2095-03-05
+Complete Ashbi organization identity, website and phone verification before Create app can be used. No review/processing times or launch date are guaranteed.

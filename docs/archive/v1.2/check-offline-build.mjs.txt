@@ -1,0 +1,50 @@
+#!/usr/bin/env node
+
+import { access, readFile, stat } from 'node:fs/promises';
+import { resolve } from 'node:path';
+
+const root = resolve(import.meta.dirname, '..');
+const dist = resolve(root, 'dist');
+const manifestPath = resolve(dist, 'build-manifest.json');
+const swPath = resolve(dist, 'sw.js');
+
+const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
+const entries = Object.values(manifest);
+const routeChunks = entries.filter((entry) => entry?.isDynamicEntry && typeof entry.file === 'string');
+const requiredRoutes = ['src/App.tsx', 'src/components/ShareView.tsx'];
+
+for (const route of requiredRoutes) {
+  if (!manifest[route]?.isDynamicEntry || typeof manifest[route]?.file !== 'string') {
+    throw new Error(`Required route ${route} is no longer emitted as a lazy entry.`);
+  }
+}
+
+const files = new Set(['build-manifest.json']);
+for (const entry of entries) {
+  if (!entry || typeof entry !== 'object') continue;
+  for (const value of [entry.file, ...(entry.css || []), ...(entry.assets || [])]) {
+    if (typeof value === 'string' && value.length > 0) files.add(value.replace(/^\//, ''));
+  }
+}
+
+await Promise.all([...files].map((file) => access(resolve(dist, file))));
+
+const indexEntry = manifest['index.html'];
+if (!indexEntry?.isEntry || typeof indexEntry.file !== 'string') {
+  throw new Error('Production manifest has no index entry.');
+}
+const indexBytes = (await stat(resolve(dist, indexEntry.file))).size;
+const maxIndexBytes = 300 * 1024;
+if (indexBytes > maxIndexBytes) {
+  throw new Error(`First-load entry is ${indexBytes} bytes; expected no more than ${maxIndexBytes}.`);
+}
+
+const sw = await readFile(swPath, 'utf8');
+if (!sw.includes("const BUILD_MANIFEST = '/build-manifest.json'")) {
+  throw new Error('Built service worker does not reference the build manifest.');
+}
+if (!sw.includes('Promise.all([...files]')) {
+  throw new Error('Built service worker does not require every manifest asset during installation.');
+}
+
+console.log(`OK: ${requiredRoutes.length} required routes are lazy, the ${indexBytes}-byte entry is within budget, and ${files.size} manifest assets are available for offline precaching.`);

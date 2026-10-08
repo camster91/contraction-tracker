@@ -44,6 +44,7 @@ test('real-labor: a sustained timing pattern triggers the saved reminder', async
   // durations, simulating the "early labor â†’ active labor" curve.
   // 5 contractions: 60s, 65s, 70s, 75s, 80s with 4-min gaps = 20 min total.
   await page.evaluate(() => {
+    localStorage.setItem('contraction-tracker:care-plan', JSON.stringify({ enabled: true, intervalMinutes: 5, durationSeconds: 60, windowMinutes: 60 }));
     const now = Date.now();
     const pattern = Array.from({ length: 11 }, (_, index) => ({
       agoMin: 55 - index * 5,

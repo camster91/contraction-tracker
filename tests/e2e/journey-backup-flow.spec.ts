@@ -24,10 +24,9 @@ test('backup export includes normalized v2 journey data', async ({ page }) => {
       entries: [],
     }));
   });
-  await page.goto('/');
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
   await waitForApp(page);
-  await page.getByRole('button', { name: 'More tools' }).click();
-  await page.getByRole('button', { name: /Backup: Export & restore/i }).click();
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
 
   const downloadPromise = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Export backup' }).click();
@@ -56,7 +55,7 @@ test('v2 import merges journey records without overwriting healthy profile field
       entries: [],
     }));
   });
-  await page.goto('/');
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
   await waitForApp(page);
 
   const imported = {

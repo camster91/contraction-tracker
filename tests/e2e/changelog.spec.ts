@@ -1,12 +1,3 @@
-/**
- * What's New / Changelog copy — must exist where App Store
- * reviewers look for it.
- *
- * The What's New text is shown on the app's "Update" screen when
- * a user upgrades. Apple's review guidelines require this to be
- * non-empty for the first release (some reviewers specifically look
- * for changelog presence).
- */
 import { test, expect } from '@playwright/test';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -37,27 +28,11 @@ test('whats-new: WHATS-NEW.txt exists with the App Store release notes', async (
   expect(content, 'WHATS-NEW should identify Olive').toContain('Olive');
 });
 
-test('whats-new: indie-ship store-listing.md has the v1.0.0 release notes', async () => {
-  const fs = await import('fs');
-  const path = await import('path');
-  // The store-listing.md is the source for App Store / Play Store
-  // submission. It should mention v1.0.0 release notes.
-  const candidates = [
-    path.resolve(process.env.HOME || '/Users/biancabienaime',
-      '.hermes/cache/indie-ship/APPS/olive-contractions/store-listing.md'),
-  ];
-  let found = false;
-  for (const candidate of candidates) {
-    if (fs.existsSync(candidate)) {
-      const content = fs.readFileSync(candidate, 'utf-8');
-      expect(content).toContain('1.0.0');
-      found = true;
-      break;
-    }
-  }
-  // Soft assertion — store-listing.md is in the indie-ship cache,
-  // not the project. Skip if not present.
-  if (!found) {
-    console.log('NOTE: indie-ship cache not available locally — skipping');
-  }
+test('whats-new: repository store metadata matches the current release and medical boundary', async () => {
+  const listing = JSON.parse(fs.readFileSync(path.resolve(process.cwd(), 'store-assets/listing-metadata.json'), 'utf8'));
+  expect(listing.version).toBe(packageJson.version);
+  expect(listing.name).toBe('Olive — Contraction Timer');
+  expect(listing.description).toContain('does not replace professional care');
+  expect(listing.privacyUrl).toBe('https://olive.ashbi.ca/privacy/');
+  expect(listing.description).not.toMatch(/live partner sharing|guaranteed|clinically proven/i);
 });

@@ -1,3 +1,5 @@
+import { csvCell } from './csv.ts';
+
 // Pure contraction math — no React, no DOM. Easy to reason about, easy to test.
 //
 // DATA MODEL: backward-compatible additive evolution only.
@@ -34,6 +36,7 @@ export type Contraction = {
   start: string;
   /** ISO timestamp when the contraction ended, or null if still in progress */
   end: string | null;
+  source?: 'timer' | 'manual';
   /** optional intensity 1-10 */
   intensity?: number | null;
   /** optional note */
@@ -69,7 +72,7 @@ export function intervalSeconds(prev: Contraction, curr: Contraction): number {
 }
 
 export function formatDuration(totalSeconds: number): string {
-  const capped = Math.min(totalSeconds, 9 * 3600 + 59 * 60 + 59); // cap at 9:59:59
+  const capped = Number.isFinite(totalSeconds) ? Math.max(0, Math.floor(totalSeconds)) : 0;
   const m = Math.floor(capped / 60);
   const s = capped % 60;
   if (capped >= 3600) {
@@ -131,6 +134,7 @@ export function formatElapsed(totalSeconds: number): string {
 }
 
 export type ContractionReminderPlan = {
+  enabled?: boolean;
   providerName: string;
   providerPhone: string;
   intervalMinutes: number;
@@ -148,6 +152,7 @@ export function isCarePlanPattern(
   plan: ContractionReminderPlan,
   now: number = Date.now(),
 ): boolean {
+  if (plan.enabled !== true) return false;
   const finished = contractions
     .filter((c) => c.end)
     .sort((a, b) => a.start.localeCompare(b.start));
@@ -280,4 +285,32 @@ export function buildCareSummary(
     lines.push(`• ${details.join(' · ')}`);
   }
   return lines.join('\n');
+}
+
+export function buildContractionsCsv(contractions: Contraction[], now = Date.now()): string {
+  const sorted = [...contractions].sort((a, b) => a.start.localeCompare(b.start));
+  const rows = [['id', 'session_id', 'source', 'start', 'end', 'duration_seconds', 'interval_seconds', 'intensity', 'note', 'tags', 'pain_locations']];
+  sorted.forEach((c, i) => rows.push([
+    c.id, c.sessionId || 'primary', c.source || 'timer', c.start, c.end || '',
+    String(durationSeconds(c, now)), i ? String(intervalSeconds(sorted[i - 1], c)) : '',
+    c.intensity == null ? '' : String(c.intensity), c.note || '',
+    (c.tags || []).join('; '), (c.painLocations || []).join('; '),
+  ]));
+  return rows.map((row) => row.map(csvCell).join(',')).join('\r\n') + '\r\n';
+}
+
+/** Completed records that started in the last hour; spacing uses only pairs within that window. */
+export function summarizeRecentContractions(records: Contraction[], now: number) {
+  const recent = records.filter((record) => {
+    const start = Date.parse(record.start);
+    const end = record.end ? Date.parse(record.end) : NaN;
+    return Number.isFinite(start) && Number.isFinite(end) && start >= now - 3600000
+      && start <= now && end >= start && end <= now;
+  }).sort((a, b) => Date.parse(a.start) - Date.parse(b.start));
+  const count = recent.length;
+  return {
+    count,
+    averageDuration: count ? Math.round(recent.reduce((sum, record) => sum + durationSeconds(record), 0) / count) : null,
+    averageSpacing: count > 1 ? Math.round((Date.parse(recent[count - 1].start) - Date.parse(recent[0].start)) / 1000 / (count - 1)) : null,
+  };
 }

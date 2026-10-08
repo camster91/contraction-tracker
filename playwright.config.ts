@@ -9,8 +9,7 @@ import { defineConfig, devices } from '@playwright/test';
  * The gauntlet runs scripted user paths across a persona matrix — see
  * tests/e2e/personas.ts for the matrix and tests/e2e/paths/ for the paths.
  *
- * Single project (chromium) by default. Add webkit/firefox once we have
- * the bugs ironed out — adding too many browsers in v1 produces noise.
+ * Chromium and WebKit both run by default; CI installs both engines.
  */
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:8765/';
 
@@ -61,12 +60,10 @@ export default defineConfig({
     },
     {
       // Real WebKit engine — closer to iOS Safari than chromium-fake-UA.
-      // Opt-in: run with `npx playwright test --project='iPhone 14 (webkit)'`.
+      // Run this project alone with `npx playwright test --project='iPhone 14 (webkit)'`.
       // The shipped iOS app is a Capacitor wrapper around this same PWA,
-      // so WebKit is the closer engine match for shipping bugs. CI does
-      // not run this project by default — the CI workflow only installs
-      // chromium. To run webkit in CI, also run
-      // `npx playwright install --with-deps webkit` first.
+      // so WebKit is the closer engine match for shipping bugs. CI installs
+      // and runs both Chromium and WebKit.
       name: 'iPhone 14 (webkit)',
       use: {
         ...devices['iPhone 14'],

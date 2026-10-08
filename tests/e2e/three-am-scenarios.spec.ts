@@ -190,7 +190,7 @@ test('3am: a short cluster stays observational and does not diagnose labor', asy
 
   // A short cluster should be visible as timing data, not a sustained reminder.
   const bodyText = (await page.locator('body').textContent()) || '';
-  expect(bodyText).toMatch(/Frequent contractions|Pattern building/);
+  expect(bodyText).not.toMatch(/Frequent contractions|Pattern building/);
   expect(bodyText).not.toContain('Saved care-plan reminder');
   expect(bodyText).not.toMatch(/active labor|time to call|head to the hospital/i);
 });

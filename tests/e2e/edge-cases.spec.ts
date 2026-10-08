@@ -7,6 +7,7 @@ async function loadPattern(page: Page, durationSeconds: number, count = 11) {
   await page.goto('/');
   await waitForApp(page);
   await page.evaluate(({ key, duration, recordCount }) => {
+    localStorage.setItem('contraction-tracker:care-plan', JSON.stringify({ enabled: true, intervalMinutes: 5, durationSeconds: 60, windowMinutes: 60 }));
     const now = Date.now();
     const contractions = Array.from({ length: recordCount }, (_, index) => {
       const minutesAgo = 55 - index * 5;
@@ -34,6 +35,7 @@ test('edit: shortening enough records removes the sustained reminder', async ({ 
     for (const contraction of stored.contractions.slice(-3)) {
       contraction.end = new Date(new Date(contraction.start).getTime() + 5_000).toISOString();
     }
+    stored.savedAt = new Date().toISOString();
     localStorage.setItem(key, JSON.stringify(stored));
   }, STORAGE_KEY);
   await page.reload();
@@ -51,6 +53,7 @@ test('edit: lengthening a sustained pattern activates the saved reminder', async
     for (const contraction of stored.contractions) {
       contraction.end = new Date(new Date(contraction.start).getTime() + 80_000).toISOString();
     }
+    stored.savedAt = new Date().toISOString();
     localStorage.setItem(key, JSON.stringify(stored));
   }, STORAGE_KEY);
   await page.reload();
@@ -66,6 +69,7 @@ test('edit: deleting enough records removes the sustained reminder', async ({ pa
   await page.evaluate((key) => {
     const stored = JSON.parse(localStorage.getItem(key) || '{"contractions":[]}');
     stored.contractions = stored.contractions.slice(0, -3);
+    stored.savedAt = new Date().toISOString();
     localStorage.setItem(key, JSON.stringify(stored));
   }, STORAGE_KEY);
   await page.reload();
@@ -78,6 +82,7 @@ test('edit: records outside the saved window do not trigger a reminder', async (
   await page.goto('/');
   await waitForApp(page);
   await page.evaluate((key) => {
+    localStorage.setItem('contraction-tracker:care-plan', JSON.stringify({ enabled: true, intervalMinutes: 5, durationSeconds: 60, windowMinutes: 60 }));
     const now = Date.now();
     const contractions = Array.from({ length: 11 }, (_, index) => {
       const start = now - (120 - index * 5) * 60_000;

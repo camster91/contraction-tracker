@@ -1,5 +1,10 @@
 node_modules
-ios/build/  # Capacitor iOS build artifacts (already-tracked ExportOptions.plist stays in git history)
+# Local native build artifacts
+ios/build/
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
 dist
 .DS_Store
 *.log

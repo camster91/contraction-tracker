@@ -1,0 +1,54 @@
+# Olive v1.3.0 prepared asset inventory
+
+Updated 2026-10-05. Local preparation, not signed-device capture, clinical approval, store upload or acceptance.
+
+## Assets
+
+- iOS icon: opaque 1024x1024 PNG, byte-identical to the frozen native marketing icon.
+- Play icon: opaque 512x512 PNG; current matching artwork.
+- Play feature graphic: opaque 1024x500 PNG with crisp Olive wordmark and existing brand colors.
+- 35 raw UI screenshot candidates: five states in seven size groups.
+- Captions/alt text, canonical listing JSON, clean Apple/Play copy sheets, English release notes and TestFlight fields.
+- Prepared static privacy/support pages and current device/user/professional review protocols.
+
+| Folder | Pixels | Intended slot |
+|---|---|---|
+| `6.7_iphone` | 1290x2796 | Apple large Dynamic Island iPhone |
+| `6.1_iphone` | 1179x2556 | Apple smaller Dynamic Island iPhone |
+| `5.5_iphone` | 1242x2208 | Apple legacy Home-button iPhone |
+| `12.9_ipad` | 2048x2732 | Apple 13-inch or compatible 12.9-inch iPad slot |
+| `play_phone` | 1080x1920 | Play phone |
+| `play_tablet_7` | 1440x2560 | Play 7-inch tablet candidate |
+| `play_tablet_10` | 1800x3200 | Play 10-inch tablet candidate |
+
+Order: idle timer, active contraction, history, add-missed form, saved care-plan reminder. Examples use fabricated records and an example care team. No screenshot of removed partner links or memory-book PDF is included. Stale `-v2` artwork is excluded from the upload package; original repository files remain preserved.
+
+## Provenance and validation
+
+Runtime candidate: `23487cf7f7effd041c43ec728648332c0e950a1b`. Tablet candidates were rendered from that frozen production build with the current screenshot script at its actual responsive widths. Existing phone/iPad candidates were prepared against the same runtime in this session. These are Chromium renders with browser feature availability; the floating-timer control/native chrome may differ on a physical native build. Reconcile every selected image with the signed build before upload.
+
+`node scripts/check-store-assets.mjs` checks expected PNG dimensions, opacity, five-state captions and iOS icon identity. `node scripts/check-store-metadata.mjs` checks source/listing consistency. The package manifest adds per-file SHA-256 and render/scope labels. Generated example reminder values are not a universal clinical threshold. Reminders require opt-in in the app.
+
+Current format references:
+
+- https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications/
+- https://support.google.com/googleplay/android-developer/answer/9866151
+- https://developer.apple.com/help/app-store-connect/test-a-beta-version/provide-test-information/
+
+## Final gates
+
+Match images to the processed signed build and actual console slots; review copy with the requested independent reviewers. Verify public privacy/support pages, actual declarations and owner contact details. Optional preview videos are not required for this package; do not synthesize footage of unverified native behavior. No Wear OS, watchOS, TV, automotive, French or public web app listing is prepared for this release.
+
+## Build 8 native evidence — October 7, 2026
+
+The previous asset inventory above is historical and is not the current upload package. Remediation candidate source is `235e91f6ab596a230c0e04115fdb9405a430efd6`, version 1.3.0/build 8. Task `outputs/remediation-store-screenshots/` holds 35 updated browser previews; they remain browser previews and must not be represented as native captures.
+
+Task `outputs/remediation-build8/` now contains eight actual iPhone 17/iOS 26.5 Simulator captures at 1206 × 2622: onboarding, idle, active, Sessions with reachable Stop, history, changed edit draft, canceled edit preserving the record, and Big Text active timer. `native-simulator-manifest.json` identifies source, original capture name, dimensions and SHA-256. These replace browser-only evidence for the captured native states. They are review material, not a finished or uploaded listing set. Onboarding, draft/cancel comparison and accessibility regression images need selection/editorial review before listing use.
+
+Still required: complete consistent native listing set including care setup/reminder, final image/caption review, native iPad captures if offered, Android captures from the signed candidate, and professional copy review. Do not upload old build-6/7 or browser floating-timer imagery as build-8 native UI. Physical-device acceptance remains separate.
+
+## Build 10 native iPad package — October 7, 2026
+
+Candidate source `c354b34621b8055082f363d523f357c899d4287b`, version 1.3.0/build 10. Installed iPad Pro 13-inch (M5)/iPadOS 26.5 Simulator metadata and all 49 embedded web files match payload SHA-256 `78a8d36960654c0635f53e05bd379982266ddcbf40984cca7178acf923793f7d`. Five raw Device Hub captures at 2064 × 2752 cover idle timer, active timer, saved history, missed-entry form and care setup. Inputs fit their sheets; care timing values remain blank. The isolated Start/Stop flow saved one fabricated 17-second record.
+
+The current task package `outputs/native-store-build10/` now holds ten native captures (five iPhone, five iPad), a byte/hash/dimension manifest and review gallery. These are prepared local assets, not uploaded screenshots, professional copy approval or physical-device acceptance. Chrome remains unavailable; build 10 Xcode upload succeeded but Apple processing and current TestFlight availability remain unverified. Original Android signing configuration is still absent on this Mac. Google account verification, exact-candidate physical acceptance and two independent professional reviews remain open.

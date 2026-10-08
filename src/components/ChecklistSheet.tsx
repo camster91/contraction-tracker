@@ -1,7 +1,8 @@
 // Hospital Bag Checklist Sheet — updated with add custom item + drag reorder.
 import { useState, useRef } from 'react';
-import { X, Check, Plus, GripVertical, Trash2 } from 'lucide-react';
+import { X, Check, Plus, GripVertical, Trash2, ArrowUp, ArrowDown } from 'lucide-react';
 import { getChecklist, toggleChecklistItem, packedCount, saveChecklist, type ChecklistItem } from '../lib/checklist';
+import { toast } from '../lib/toast';
 import { uid } from '../lib/storage';
 import { useModalDialog } from '../hooks/useModalDialog';
 
@@ -14,12 +15,13 @@ export default function ChecklistSheet({ sessionId, onClose }: Props) {
   const dialogRef = useModalDialog(onClose);
   const [items, setItems] = useState<ChecklistItem[]>(() => getChecklist(sessionId));
   const [adding, setAdding] = useState(false);
+  const [reordering, setReordering] = useState(false);
   const [newText, setNewText] = useState('');
   const dragItem = useRef<string | null>(null);
   const dragOverItem = useRef<string | null>(null);
 
   const handleToggle = (itemId: string) => {
-    toggleChecklistItem(sessionId, itemId);
+    if (!toggleChecklistItem(sessionId, itemId)) { toast.error('Could not save this checklist. Free up space and try again.'); return; }
     setItems(getChecklist(sessionId));
   };
 
@@ -31,7 +33,7 @@ export default function ChecklistSheet({ sessionId, onClose }: Props) {
       packed: false,
     };
     const next = [...items, item];
-    saveChecklist(sessionId, next);
+    if (!saveChecklist(sessionId, next)) { toast.error('Could not save this checklist. Free up space and try again.'); return; }
     setItems(next);
     setNewText('');
     setAdding(false);
@@ -39,7 +41,16 @@ export default function ChecklistSheet({ sessionId, onClose }: Props) {
 
   const handleDelete = (itemId: string) => {
     const next = items.filter((i) => i.id !== itemId);
-    saveChecklist(sessionId, next);
+    if (!saveChecklist(sessionId, next)) { toast.error('Could not save this checklist. Free up space and try again.'); return; }
+    setItems(next);
+  };
+
+  const moveItem = (index: number, offset: number) => {
+    const to = index + offset;
+    if (to < 0 || to >= items.length) return;
+    const next = [...items];
+    [next[index], next[to]] = [next[to], next[index]];
+    if (!saveChecklist(sessionId, next)) { toast.error('Could not save this checklist. Free up space and try again.'); return; }
     setItems(next);
   };
 
@@ -59,7 +70,7 @@ export default function ChecklistSheet({ sessionId, onClose }: Props) {
     const next = [...items];
     const [moved] = next.splice(from, 1);
     next.splice(to, 0, moved);
-    saveChecklist(sessionId, next);
+    if (!saveChecklist(sessionId, next)) { toast.error('Could not save this checklist. Free up space and try again.'); return; }
     setItems(next);
     dragItem.current = null;
     dragOverItem.current = null;
@@ -89,7 +100,7 @@ export default function ChecklistSheet({ sessionId, onClose }: Props) {
         </div>
 
         {/* Header */}
-        <div className="flex items-center justify-between px-5 pb-3">
+        <div className="flex shrink-0 items-center justify-between px-5 pb-3">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-sage-300/15 flex items-center justify-center">
               <svg className="w-4 h-4 text-sage-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
@@ -107,7 +118,7 @@ export default function ChecklistSheet({ sessionId, onClose }: Props) {
             {!adding && (
               <button
                 onClick={() => setAdding(true)}
-                className="text-xs text-rose-300 active:text-rose-200 font-semibold flex items-center gap-1 px-2.5 py-1.5 rounded-lg active:bg-rose-300/10 transition-colors"
+                className="min-h-11 text-xs text-rose-300 active:text-rose-200 font-semibold flex items-center gap-1 px-2.5 py-1.5 rounded-lg active:bg-rose-300/10 transition-colors"
               >
                 <Plus className="w-3.5 h-3.5" />
                 Add item
@@ -115,8 +126,8 @@ export default function ChecklistSheet({ sessionId, onClose }: Props) {
             )}
             <button
               onClick={onClose}
-              className="p-2 text-ink-400 active:text-ink-200 rounded-xl active:bg-ink-100/10 transition-colors"
-              aria-label="Close"
+              className="min-h-11 min-w-11 p-2 text-ink-400 active:text-ink-200 rounded-xl active:bg-ink-100/10 transition-colors"
+              aria-label="Close hospital bag"
             >
               <X className="w-5 h-5" strokeWidth={1.75} />
             </button>
@@ -139,7 +150,8 @@ export default function ChecklistSheet({ sessionId, onClose }: Props) {
               value={newText}
               onChange={(e) => setNewText(e.target.value)}
               placeholder="Item name"
-              className="flex-1 bg-transparent text-sm text-ink-50 placeholder-ink-400 focus:outline-none"
+              aria-label="Item name"
+              className="flex-1 min-w-0 bg-transparent text-base text-ink-50 placeholder-ink-400 focus:outline-none"
               autoFocus
               onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
             />
@@ -160,18 +172,19 @@ export default function ChecklistSheet({ sessionId, onClose }: Props) {
           </div>
         )}
 
+        {items.length > 1 && <button type="button" aria-pressed={reordering} onClick={() => setReordering(value => !value)} className="mx-5 mb-3 min-h-11 rounded-xl border border-ink-200/30 px-3 text-sm text-ink-200">{reordering ? 'Done reordering' : 'Reorder items'}</button>}
         {/* Items list */}
-        <div className="flex-1 overflow-y-auto px-5 pb-6 space-y-1.5">
+        <div className="flex-1 min-h-0 overflow-y-auto px-5 pb-6 space-y-1.5">
           {items.length === 0 && !adding && (
             <div className="text-center py-8">
               <div className="text-sm text-ink-300 font-medium">No items yet</div>
               <div className="text-[11px] text-ink-500 mt-1">Start packing — tap Add to build your hospital bag list.</div>
             </div>
           )}
-          {items.map((item) => (
+          {items.map((item, index) => (
             <div
               key={item.id}
-              draggable
+              draggable={reordering}
               onDragStart={() => handleDragStart(item.id)}
               onDragOver={(e) => handleDragOver(e, item.id)}
               onDrop={handleDrop}
@@ -182,13 +195,13 @@ export default function ChecklistSheet({ sessionId, onClose }: Props) {
               } ${dragOverItem.current === item.id ? 'border-rose-300/50' : ''}`}
             >
               {/* Drag handle */}
-              <div className="text-ink-500 cursor-grab active:cursor-grabbing">
+              {reordering && <div className="text-ink-500 cursor-grab active:cursor-grabbing">
                 <GripVertical className="w-3.5 h-3.5" strokeWidth={1.75} />
-              </div>
+              </div>}
 
               <button
                 onClick={() => handleToggle(item.id)}
-                className="flex items-center gap-2.5 flex-1"
+                className="min-h-11 flex items-center gap-2.5 flex-1 min-w-0"
                 aria-label={item.packed ? `Mark ${item.text} as not packed` : `Mark ${item.text} as packed`}
               >
                 <div className={`w-5 h-5 rounded-md border flex items-center justify-center flex-shrink-0 transition-colors ${
@@ -201,9 +214,13 @@ export default function ChecklistSheet({ sessionId, onClose }: Props) {
                 </span>
               </button>
 
+              {reordering && <div className="flex flex-col">
+                <button type="button" aria-label={`Move ${item.text} up`} disabled={index === 0} onClick={() => moveItem(index, -1)} className="min-h-11 min-w-11 text-ink-200 disabled:opacity-30"><ArrowUp className="mx-auto w-4 h-4" /></button>
+                <button type="button" aria-label={`Move ${item.text} down`} disabled={index === items.length - 1} onClick={() => moveItem(index, 1)} className="min-h-11 min-w-11 text-ink-200 disabled:opacity-30"><ArrowDown className="mx-auto w-4 h-4" /></button>
+              </div>}
               <button
                 onClick={() => handleDelete(item.id)}
-                className="p-1 text-ink-500 active:text-rose-300 transition-colors"
+                className="min-h-11 min-w-11 p-2 text-ink-500 active:text-rose-300 transition-colors"
                 aria-label={`Delete ${item.text}`}
               >
                 <Trash2 className="w-3.5 h-3.5" />

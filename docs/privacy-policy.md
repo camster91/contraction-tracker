@@ -1,8 +1,8 @@
 # Olive privacy policy
 
-Effective September 2026. App version 1.3.0.
+Effective October 2026. App version 1.3.0.
 
-Olive is a birth-journey companion and contraction timer for expecting parents and their support people. **Everything you record stays on your device.** Olive makes no network requests, has no account system, and sends nothing to any server. This policy explains what data the app handles and why.
+Olive is a birth-journey companion and contraction timer for expecting parents and their support people. **Your records stay local unless you choose to export them.** Olive has no account system, automatic uploads or remote sync service. This policy explains what data the app handles and why.
 
 Olive is built on a fundamental principle: **your health data belongs to you.**
 
@@ -22,12 +22,11 @@ When you use Olive, the following data is stored locally on your device:
 - Hospital info (name, address, doctor, etc. — entered by you)
 - Local backups of the above, written to a file only when you tap "Export backup"
 
-None of this data ever leaves your device. Olive contains no sync server and no share links; there is nowhere for it to go.
+Olive contains no sync server or share links. Your records remain local unless you choose to export them through another app.
 
 ### What you explicitly hand out
 
 - **Backups and care summaries.** "Export backup", "Send via…", and the care summary action use your device's own system share sheet. The file or text goes directly to whichever app you choose (Mail, AirDrop, Messages). Olive has no visibility into where it goes and does not transmit it anywhere itself.
-- **Voice control.** If you enable voice control, Olive uses the speech-recognition service supplied by your operating system. Processing may occur on-device or through that platform's speech service, depending on the device and settings. Olive does not record, retain, or transmit voice audio.
 
 ### No analytics, no tracking
 
@@ -52,12 +51,12 @@ Olive contains no advertising or sponsored content.
 ## Data retention
 
 - **All data** is stored on your device only. You can delete it at any time by deleting items in the app, uninstalling the app, or clearing the app's local storage from your device settings.
-- **No cloud storage** of session data is performed by Olive. If you back up your device via iCloud, Google Drive, or any other platform, your Olive data may be included in that backup. That is a function of your device settings, not Olive.
-- **Files you export** are ordinary files in whichever destination you chose through the system share sheet; Olive retains no copy.
+- **No cloud storage** of session data is performed by Olive. Android system backups exclude Olive’s local records. Starting with version 1.3.0 build 12, Olive marks its private iOS app-data directories as excluded from automatic device backups. This is a system backup preference, not a guarantee that no older or restored backup contains records. Export an Olive backup yourself before changing devices. Manage any existing device backups in your device or backup-account settings.
+- **Files you export** are ordinary files in whichever destination you chose through the system share sheet; Olive creates a temporary cache file for the share sheet and attempts to remove it when sharing finishes. Your original on-device records remain until you delete them.
 
 ## Data sharing with third parties
 
-Olive sends data to no advertising, analytics, crash-reporting, or other third-party services. There is no server component. The only ways data leaves your device are the ones you initiate yourself: exporting a backup file or care summary through the system share sheet, and — if you enable voice control — your platform's own speech-recognition service.
+Olive sends data to no advertising, analytics, crash-reporting, or other third-party services. There is no server component. The only ways data leaves your device are the ones you initiate yourself: exporting a backup file or care summary through the system share sheet, through apps you choose.
 
 ## Children's privacy
 
@@ -67,13 +66,13 @@ Olive is not designed for use by children under 13. We do not collect data from 
 
 You own your data. At any time, you can:
 
-- **Delete all data** by deleting items in the app, uninstalling it, or clearing app storage from your device settings. Because nothing ever left the device, deleting it in the app is complete deletion.
+- **Delete all data** by deleting items in the app, uninstalling it, or clearing app storage from your device settings. Remove any exported files separately from the locations or apps where you saved or sent them.
 - **Export your data** as a JSON backup file at any time.
 - **Request help** through the support channel listed below.
 
 ## Security
 
-- Olive makes no network requests, so there is no transit to secure and no server holding your data.
+- Olive does not automatically upload your records. If you open a support/privacy website, email the developer, or share an export, the selected website or destination handles that communication.
 - Local data is stored in the app's sandboxed storage on your device, protected by your device's own lock and encryption.
 - Olive does not retain voice recordings.
 
@@ -89,5 +88,5 @@ If this policy changes, the updated policy will be posted at the same location w
 
 For questions, concerns, or data deletion requests:
 
-- **Support:** https://olive.ashbi.ca
+- **Support:** https://olive.ashbi.ca/support/
 - **Developer:** Available via the app's support channel
