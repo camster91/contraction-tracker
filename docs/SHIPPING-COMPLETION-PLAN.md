@@ -212,3 +212,7 @@ October 8 current candidate: build 11, source 0bad4f0733ae3805595638a00e558584ae
 ## October 8 current beta availability
 
 October 8 build 11 is now Testing in both approved TestFlight groups (Cameron and two Bianca addresses), with processing, compliance and testing instructions complete. Public version 1.3.0 attaches build 11, verified after reload; ten uploaded screenshots remain representative of identical UI assets. No public App Store submission or release occurred. Owner declarations, launch territories, physical/professional acceptance and Android verification/signing still remain.
+
+## October 8 remaining public-release gates
+
+October 8 final store preparation check: free pricing persisted after reload, with all comparable prices zero. Mac and Vision Pro opt-ins are off for this mobile release; launch territories await owner decision. Current TestFlight build 11 is Testing for the three previously authorized tester addresses, and public listing attachment 11 persisted. Fresh Google check still requires identity, organization website and phone verification; app creation disabled. Website request has not been sent. Public release remains incomplete pending owner declarations, physical/professional acceptance, original Android key and Google account approval.
