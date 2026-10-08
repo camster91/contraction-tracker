@@ -1,6 +1,6 @@
 # Olive v1.3.0 Apple review readiness
 
-**Apple acceptance is unverified.** October 8 review: build 11 is signed, processed and attached to the public draft; its TestFlight groups are Testing. Build 12 supersedes it as the prepared runtime candidate after adding private-data backup exclusion. Build 12 source is `22dceb8fed88c9c5ce71da46fc123388fc359568`; strict signed-export and embedded provenance checks passed. Its upload/processing state is tracked in SHIPPING.md and task outputs/remediation-build12. Public status remains Prepare for Submission.
+**Apple acceptance is unverified.** October 8 review: build 12 is signed, processed, Testing in both existing TestFlight groups and attached to the public draft with reload verification. Build 11 is retained as earlier beta evidence. Build 12 supersedes it as the prepared runtime candidate after adding private-data backup exclusion. Build 12 source is `22dceb8fed88c9c5ce71da46fc123388fc359568`; strict signed-export and embedded provenance checks passed. Its upload/processing and draft-attachment state is tracked in SHIPPING.md and task outputs/remediation-build12. Public status remains Prepare for Submission.
 
 Do not treat beta availability as public App Review approval. Apple's guidelines 1.4.1, 2.1, 4.2 and 5.1 remain the relevant review risks: health interpretation, completeness, native utility and privacy. See https://developer.apple.com/app-store/review/guidelines/. Two professional reviews and the observed-user study are repository gates, not a claim that Apple requires those exact studies.
 
