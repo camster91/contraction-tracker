@@ -204,3 +204,7 @@ Apple questionnaire completed and reload verified for Olive: calculated 9+ in 17
 ## October 8 native screenshots uploaded
 
 Apple version 1.3.0 now contains five native build-10 screenshots in each iPhone medium and iPad 13-inch slot. Reload verified both sets. Upload permission resolved; own regenerable build caches cleared to recover disk space, while signed exports, archives, screenshots and keys were preserved. Public submission remains open alongside privacy attestation approval, owner facts, device/professional acceptance and Android account/signing dependencies.
+
+## October 8 licence-notice candidate
+
+October 8 current candidate: build 11, source 0bad4f0733ae3805595638a00e558584aeaa7c6c. Added 16 bundled dependency licence notices; UI assets are byte-identical to build 10. Lint/typecheck/web/metadata checks and signed iOS/source/payload verification passed; Xcode upload succeeded. Android host tests/instrumentation compilation and matching unsigned AAB/APK passed; original key absent. Privacy published with specific approval, licensed content rights saved/reload verified. Processing/internal/listing selection for 11 and owner/device/professional/account/store gates remain open. Evidence: task outputs/remediation-build11.
