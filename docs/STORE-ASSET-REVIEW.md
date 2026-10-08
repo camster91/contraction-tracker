@@ -38,3 +38,11 @@ Current format references:
 ## Final gates
 
 Match images to the processed signed build and actual console slots; review copy with the requested independent reviewers. Verify public privacy/support pages, actual declarations and owner contact details. Optional preview videos are not required for this package; do not synthesize footage of unverified native behavior. No Wear OS, watchOS, TV, automotive, French or public web app listing is prepared for this release.
+
+## Build 8 native evidence — October 7, 2026
+
+The previous asset inventory above is historical and is not the current upload package. Remediation candidate source is `235e91f6ab596a230c0e04115fdb9405a430efd6`, version 1.3.0/build 8. Task `outputs/remediation-store-screenshots/` holds 35 updated browser previews; they remain browser previews and must not be represented as native captures.
+
+Task `outputs/remediation-build8/` now contains eight actual iPhone 17/iOS 26.5 Simulator captures at 1206 × 2622: onboarding, idle, active, Sessions with reachable Stop, history, changed edit draft, canceled edit preserving the record, and Big Text active timer. `native-simulator-manifest.json` identifies source, original capture name, dimensions and SHA-256. These replace browser-only evidence for the captured native states. They are review material, not a finished or uploaded listing set. Onboarding, draft/cancel comparison and accessibility regression images need selection/editorial review before listing use.
+
+Still required: complete consistent native listing set including care setup/reminder, final image/caption review, native iPad captures if offered, Android captures from the signed candidate, and professional copy review. Do not upload old build-6/7 or browser floating-timer imagery as build-8 native UI. Physical-device acceptance remains separate.
