@@ -208,3 +208,7 @@ Apple version 1.3.0 now contains five native build-10 screenshots in each iPhone
 ## October 8 licence-notice candidate
 
 October 8 current candidate: build 11, source 0bad4f0733ae3805595638a00e558584aeaa7c6c. Added 16 bundled dependency licence notices; UI assets are byte-identical to build 10. Lint/typecheck/web/metadata checks and signed iOS/source/payload verification passed; Xcode upload succeeded. Android host tests/instrumentation compilation and matching unsigned AAB/APK passed; original key absent. Privacy published with specific approval, licensed content rights saved/reload verified. Processing/internal/listing selection for 11 and owner/device/professional/account/store gates remain open. Evidence: task outputs/remediation-build11.
+
+## October 8 current beta availability
+
+October 8 build 11 is now Testing in both approved TestFlight groups (Cameron and two Bianca addresses), with processing, compliance and testing instructions complete. Public version 1.3.0 attaches build 11, verified after reload; ten uploaded screenshots remain representative of identical UI assets. No public App Store submission or release occurred. Owner declarations, launch territories, physical/professional acceptance and Android verification/signing still remain.
