@@ -200,3 +200,7 @@ Subtitle Private labor timer and primary Health & Fitness category persisted aft
 ## October 7 saved age questionnaire
 
 Apple questionnaire completed and reload verified for Olive: calculated 9+ in 172 regions; Vietnam/Brazil 12+, Korea All, earlier operating systems global 4+ with exceptions. No override. Current observations and preparation tools support wellness Yes, with no diagnostic/treatment guidance or objectionable content. This is separate from owner medical-device status. Chrome 5 reconnect allowed questionnaire work, but screenshot upload still reports disabled extension file-URL access; none uploaded. Privacy publishing attestation, owner facts, physical acceptance, professional reviews, Google verification and original Android key remain open.
+
+## October 8 native screenshots uploaded
+
+Apple version 1.3.0 now contains five native build-10 screenshots in each iPhone medium and iPad 13-inch slot. Reload verified both sets. Upload permission resolved; own regenerable build caches cleared to recover disk space, while signed exports, archives, screenshots and keys were preserved. Public submission remains open alongside privacy attestation approval, owner facts, device/professional acceptance and Android account/signing dependencies.
