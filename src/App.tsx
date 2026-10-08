@@ -1,5 +1,6 @@
 import { Capacitor } from '@capacitor/core';
 import { exportTextFile } from './lib/exportFile';
+import { shareSummary } from './lib/shareSummary';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Play,
@@ -24,7 +25,6 @@ import {
   COMMON_TAGS,
   allTags,
   buildCareSummary,
-  buildSummary,
   durationSeconds,
   summarizeRecentContractions,
   formatClock,
@@ -768,42 +768,16 @@ export default function App() {
 
   const handleShare = async () => {
     const text = buildCareSummary(contractions, carePlan, now);
-    if (Capacitor.isNativePlatform()) {
-      try { await exportTextFile(text, 'olive-care-summary.txt', 'text/plain', 'Olive care summary'); }
-      catch { toast.error('Could not share the care summary. Please try again.'); }
-      return;
-    }
-    const file = new File([text], `olive-care-summary-${new Date().toISOString().split('T')[0]}.txt`, { type: 'text/plain' });
-    if (navigator.canShare?.({ files: [file] })) {
-      try {
-        await navigator.share({ files: [file], title: 'Olive care summary', text });
-        return;
-      } catch {
-        /* user cancelled */
-      }
-    }
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: 'Olive care summary', text });
-        return;
-      } catch {
-        /* cancelled */
-      }
-    }
     try {
-      await navigator.clipboard.writeText(text);
-      toast.success('Summary copied to clipboard');
+      const result = await shareSummary(text);
+      if (result === 'copied') toast.success('Summary copied to clipboard');
     } catch {
-      // Last-resort fallback: the user has no clipboard, no share
-      // sheet. Surface the text inline rather than blocking the
-      // page with an alert. Long summaries wrap in a scrollable
-      // pre so this stays usable.
-      toast.info(text.length > 200 ? text.slice(0, 200) + '…' : text, { duration: 10_000 });
+      toast.error('Could not share the care summary. Try Save summary instead.');
     }
   };
 
   const handleDownload = async () => {
-    try { await exportTextFile(buildSummary(contractions), `contractions-${new Date().toISOString().slice(0, 10)}.txt`, 'text/plain', 'Olive care summary'); }
+    try { await exportTextFile(buildCareSummary(contractions, carePlan, now), `olive-care-summary-${new Date().toISOString().slice(0, 10)}.txt`, 'text/plain', 'Olive care summary'); }
     catch { toast.error('Could not export the care summary. Please try again.'); }
   };
 
@@ -829,7 +803,7 @@ export default function App() {
       checklists,
       journey,
     });
-    try { await downloadBackup(data); rotateBackup(data); }
+    try { if (await downloadBackup(data)) rotateBackup(data); }
     catch { toast.error('Could not export the backup. Please try again.'); }
   };
 

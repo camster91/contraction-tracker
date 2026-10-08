@@ -28,7 +28,7 @@ export default function HistoryHeader({ onReadSummary, onShare, onDownload }: Pr
           title="Share an objective timing summary with your care team"
         >
           <Share2 className="w-3.5 h-3.5" />
-          <span>Care summary</span>
+          <span>Share summary</span>
         </button>
         <button
           onClick={onDownload}
