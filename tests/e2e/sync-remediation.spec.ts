@@ -22,9 +22,7 @@ test('cross-tab sync propagates notes and allows an intentional reversion', asyn
       note: 'initial fabricated note',
     }] }));
   });
-  await page.clock.install({ time: new Date('2026-10-08T16:00:00Z') });
   const secondTab = await context.newPage();
-  await secondTab.clock.install({ time: new Date('2026-10-08T16:00:00Z') });
 
   await page.goto('/');
   await secondTab.goto('/');
