@@ -23,9 +23,9 @@ function validContractions(value: unknown): Record<string, unknown>[] {
   return array(value).filter(validateContractionRecord) as Record<string, unknown>[];
 }
 
-function mergeContractions(local: unknown[], mirrored: unknown[]): unknown[] {
+function mergeContractions(local: unknown[], mirrored: unknown[], preferMirror: boolean): unknown[] {
   const merged = new Map<string, Record<string, unknown>>();
-  for (const item of [...local, ...mirrored]) {
+  for (const item of preferMirror ? [...mirrored, ...local] : [...local, ...mirrored]) {
     if (validateContractionRecord(item) && typeof item.id === 'string' && !merged.has(item.id)) {
       merged.set(item.id, item as Record<string, unknown>);
     }
@@ -55,7 +55,10 @@ export async function recoverCrashBackup(): Promise<BackupData | null> {
   // Merge by id instead of replacing the local copy. This preserves a record
   // written after the last IndexedDB tick while recovering records missing
   // from localStorage after a wipe or quota failure.
-  const contractions = mergeContractions(localContractions, mirroredContractions);
+  const localSavedAt = Date.parse(history?.savedAt ?? '');
+  const mirrorSavedAt = Date.parse(mirror?.savedAt ?? '');
+  const preferMirror = Number.isFinite(mirrorSavedAt) && (!Number.isFinite(localSavedAt) || mirrorSavedAt > localSavedAt);
+  const contractions = mergeContractions(localContractions, mirroredContractions, preferMirror);
 
   const localCurrent = read('contraction-tracker:current');
   const timerMirror = await loadCurrentBackup<unknown>();
