@@ -75,7 +75,9 @@ import {
 } from './lib/settings';
 import { useUndo } from './lib/undo';
 import { syncNativeTimerNotification } from './lib/nativeTimer';
+import { timerFeedback } from './lib/timerFeedback';
 import ManualContractionSheet from './components/ManualContractionSheet';
+import ManualShareSheet from './components/ManualShareSheet';
 import { withClockTime, withEndOffset, withStartOffset } from './lib/contractionTime';
 import SessionsSheet from './components/SessionsSheet';
 import ActiveTimerControl from './components/ActiveTimerControl';
@@ -106,6 +108,7 @@ import HistoryHeader from './components/HistoryHeader';
 import JourneySheet from './components/JourneySheet';
 import {
   getJourney,
+  getJourneyAsync,
   mergeJourney,
   saveJourney,
   updateJourneyPhase,
@@ -143,7 +146,7 @@ export default function App() {
   const [initialHistory] = useState(() => {
     const stored = load<Stored>(STORAGE_KEY, { contractions: [] });
     // Validate: ensure contractions is an array, each has at least id + start
-    if (!Array.isArray(stored.contractions)) {
+    if (!stored || !Array.isArray(stored.contractions)) {
       return { contractions: [] as Contraction[], damaged: true };
     }
     const valid = stored.contractions.filter((c: any) => c && typeof c.id === 'string' && typeof c.start === 'string');
@@ -152,6 +155,7 @@ export default function App() {
   const [contractions, setContractions] = useState<Contraction[]>(initialHistory.contractions);
   const [current, setCurrent] = useState<Contraction | null>(() => load(SESSION_KEY, null));
   const [recoveryLoaded, setRecoveryLoaded] = useState(false);
+  const [nativeTimerUnavailable, setNativeTimerUnavailable] = useState(false);
   const [now, setNow] = useState(Date.now());
   const timerButtonRef = useRef<HTMLButtonElement>(null);
   const previousTimer = useRef(current);
@@ -177,10 +181,16 @@ export default function App() {
   const [tagsDraft, setTagsDraft] = useState<string[]>([]);
   const [showSettings, setShowSettings] = useState(false);
   const [showManual, setShowManual] = useState(false);
+  const [manualShareText, setManualShareText] = useState<string | null>(null);
   const [showSessions, setShowSessions] = useState(false);
   const [showPeople, setShowPeople] = useState(false);
   const [sessions, setSessions] = useState<Session[]>(() => getSessions());
   const [activeSessionId, setActiveId] = useState<string>(() => getActiveSessionId());
+  const sessionContractions = useMemo(
+    () => contractionsInSession(contractions, activeSessionId),
+    [contractions, activeSessionId],
+  );
+  const activeSessionName = sessions.find((session) => session.id === activeSessionId)?.name ?? 'Primary';
 
 
   // Viewing an ended session read-only (without switching active session)
@@ -355,19 +365,23 @@ export default function App() {
     (async () => {
       try {
         const local = load<Stored>(STORAGE_KEY, { contractions: [] });
-        const [backup, timer] = await Promise.all([
-          loadAutoBackup<Contraction>(), loadCurrentBackup<Contraction>(),
+        const [backup, timer, recoveredJourney] = await Promise.all([
+          loadAutoBackup<Contraction>(), loadCurrentBackup<Contraction>(), getJourneyAsync(),
         ]);
         if (!mounted) return;
+        setJourney(recoveredJourney);
+        const localContractions = Array.isArray(local?.contractions)
+          ? local.contractions.filter((c) => c && typeof c.id === 'string' && typeof c.start === 'string' && Number.isFinite(Date.parse(c.start)))
+          : [];
         if (backup && Array.isArray(backup.contractions) &&
-            (local.contractions.length === 0 ||
-             (Date.parse(backup.savedAt ?? '') > Date.parse(local.savedAt ?? '1970-01-01')))) {
-          const merged = new Map(local.contractions.map((c) => [c.id, c]));
+            (localContractions.length === 0 ||
+             (Date.parse(backup.savedAt ?? '') > Date.parse(local?.savedAt ?? '1970-01-01')))) {
+          const merged = new Map(localContractions.map((c) => [c.id, c]));
           for (const c of backup.contractions) {
             if (c && typeof c.id === 'string' && Number.isFinite(Date.parse(c.start))) merged.set(c.id, c);
           }
           setContractions([...merged.values()].sort((a, b) => a.start.localeCompare(b.start)));
-          if (merged.size > local.contractions.length) setDataDamagedToast(true);
+          if (merged.size > localContractions.length) setDataDamagedToast(true);
         }
         const candidate = timer?.current ?? backup?.current;
         if (!load(SESSION_KEY, null) && candidate && !candidate.end &&
@@ -417,9 +431,10 @@ export default function App() {
     broadcastContractions(contractions);
   }, [contractions, current, recoveryLoaded]);
   useEffect(() => {
+    if (!recoveryLoaded) return;
     if (!saveJourney(journey)) toast.error('Could not save your journey. Export a backup before closing Olive.');
     autoBackupJourney(journey).catch(() => {});
-  }, [journey]);
+  }, [journey, recoveryLoaded]);
 
   useEffect(() => {
     if (!recoveryLoaded) return;
@@ -430,7 +445,11 @@ export default function App() {
 
   useEffect(() => {
     const running = current && !current.end ? current.start : null;
-    void syncNativeTimerNotification(running);
+    let mounted = true;
+    void syncNativeTimerNotification(running).then((available) => {
+      if (mounted) setNativeTimerUnavailable(Boolean(running) && !available);
+    });
+    return () => { mounted = false; };
   }, [current]);
 
   useEffect(() => {
@@ -507,7 +526,7 @@ export default function App() {
     chimeStart();
     enableWakeLock();
     // Tactile feedback — vital when phone is in a pillow or screen is dim
-    try { navigator.vibrate?.(80); } catch { /* unsupported */ }
+    void timerFeedback('start');
   };
 
   const handleStop = () => {
@@ -523,7 +542,7 @@ export default function App() {
     chimeStop();
     // Tactile feedback — distinct double-pulse for stop so the user can
     // feel the difference between start and stop without looking.
-    try { navigator.vibrate?.([60, 40, 60]); } catch { /* unsupported */ }
+    void timerFeedback('stop');
     // Voice readout of the contraction we just finished
     const dur = durationSeconds(finished);
     speak(`That was ${formatDurationSpoken(dur)}.`);
@@ -538,7 +557,7 @@ export default function App() {
   };
 
   const shortenLast = (seconds: number) => {
-    const last = [...contractions].reverse().find((c) => c.end);
+    const last = [...sessionContractions].reverse().find((c) => c.end);
     if (!last?.end) return;
     const changed = withEndOffset(last, -seconds);
     if (!changed) { toast.error('That adjustment would create an invalid duration.'); return; }
@@ -612,7 +631,7 @@ export default function App() {
       const draw = () => {
         if (!ctx) return;
         const inProgress = current && !current.end;
-        const carePlanMatch = isCarePlanPattern(contractions, carePlan, Date.now());
+        const carePlanMatch = isCarePlanPattern(sessionContractions, carePlan, Date.now());
         // Background — amber when the saved reminder matches, otherwise dark plum
         ctx.fillStyle = carePlanMatch ? '#3a2410' : '#26382C';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -632,13 +651,13 @@ export default function App() {
         if (inProgress) {
           bigText = formatDuration(durationSeconds(current!, Date.now()));
         } else {
-          const gap = secondsSinceLastFinish(contractions, Date.now());
+          const gap = secondsSinceLastFinish(sessionContractions, Date.now());
           if (gap !== null) bigText = formatDuration(gap);
         }
         ctx.fillText(bigText, canvas.width / 2, 84);
         // Subtitle for the since-last case
         if (!inProgress && !carePlanMatch) {
-          const finished = contractions.filter((c) => c.end);
+          const finished = sessionContractions.filter((c) => c.end);
           if (finished.length > 0) {
             ctx.fillStyle = '#B8C5A2';
             ctx.font = '500 11px Inter, system-ui, sans-serif';
@@ -740,7 +759,7 @@ export default function App() {
     const prev = finished[finished.length - 2];
     const lastDur = durationSeconds(last, now);
     const lastGap = prev ? intervalSeconds(prev, last) : null;
-    const sinceFinish = secondsSinceLastFinish(contractions, now);
+    const sinceFinish = secondsSinceLastFinish(sessionContractions, now);
     // Each part is a clause. We join with ", " and add a final period so the
     // voice reads naturally without double periods.
     const parts: string[] = [];
@@ -762,17 +781,18 @@ export default function App() {
   };
 
   const handleShare = async () => {
-    const text = buildCareSummary(contractions, carePlan, now);
+    const text = `Session: ${activeSessionName}\n\n${buildCareSummary(sessionContractions, carePlan, now)}`;
     try {
       const result = await shareSummary(text);
       if (result === 'copied') toast.success('Summary copied to clipboard');
+      if (result === 'manual') setManualShareText(text);
     } catch {
-      toast.error('Could not share the care summary. Try Save summary instead.');
+      setManualShareText(text);
     }
   };
 
   const handleDownload = async () => {
-    try { await exportTextFile(buildCareSummary(contractions, carePlan, now), `olive-care-summary-${new Date().toISOString().slice(0, 10)}.txt`, 'text/plain', 'Olive care summary'); }
+    try { await exportTextFile(`Session: ${activeSessionName}\n\n${buildCareSummary(sessionContractions, carePlan, now)}`, `olive-care-summary-${new Date().toISOString().slice(0, 10)}.txt`, 'text/plain', 'Olive care summary'); }
     catch { toast.error('Could not export the care summary. Please try again.'); }
   };
 
@@ -827,15 +847,16 @@ export default function App() {
       // and the write.
       const allPeople = getPeople();
       const existingContractions = new Map<string, Contraction>(contractions.map((c) => [c.id, c]));
-      const existingSessions = new Map<string, Session>(sessions.map((s) => [s.id, s]));
+      const liveSessions = getSessions();
+      const existingSessions = new Map<string, Session>(liveSessions.map((s) => [s.id, s]));
       const existingPeople = new Map<string, Person>(allPeople.map((p) => [p.id, p]));
       const existingExams = new Map<string, Map<string, CervicalExam>>();
       const existingChecklists = new Map<string, Map<string, ChecklistItem>>();
 
-      for (const s of sessions) {
+      for (const s of liveSessions) {
         existingExams.set(s.id, new Map(getExams(s.id).map((x) => [x.id, x])));
       }
-      for (const s of sessions) {
+      for (const s of liveSessions) {
         existingChecklists.set(s.id, new Map(getChecklist(s.id).map((i) => [i.id, i])));
       }
 
@@ -926,8 +947,8 @@ export default function App() {
   };
 
   const finished = useMemo(
-    () => contractions.filter((c) => c.end).sort((a, b) => a.start.localeCompare(b.start)),
-    [contractions],
+    () => sessionContractions.filter((c) => c.end).sort((a, b) => a.start.localeCompare(b.start)),
+    [sessionContractions],
   );
 
   // One-time migration: stamp old contractions (no sessionId) with the primary
@@ -946,12 +967,12 @@ export default function App() {
       setContractions(migrated);
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
-  const showAlert = isCarePlanPattern(contractions, carePlan, now);
+  const showAlert = isCarePlanPattern(sessionContractions, carePlan, now);
 
   // Care-plan progress: count recent contractions near the saved duration.
 
   const currentElapsed = current && !current.end ? durationSeconds(current, now) : 0;
-  const secondsSinceFinish = secondsSinceLastFinish(contractions, now);
+  const secondsSinceFinish = secondsSinceLastFinish(sessionContractions, now);
   const hasRecentTiming = secondsSinceFinish !== null && secondsSinceFinish < 3600;
   const laborView = current !== null || journey.profile.phase === 'labor' || hasRecentTiming;
   const firstStart = finished[0]?.start;
@@ -964,7 +985,7 @@ export default function App() {
     return finished.filter((c) => getTags(c).includes(tagFilter));
   }, [finished, tagFilter]);
   // All tags used anywhere, for the filter chip row
-  const knownTags = useMemo(() => allTags(contractions), [contractions]);
+  const knownTags = useMemo(() => allTags(sessionContractions), [sessionContractions]);
 
   const [snoozedUntil, setSnoozedUntil] = useState<number>(() => {
     const stored = load<unknown>('contraction-tracker:reminder-paused-until', 0);
@@ -1124,6 +1145,8 @@ export default function App() {
         </div>
       )}
 
+      {manualShareText !== null && <ManualShareSheet title="care summary" text={manualShareText} onClose={() => setManualShareText(null)} />}
+
       {/* Hidden file input for backup import */}
       {backupError && (
         <div role="alert" className="fixed bottom-20 inset-x-5 z-50 mx-auto max-w-sm rounded-xl border border-red-400/30 bg-red-400/10 px-4 py-3 text-xs text-red-200 animate-fade-in shadow-[0_4px_24px_-8px_rgba(248,113,113,0.3)] flex items-center gap-2">
@@ -1207,8 +1230,13 @@ export default function App() {
           <SessionsSheet
             contractions={contractions}
             activeSessionId={activeSessionId}
+            runningSessionId={current && !current.end ? current.sessionId : undefined}
+            onSessionsChange={setSessions}
             onActiveChange={(id) => {
               setActiveId(id);
+              setTagFilter(null);
+              setEditingId(null);
+              setTimingDraft(null);
               setShowSessions(false);
             }}
             onClose={() => setShowSessions(false)}
@@ -1285,6 +1313,7 @@ export default function App() {
       </header>
 
       <main className="flex-1 min-h-0 overflow-y-auto px-5 pb-8 w-full">
+        <p className="pt-1 pb-2 text-center text-xs text-ink-300">Recording in <span className="font-semibold text-ink-100">{activeSessionName}</span></p>
         {/* Hero CTA */}
         <div className="pt-2 pb-6">
           {!current ? (
@@ -1429,7 +1458,8 @@ export default function App() {
       )}
 
       {/* Active labor indicator */}
-      <ActiveLaborBanner contractions={contractions} now={now} />
+      {nativeTimerUnavailable && <p role="status" className="mb-3 rounded-xl border border-ink-200/30 p-3 text-xs text-ink-200">The lock-screen timer is unavailable. Olive is still timing here. Check notification or Live Activity settings on your device.</p>}
+      <ActiveLaborBanner contractions={sessionContractions} now={now} />
 
         {/* "Since last" hero stat — biggest reading on the page during active
             labor, between contractions. Hidden while a contraction is in
@@ -1803,7 +1833,7 @@ function RecentTimingSummary({ contractions, now }: { contractions: Contraction[
   const summary = summarizeRecentContractions(contractions, now);
   return <section aria-label="Recent timing" className="mb-4 rounded-2xl border border-sage-300/25 bg-sage-300/5 px-4 py-4">
     <h2 className="text-sm font-semibold text-ink-200">Last hour</h2>
-    <p className="text-xs text-ink-300 mt-1">{summary.count} completed · all sessions</p>
+    <p className="text-xs text-ink-300 mt-1">{summary.count} completed · selected session</p>
     {summary.count > 0 && <dl className="grid grid-cols-2 gap-3 mt-3">
       <div><dt className="text-xs text-ink-300">Average duration</dt><dd className="text-xl font-display text-rose-300 mt-1">{formatDuration(summary.averageDuration!)}</dd></div>
       <div><dt className="text-xs text-ink-300">Average spacing</dt><dd className="text-xl font-display text-sage-300 mt-1">{summary.averageSpacing === null ? '—' : formatDuration(summary.averageSpacing)}</dd></div>

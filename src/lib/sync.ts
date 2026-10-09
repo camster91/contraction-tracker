@@ -11,14 +11,17 @@
 // actually fired. Result: every tab that received a change rebroadcast it,
 // and every other tab received that, and so on — infinite thrash.
 //
-// Fix: stamp each broadcast with a short content hash + a per-tab id. On
-// receive, check the incoming (payload type, hash) against a small LRU of
-// keys seen recently, regardless of source. If seen, drop the message — it
-// is a logical duplicate being rebroadcast through the network of tabs.
+// Fix: stamp each broadcast with a short content hash + a per-tab id. Each
+// tab remembers the last hash it sent for each payload type. A state effect
+// may run for a related state change (the app has separate effects for the
+// record list and current timer), but an unchanged payload is sent at most
+// once. That prevents a received update from bouncing between tabs, while
+// still allowing a person to return to an earlier value after a real
+// intervening edit.
 //
 // The tab id remains on messages for diagnostics and future ordering work.
-// The local LRU handles logical duplicates, while the payload type keeps an
-// independently-broadcast current timer from colliding with array state.
+// The payload type keeps an independently-broadcast current timer from
+// colliding with array state.
 //
 import type { Contraction } from './contractions';
 
@@ -42,31 +45,16 @@ const tabId =
     ? crypto.randomUUID().slice(0, 8)
     : Math.random().toString(36).slice(2, 10);
 
-// Bounded LRU of recently-seen payload keys (any source). The payload type
-// is part of the key: a current-timer message and a contractions-array
-// message must not suppress one another when their content hashes match.
-// When a message arrives, check before remembering it. Remembering first
-// would make every incoming message look like a duplicate and disable
-// cross-tab sync entirely.
-const RECENT_HASH_LIMIT = 16;
-const recentHashes: string[] = [];
-
 type PayloadType = SyncMessage['payload']['type'];
 
-function payloadKey(type: PayloadType, hash: string): string {
-  return `${type}:${hash}`;
-}
+// Separate payload types intentionally have separate dedupe slots: an
+// unchanged current timer must not suppress a real contractions-list edit.
+const lastBroadcastHash: Partial<Record<PayloadType, string>> = {};
 
-function rememberHash(type: PayloadType, hash: string) {
-  const key = payloadKey(type, hash);
-  if (!recentHashes.includes(key)) {
-    recentHashes.push(key);
-    if (recentHashes.length > RECENT_HASH_LIMIT) recentHashes.shift();
-  }
-}
-
-function isDuplicate(type: PayloadType, hash: string): boolean {
-  return recentHashes.includes(payloadKey(type, hash));
+function shouldSkipBroadcast(type: PayloadType, hash: string): boolean {
+  if (lastBroadcastHash[type] === hash) return true;
+  lastBroadcastHash[type] = hash;
+  return false;
 }
 
 /**
@@ -135,24 +123,18 @@ export function initSync(
   channel.onmessage = (e: MessageEvent<SyncMessage>) => {
     const { hash, payload } = e.data;
     if (!payload || (payload.type !== 'contractions' && payload.type !== 'current') || typeof hash !== 'string') return;
-    if (isDuplicate(payload.type, hash)) {
-      // We sent this ourselves (defensive — BroadcastChannel
-      // doesn't normally deliver to the sender) or we just received
-      // the same logical change from another tab. Either way, drop.
-      return;
+    if (payload.type === 'contractions') {
+      if (!Array.isArray(payload.contractions)) return;
+      onContractions(payload.contractions);
     }
-    // Remember before dispatching so the state effect's rebroadcast is
-    // recognized as the same logical update by the other tabs.
-    rememberHash(payload.type, hash);
-    if (payload.type === 'contractions') onContractions(payload.contractions);
     if (payload.type === 'current') onCurrent(payload.current);
   };
 }
 
 /**
  * @deprecated The receive-in-flight counter was broken (see file comment).
- * Kept as a no-op so old import sites don't break. The seq+hash-based
- * echo guard inside broadcastContractions/broadcastCurrent handles
+ * Kept as a no-op so old import sites don't break. The hash-based
+ * last-hash guard inside broadcastContractions/broadcastCurrent handles
  * suppression now.
  */
 export function isReceiving(): boolean {
@@ -162,8 +144,7 @@ export function isReceiving(): boolean {
 export function broadcastContractions(contractions: Contraction[]) {
   if (!channel) return;
   const hash = hashContractions(contractions);
-  // Remember our own hash so a hypothetical return-to-sender is dropped.
-  rememberHash('contractions', hash);
+  if (shouldSkipBroadcast('contractions', hash)) return;
   const msg: SyncMessage = {
     tabId,
     hash,
@@ -180,7 +161,7 @@ export function broadcastContractions(contractions: Contraction[]) {
 export function broadcastCurrent(current: Contraction | null) {
   if (!channel) return;
   const hash = hashCurrent(current);
-  rememberHash('current', hash);
+  if (shouldSkipBroadcast('current', hash)) return;
   const msg: SyncMessage = {
     tabId,
     hash,

@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
-# Build a store-signed AAB; require the original upload key, never replace it.
+# Build a signed AAB with the October 8 approved Olive upload certificate.
+# Olive had no registered Play app; the older desktop certificate is historical.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 if [[ ! -f android/app/keystore.properties ]]; then
-  printf 'Restore the original upload key and android/app/keystore.properties before building a release.\n' >&2
+  printf 'Restore the approved Olive upload key and android/app/keystore.properties before building a release.\n' >&2
   exit 1
 fi
 if [[ -z "${JAVA_HOME:-}" && -d /opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home ]]; then
@@ -20,8 +21,8 @@ AAB=android/app/build/outputs/bundle/release/app-release.aab
 "$JAVA_HOME/bin/jarsigner" -verify "$AAB"
 # A successful jarsigner exit alone does not prove that a signature exists.
 OLIVE_SIGNER_SHA256=$("$JAVA_HOME/bin/keytool" -J-Duser.language=en -J-Duser.country=US -printcert -jarfile "$AAB" | awk '/SHA256:/ {print $2; exit}' | tr -d ':' | tr '[:upper:]' '[:lower:]')
-if [[ "$OLIVE_SIGNER_SHA256" != 795331565b4325bd05c84817b30ddfbc9dc3c674fe432af6ef423b24c7739407 ]]; then
-  printf 'AAB signer differs from the original upload certificate recorded in issue #78.\n' >&2
+if [[ "$OLIVE_SIGNER_SHA256" != b4bbaac79c8c736ac48986e312db915e2c2695f5aa1640f5b4e1f948354afaa2 ]]; then
+  printf 'AAB signer differs from the approved October 8 Olive upload certificate.\n' >&2
   exit 1
 fi
 shasum -a 256 "$AAB"

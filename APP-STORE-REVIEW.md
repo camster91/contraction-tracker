@@ -1,3 +1,5 @@
+> October 9 correction round: build 15 is being validated after the agent bug, feature and UI audit. See docs/REMEDIATION-BUILD15.md for current implementation and limits. Earlier build numbers, original-key instructions and console receipts below are historical; they do not establish build 15 distribution or acceptance.
+
 > October 8 latest UX/code review: local source 13017b17d7191f29238706af51b0cc24775150de fixes backup privacy/cancellation, modal isolation/Safari focus, retired startup parsing, immediate Stop statistics and crash support access. Lint/typecheck/build, 37 unit and 82 affected browser tests passed with zero skips. Support/privacy were restored after 503 and now exactly match source over HTTPS; named rollback retained. Changes are after uploaded build 13 and need a consolidated signed native candidate, physical/professional acceptance, refreshed affected screenshots and current-source CI. Public review remains incomplete. See docs/UX-APPLE-REVIEW-2026-10-08.md. Older status below is historical.
 
 # Olive v1.3.0 Apple review readiness

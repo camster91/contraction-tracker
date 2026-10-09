@@ -30,6 +30,11 @@ test('recent timing shows the seeded contraction count', async ({ page }) => {
       painLocations: [],
     }));
     localStorage.setItem('contraction-tracker:v1', JSON.stringify({ contractions }));
+    localStorage.setItem('contraction-tracker:sessions', JSON.stringify([
+      { id: 'primary', name: 'Primary', startedAt: new Date(now - 60 * 60_000).toISOString(), endedAt: null },
+      { id: 'chart-test', name: 'Chart test', startedAt: new Date(now - 60 * 60_000).toISOString(), endedAt: null },
+    ]));
+    localStorage.setItem('contraction-tracker:active-session', 'chart-test');
     localStorage.setItem('contraction-tracker:onboarding-seen', '1');
     localStorage.setItem('contraction-tracker:backup-dismissed', String(Date.now()));
   });

@@ -208,7 +208,7 @@ export default function PeopleSheet({ onClose, finished = [] }: Props) {
               {p.phone && (
                 <a
                   href={`tel:${p.phone}`}
-                  className="p-1.5 text-ink-400 active:text-sage-300 transition-colors"
+                  className="min-h-11 min-w-11 p-1.5 flex items-center justify-center text-ink-400 active:text-sage-300 transition-colors"
                   aria-label={`Call ${p.name}`}
                   title="Call"
                 >
@@ -232,7 +232,7 @@ export default function PeopleSheet({ onClose, finished = [] }: Props) {
                       setManualShare({ contactName: p.name, text: msg });
                     }
                   }}
-                  className="p-1.5 text-ink-400 active:text-rose-300 transition-colors"
+                  className="min-h-11 min-w-11 p-1.5 flex items-center justify-center text-ink-400 active:text-rose-300 transition-colors"
                   aria-label={`Send update to ${p.name}`}
                   title="Send update"
                 >
@@ -241,7 +241,7 @@ export default function PeopleSheet({ onClose, finished = [] }: Props) {
               )}
               <button
                 onClick={() => handleDelete(p.id)}
-                className="p-1.5 text-ink-400 active:text-rose-300 transition-colors"
+                className="min-h-11 min-w-11 p-1.5 flex items-center justify-center text-ink-400 active:text-rose-300 transition-colors"
                 aria-label="Remove"
               >
                 <Trash2 className="w-3.5 h-3.5" />

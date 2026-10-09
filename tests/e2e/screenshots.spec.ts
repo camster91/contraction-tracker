@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Screenshot capture â€” generates the iPhone 6.7" screenshots for the
  * App Store / Play Store listings. Each shot captures a different state.
  *
@@ -67,7 +67,7 @@ for (const shot of SHOTS) {
           const start = now - (55 - i * 5) * 60_000;
           return {
             id: `care-plan-${i}`,
-            sessionId: 'care-plan-seed',
+            sessionId: 'primary',
             start: new Date(start).toISOString(),
             end: new Date(start + 60_000).toISOString(),
             durationMs: 60_000,

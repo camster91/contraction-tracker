@@ -50,12 +50,13 @@ test('canceling share does not reopen the sheet, copy data or show an error', as
   await expect(page.getByText('Could not share the care summary. Try Save summary instead.')).toHaveCount(0);
 });
 
-test('genuine sharing failure stays visible without copying to another destination', async ({ page }) => {
+test('genuine sharing failure offers explicit manual copy without copying privately', async ({ page }) => {
   await page.addInitScript(() => {
     Object.defineProperty(navigator, 'share', { configurable: true, value: async () => { throw new Error('Permission denied'); } });
   });
   await page.goto('/'); await waitForApp(page);
   await page.getByRole('button', { name: 'Share care summary' }).click();
-  await expect(page.getByText('Could not share the care summary. Try Save summary instead.')).toBeVisible();
+  await expect(page.getByRole('dialog', { name: /Share care summary/ })).toBeVisible();
+  await expect(page.getByRole('textbox', { name: /care summary text/i })).toHaveValue(/Completed contractions: 0/);
   expect(await page.evaluate(() => (window as unknown as { clipboardWrites: string[] }).clipboardWrites.length)).toBe(0);
 });

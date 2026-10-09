@@ -1,7 +1,7 @@
 import { Capacitor, registerPlugin } from '@capacitor/core';
 
 type TimerNotificationPlugin = {
-  start(options: { startEpochMs: number }): Promise<void>;
+  start(options: { startEpochMs: number }): Promise<{ supported?: boolean; enabled?: boolean }>;
   stop(): Promise<void>;
 };
 
@@ -15,7 +15,8 @@ export async function syncNativeTimerNotification(startIso: string | null): Prom
     if (startIso) {
       const startEpochMs = Date.parse(startIso);
       if (!Number.isFinite(startEpochMs)) return false;
-      await nativeTimer.start({ startEpochMs });
+      const availability = await nativeTimer.start({ startEpochMs });
+      if (availability?.supported === false || availability?.enabled === false) return false;
     } else {
       await nativeTimer.stop();
     }

@@ -70,7 +70,7 @@ export default function SettingsSheet({
               aria-label="Big text"
               aria-checked={bigText}
               onClick={() => setBigTextState((v) => !v)}
-                className={`w-10 h-6 rounded-full transition-colors ${bigText ? 'bg-rose-300/60' : 'bg-ink-100/20'}`}
+                className={`w-12 min-h-11 rounded-full flex items-center transition-colors ${bigText ? 'bg-rose-300/60' : 'bg-ink-100/20'}`}
             >
               <span
                 className={`block w-5 h-5 rounded-full bg-ink-50 shadow transition-transform ${bigText ? 'translate-x-5' : 'translate-x-0.5'}`}
@@ -91,7 +91,7 @@ export default function SettingsSheet({
                 onClick={() =>
                   setMuteScheduleState((s) => ({ ...s, enabled: !s.enabled }))
                 }
-                className={`w-10 h-6 rounded-full transition-colors ${muteSchedule.enabled ? 'bg-rose-300/60' : 'bg-ink-100/20'}`}
+                className={`w-12 min-h-11 rounded-full flex items-center transition-colors ${muteSchedule.enabled ? 'bg-rose-300/60' : 'bg-ink-100/20'}`}
               >
                 <span
                   className={`block w-5 h-5 rounded-full bg-ink-50 shadow transition-transform ${muteSchedule.enabled ? 'translate-x-5' : 'translate-x-0.5'}`}

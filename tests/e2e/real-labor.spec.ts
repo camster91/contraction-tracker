@@ -46,6 +46,11 @@ test('real-labor: a sustained timing pattern triggers the saved reminder', async
   await page.evaluate(() => {
     localStorage.setItem('contraction-tracker:care-plan', JSON.stringify({ enabled: true, intervalMinutes: 5, durationSeconds: 60, windowMinutes: 60 }));
     const now = Date.now();
+    localStorage.setItem('contraction-tracker:sessions', JSON.stringify([
+      { id: 'primary', name: 'Primary', startedAt: new Date(now - 60 * 60_000).toISOString(), endedAt: null },
+      { id: 'active-labor', name: 'Active labor', startedAt: new Date(now - 60 * 60_000).toISOString(), endedAt: null },
+    ]));
+    localStorage.setItem('contraction-tracker:active-session', 'active-labor');
     const pattern = Array.from({ length: 11 }, (_, index) => ({
       agoMin: 55 - index * 5,
       duration: 60 + index * 2,

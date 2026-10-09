@@ -65,6 +65,11 @@ test('cross-browser: short clusters stay observational in every engine', async (
       painLocations: [],
     }));
     localStorage.setItem('contraction-tracker:v1', JSON.stringify({ contractions }));
+    localStorage.setItem('contraction-tracker:sessions', JSON.stringify([
+      { id: 'primary', name: 'Primary', startedAt: new Date(now - 60 * 60_000).toISOString(), endedAt: null },
+      { id: 'cb-test', name: 'Cross-browser test', startedAt: new Date(now - 60 * 60_000).toISOString(), endedAt: null },
+    ]));
+    localStorage.setItem('contraction-tracker:active-session', 'cb-test');
   });
 
   await page.reload({ waitUntil: 'domcontentloaded' });
