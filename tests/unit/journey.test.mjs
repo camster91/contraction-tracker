@@ -7,10 +7,13 @@ import {
   addResponsibility,
   buildCareCardSummary,
   createDefaultJourney,
+  getJourney,
   deleteProviderQuestion,
   deleteResponsibility,
   mergeJourney,
   normalizeJourney,
+  getJourneyAsync,
+  validateJourney,
   updateJourneyProfile,
   updateJourneyEntry,
   updateProviderQuestion,
@@ -84,6 +87,64 @@ test('normalizeJourney falls back safely for malformed input', () => {
   assert.deepEqual(journey.responsibilities, []);
   assert.deepEqual(journey.questions, []);
   assert.deepEqual(journey.entries, []);
+});
+
+test('validateJourney rejects malformed nested records before backup import', () => {
+  const valid = createDefaultJourney(NOW, 'validated');
+  valid.questions.push({
+    id: 'question-1',
+    journeyId: 'validated',
+    text: 'Ask about monitoring',
+    category: 'birth',
+    private: true,
+    pinned: false,
+    notesAreProviderInstructions: false,
+    createdAt: NOW,
+    updatedAt: NOW,
+  });
+  assert.equal(validateJourney(valid), true);
+  assert.equal(validateJourney({ ...valid, questions: [{ ...valid.questions[0], private: 'yes' }] }), false);
+  assert.equal(validateJourney({ ...valid, profile: { ...valid.profile, updatedAt: 'bad-date' } }), false);
+});
+
+test('getJourneyAsync preserves a valid local journey when IndexedDB is unavailable', async () => {
+  const values = new Map([[
+    'olive:journey:v1',
+    JSON.stringify({
+      ...createDefaultJourney(NOW, 'local-journey'),
+      profile: { ...createDefaultJourney(NOW, 'local-journey').profile, preferredName: 'Bianca' },
+    }),
+  ]]);
+  Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: {
+    getItem: (key) => values.get(key) ?? null,
+    setItem: (key, value) => values.set(key, value),
+  } });
+  Object.defineProperty(globalThis, 'indexedDB', { configurable: true, value: undefined });
+
+  const journey = await getJourneyAsync(NOW);
+  assert.equal(journey.profile.id, 'local-journey');
+  assert.equal(journey.profile.preferredName, 'Bianca');
+});
+
+test('getJourney chooses a valid shadow and does not persist a default over a missing local copy', () => {
+  const shadow = createDefaultJourney(NOW, 'shadow-journey');
+  shadow.profile.preferredName = 'Recovered';
+  const values = new Map([
+    ['olive:journey:v1', '{broken-json'],
+    ['olive:journey:v1::shadow', JSON.stringify(shadow)],
+  ]);
+  Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: {
+    getItem: (key) => values.get(key) ?? null,
+    setItem: (key, value) => values.set(key, value),
+  } });
+  const recovered = getJourney();
+  assert.equal(recovered.profile.id, 'shadow-journey');
+  assert.equal(recovered.profile.preferredName, 'Recovered');
+
+  values.clear();
+  const fresh = getJourney();
+  assert.equal(fresh.profile.phase, 'preparing');
+  assert.equal(values.size, 0);
 });
 
 test('mergeJourney preserves existing profile fields and adds new records by id', () => {

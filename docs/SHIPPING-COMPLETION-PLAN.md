@@ -1,3 +1,5 @@
+> October 9 correction round: build 15 is being validated after the agent bug, feature and UI audit. See docs/REMEDIATION-BUILD15.md for current implementation and limits. Earlier build numbers, original-key instructions and console receipts below are historical; they do not establish build 15 distribution or acceptance.
+
 ## Approved execution plan — October 8, 2026
 
 This section supersedes older next-action and candidate status below. Cameron approved planning and continuation after the UX/code review. Preserve earlier build receipts as history. The objective remains verified iOS and Android release, with one consolidated candidate per correction round.

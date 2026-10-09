@@ -26,15 +26,29 @@ export const DEFAULT_CHECKLIST: { id: string; text: string }[] = [
 const KEY = (sessionId: string) => `contraction-tracker:checklist:${sessionId}`;
 
 function readRaw(sessionId: string): ChecklistItem[] | null {
-  try {
-    const raw = localStorage.getItem(KEY(sessionId));
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return null;
-    return parsed.filter((i) => i && typeof i.id === 'string' && typeof i.text === 'string');
-  } catch {
-    return null;
+  const read = (candidate: string): { raw: string; value: ChecklistItem[] } | null => {
+    try {
+      const raw = localStorage.getItem(candidate);
+      if (!raw) return null;
+      const parsed: unknown = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return null;
+      if (!parsed.every((item) => item && typeof item === 'object'
+        && typeof (item as ChecklistItem).id === 'string'
+        && typeof (item as ChecklistItem).text === 'string'
+        && typeof (item as ChecklistItem).packed === 'boolean')) return null;
+      return { raw, value: parsed as ChecklistItem[] };
+    } catch {
+      return null;
+    }
+  };
+  const primary = read(KEY(sessionId));
+  if (primary) return primary.value;
+  const shadow = read(`${KEY(sessionId)}::shadow`);
+  if (shadow) {
+    try { localStorage.setItem(KEY(sessionId), shadow.raw); } catch { /* best effort */ }
+    return shadow.value;
   }
+  return null;
 }
 
 function freshItems(): ChecklistItem[] {
@@ -48,6 +62,11 @@ export function getChecklist(sessionId: string): ChecklistItem[] {
   const fresh = freshItems();
   saveChecklist(sessionId, fresh);
   return fresh;
+}
+
+/** Read a saved checklist without materializing the default list. */
+export function getStoredChecklist(sessionId: string): ChecklistItem[] | null {
+  return readRaw(sessionId);
 }
 
 export function saveChecklist(sessionId: string, items: ChecklistItem[]): boolean {

@@ -16,6 +16,8 @@ import {
   setActiveSessionId,
 } from '../lib/sessions';
 import { contractionsInSession } from '../lib/sessions';
+import { getStoredChecklist } from '../lib/checklist';
+import { getExams } from '../lib/hospital';
 import type { Contraction } from '../lib/contractions';
 import { BrandIllustration } from './Brand';
 import { useModalDialog } from '../hooks/useModalDialog';
@@ -23,7 +25,9 @@ import { useModalDialog } from '../hooks/useModalDialog';
 type Props = {
   contractions: Contraction[];
   activeSessionId: string;
+  runningSessionId?: string | null;
   onActiveChange: (id: string) => void;
+  onSessionsChange?: (sessions: Session[]) => void;
   onClose: () => void;
   onViewSession: (session: Session) => void;
 };
@@ -31,7 +35,9 @@ type Props = {
 export default function SessionsSheet({
   contractions,
   activeSessionId,
+  runningSessionId = null,
   onActiveChange,
+  onSessionsChange,
   onClose,
   onViewSession,
 }: Props) {
@@ -45,27 +51,59 @@ export default function SessionsSheet({
   }, []);
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState('');
+  const [feedback, setFeedback] = useState<{ message: string; variant: 'info' | 'error' } | null>(null);
 
-  const switchTo = (id: string) => {
+  const refreshSessions = () => {
+    const next = getSessions();
+    setSessions(next);
+    onSessionsChange?.(next);
+    return next;
+  };
+
+  const stopBeforeChanging = () => {
+    const message = 'Stop the active contraction before changing sessions.';
+    setFeedback({ message, variant: 'info' });
+    toast.info(message);
+  };
+
+  const switchTo = (id: string, available = sessions, force = false) => {
+    const target = available.find((session) => session.id === id);
+    if (!target || target.endedAt) return;
+    if (!force && runningSessionId && runningSessionId !== id) {
+      stopBeforeChanging();
+      return;
+    }
     setActiveSessionId(id);
     onActiveChange(id);
   };
 
   const handleCreate = () => {
+    if (runningSessionId) {
+      stopBeforeChanging();
+      return;
+    }
     const sess = createSession(name);
     if (!sess) { toast.error('Could not save this session. Free up space and try again.'); return; }
-    setSessions(getSessions());
-    switchTo(sess.id);
+    const next = refreshSessions();
+    switchTo(sess.id, next);
+    setFeedback(null);
     setCreating(false);
     setName('');
   };
 
   const handleEnd = (id: string) => {
+    if (runningSessionId === id) {
+      stopBeforeChanging();
+      return;
+    }
+    const wasActive = activeSessionId === id || getActiveSessionId() === id;
     // End-session is reversible (the session stays in the list, can be
     // re-opened) and there's no data loss. No confirm needed. (Previously
     // used window.confirm, which blocks the page and is flaky on iOS PWAs.)
     endSession(id);
-    setSessions(getSessions());
+    const next = refreshSessions();
+    setFeedback(null);
+    if (wasActive) switchTo(PRIMARY_SESSION_ID, next, true);
   };
 
   // Inline two-tap delete confirmation. First tap arms it; second tap
@@ -96,15 +134,37 @@ export default function SessionsSheet({
 
   const handleDelete = (id: string) => {
     if (id === PRIMARY_SESSION_ID) return; // button is disabled for primary
+    if (runningSessionId === id) {
+      stopBeforeChanging();
+      return;
+    }
     if (armedDeleteId !== id) {
       armDelete(id);
       return;
     }
     // Confirmed — disarm and delete.
     disarmDelete();
+    const target = sessions.find((session) => session.id === id);
+    if (!target) return;
+    const contractionsCount = contractionsInSession(contractions, id).length;
+    const examsCount = getExams(id).length;
+    const checklistCount = getStoredChecklist(id)?.length ?? 0;
+    const savedParts = [
+      contractionsCount ? `${contractionsCount} contraction${contractionsCount === 1 ? '' : 's'}` : '',
+      examsCount ? `${examsCount} exam${examsCount === 1 ? '' : 's'}` : '',
+      checklistCount ? `${checklistCount} checklist item${checklistCount === 1 ? '' : 's'}` : '',
+    ].filter(Boolean);
+    if (savedParts.length > 0) {
+      const message = `Cannot delete ${target.name}: it has ${savedParts.join(', ')}. Remove these records first.`;
+      setFeedback({ message, variant: 'error' });
+      toast.error(message);
+      return;
+    }
+    const wasActive = activeSessionId === id || getActiveSessionId() === id;
     deleteSession(id);
-    setSessions(getSessions());
-    if (getActiveSessionId() === id) switchTo(PRIMARY_SESSION_ID);
+    const next = refreshSessions();
+    setFeedback(null);
+    if (wasActive) switchTo(PRIMARY_SESSION_ID, next, true);
   };
 
   return (
@@ -126,8 +186,11 @@ export default function SessionsSheet({
         </div>
         {!creating && (
           <button
-            onClick={() => setCreating(true)}
-            className="text-xs text-rose-300 active:text-rose-200 font-semibold flex items-center gap-1 px-2 py-1 rounded-lg active:bg-rose-300/10"
+            onClick={() => (runningSessionId ? stopBeforeChanging() : setCreating(true))}
+            disabled={Boolean(runningSessionId)}
+            aria-disabled={Boolean(runningSessionId)}
+            title={runningSessionId ? 'Stop the active contraction before creating a session' : 'Create a new session'}
+            className="text-xs text-rose-300 active:text-rose-200 font-semibold flex items-center gap-1 px-2 py-1 rounded-lg active:bg-rose-300/10 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Plus className="w-3.5 h-3.5" />
             New
@@ -136,6 +199,15 @@ export default function SessionsSheet({
       </div>
 
       <div className="min-h-0 overflow-y-auto pb-[env(safe-area-inset-bottom)]">
+      {(feedback || runningSessionId) && (
+        <p
+          role={feedback?.variant === 'error' ? 'alert' : 'status'}
+          aria-live={feedback?.variant === 'error' ? 'assertive' : 'polite'}
+          className={`mb-3 rounded-xl border px-3 py-2 text-xs ${feedback?.variant === 'error' ? 'border-rose-300/40 bg-rose-300/10 text-rose-200' : 'border-ink-200/30 bg-ink-100/5 text-ink-200'}`}
+        >
+          {feedback?.message ?? 'Stop the active contraction before changing sessions.'}
+        </p>
+      )}
       <p className="text-sm text-ink-300 mb-3">Current session: <strong className="text-ink-50">{sessions.find((s) => s.id === activeSessionId)?.name ?? 'Primary'}</strong></p>
       {creating && (
         <div className="mb-3 rounded-xl border border-ink-200/30 bg-ink-100/5 p-3">
@@ -192,6 +264,9 @@ export default function SessionsSheet({
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => switchTo(s.id)}
+                  disabled={Boolean(s.endedAt) || Boolean(runningSessionId && runningSessionId !== s.id)}
+                  aria-disabled={Boolean(runningSessionId && runningSessionId !== s.id)}
+                  title={s.endedAt ? 'Ended session — use View to inspect it' : runningSessionId && runningSessionId !== s.id ? 'Stop the active contraction before switching sessions' : undefined}
                   aria-pressed={isActive}
                   className="flex-1 text-left min-w-0"
                 >

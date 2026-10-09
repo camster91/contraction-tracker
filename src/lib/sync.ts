@@ -11,24 +11,18 @@
 // actually fired. Result: every tab that received a change rebroadcast it,
 // and every other tab received that, and so on — infinite thrash.
 //
-// Fix: stamp each broadcast with a short content hash + a per-tab
-// monotonic seq. On receive, check the incoming (tabId, hash) against a
-// small LRU of "hashes I have seen recently, regardless of source". If
-// seen, drop the message — it's a logical duplicate being rebroadcast
-// through the network of tabs.
+// Fix: stamp each broadcast with a short content hash + a per-tab id. Each
+// tab remembers the last hash it sent for each payload type. A state effect
+// may run for a related state change (the app has separate effects for the
+// record list and current timer), but an unchanged payload is sent at most
+// once. That prevents a received update from bouncing between tabs, while
+// still allowing a person to return to an earlier value after a real
+// intervening edit.
 //
-// Why hash + tabId (and not just hash)? Two tabs can independently make
-// the same edit (e.g. user clicks Start in both at the same moment).
-// Their hashes will collide, but each tab's LRU is local — tab A's
-// "I just sent this" check uses A's LRU. We need both the hash (to
-// recognize logical duplicates) and the tabId (to know if it was us
-// or another tab that sent it).
+// The tab id remains on messages for diagnostics and future ordering work.
+// The payload type keeps an independently-broadcast current timer from
+// colliding with array state.
 //
-// Why not sequence numbers alone? Seq is per-tab-monotonic, but if
-// Tab A sends seq=1, Tab B applies it and re-broadcasts seq=2, Tab A
-// receives seq=2, applies it, re-broadcasts seq=3, etc. — the seq
-// always differs but the content is the same. Hash catches this.
-
 import type { Contraction } from './contractions';
 
 type SyncMessage = {
@@ -51,22 +45,16 @@ const tabId =
     ? crypto.randomUUID().slice(0, 8)
     : Math.random().toString(36).slice(2, 10);
 
-// Bounded LRU of recently-seen hashes (any source). When a message
-// arrives, we check the hash. If seen, drop. We also remember the
-// hash of messages we sent so a message that comes back to us
-// (shouldn't happen per spec, but defensively) is dropped.
-const RECENT_HASH_LIMIT = 16;
-const recentHashes: string[] = [];
+type PayloadType = SyncMessage['payload']['type'];
 
-function rememberHash(hash: string) {
-  if (!recentHashes.includes(hash)) {
-    recentHashes.push(hash);
-    if (recentHashes.length > RECENT_HASH_LIMIT) recentHashes.shift();
-  }
-}
+// Separate payload types intentionally have separate dedupe slots: an
+// unchanged current timer must not suppress a real contractions-list edit.
+const lastBroadcastHash: Partial<Record<PayloadType, string>> = {};
 
-function isDuplicate(hash: string): boolean {
-  return recentHashes.includes(hash);
+function shouldSkipBroadcast(type: PayloadType, hash: string): boolean {
+  if (lastBroadcastHash[type] === hash) return true;
+  lastBroadcastHash[type] = hash;
+  return false;
 }
 
 /**
@@ -84,23 +72,41 @@ function contentHash(s: string): string {
 }
 
 function hashContractions(contractions: Contraction[]): string {
-  // Only the IDs, starts, and ends are stable signal. Notes/tags/
-  // voiceMemo/photo are high-cardinality but change-with-the-same-id;
-  // we want the hash to be stable enough to dedupe the "this exact
-  // state was just sent" case. If two tabs edit different fields of
-  // the same contraction concurrently, the result will diverge
-  // locally and the thrash will resolve to last-write-wins (which is
-  // what the user wants anyway).
+  // Preserve array order and all user-authored fields. A note/tag/photo
+  // edit is a real state change and must not be treated as the same payload
+  // as the previous contraction record with the same id and timestamps.
   return contentHash(
-    contractions
-      .map((c) => `${c.id}:${c.start}:${c.end ?? ''}:${c.intensity ?? ''}`)
-      .join('|'),
+    JSON.stringify(contractions.map((c) => ({
+      id: c.id,
+      start: c.start,
+      end: c.end,
+      source: c.source ?? null,
+      intensity: c.intensity ?? null,
+      note: c.note ?? null,
+      tags: c.tags ?? [],
+      sessionId: c.sessionId ?? null,
+      painLocations: c.painLocations ?? [],
+      voiceMemo: c.voiceMemo ?? null,
+      photo: c.photo ?? null,
+    }))),
   );
 }
 
 function hashCurrent(current: Contraction | null): string {
   if (!current) return 'null';
-  return contentHash(`${current.id}:${current.start}:${current.end ?? ''}:${current.intensity ?? ''}`);
+  return contentHash(JSON.stringify({
+    id: current.id,
+    start: current.start,
+    end: current.end,
+    source: current.source ?? null,
+    intensity: current.intensity ?? null,
+    note: current.note ?? null,
+    tags: current.tags ?? [],
+    sessionId: current.sessionId ?? null,
+    painLocations: current.painLocations ?? [],
+    voiceMemo: current.voiceMemo ?? null,
+    photo: current.photo ?? null,
+  }));
 }
 
 export function initSync(
@@ -116,26 +122,19 @@ export function initSync(
   channel = new BroadcastChannel('olive');
   channel.onmessage = (e: MessageEvent<SyncMessage>) => {
     const { hash, payload } = e.data;
-    // Remember this hash BEFORE dispatching. If onContractions ends
-    // up triggering a broadcast (via setContractions -> useEffect),
-    // that broadcast will compute the same hash and remember it,
-    // so any subsequent round-trip will be detected.
-    rememberHash(hash);
-    if (isDuplicate(hash)) {
-      // We sent this ourselves (defensive — BroadcastChannel
-      // doesn't normally deliver to the sender) or we just received
-      // the same logical change from another tab. Either way, drop.
-      return;
+    if (!payload || (payload.type !== 'contractions' && payload.type !== 'current') || typeof hash !== 'string') return;
+    if (payload.type === 'contractions') {
+      if (!Array.isArray(payload.contractions)) return;
+      onContractions(payload.contractions);
     }
-    if (payload.type === 'contractions') onContractions(payload.contractions);
     if (payload.type === 'current') onCurrent(payload.current);
   };
 }
 
 /**
  * @deprecated The receive-in-flight counter was broken (see file comment).
- * Kept as a no-op so old import sites don't break. The seq+hash-based
- * echo guard inside broadcastContractions/broadcastCurrent handles
+ * Kept as a no-op so old import sites don't break. The hash-based
+ * last-hash guard inside broadcastContractions/broadcastCurrent handles
  * suppression now.
  */
 export function isReceiving(): boolean {
@@ -145,8 +144,7 @@ export function isReceiving(): boolean {
 export function broadcastContractions(contractions: Contraction[]) {
   if (!channel) return;
   const hash = hashContractions(contractions);
-  // Remember our own hash so a hypothetical return-to-sender is dropped.
-  rememberHash(hash);
+  if (shouldSkipBroadcast('contractions', hash)) return;
   const msg: SyncMessage = {
     tabId,
     hash,
@@ -163,7 +161,7 @@ export function broadcastContractions(contractions: Contraction[]) {
 export function broadcastCurrent(current: Contraction | null) {
   if (!channel) return;
   const hash = hashCurrent(current);
-  rememberHash(hash);
+  if (shouldSkipBroadcast('current', hash)) return;
   const msg: SyncMessage = {
     tabId,
     hash,

@@ -5,8 +5,10 @@
 import { useState } from 'react';
 import { Plus, Trash2, ArrowLeft, Phone, User, MessageSquare } from 'lucide-react';
 import { addPerson, deletePerson, getPeople, type Person } from '../lib/sessions';
+import { shareSummary } from '../lib/shareSummary';
 import { toast } from '../lib/toast';
 import { useModalDialog } from '../hooks/useModalDialog';
+import ManualShareSheet from './ManualShareSheet';
 
 type Props = {
   onClose: () => void;
@@ -35,6 +37,7 @@ export default function PeopleSheet({ onClose, finished = [] }: Props) {
   const [relationship, setRelationship] = useState('partner');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
+  const [manualShare, setManualShare] = useState<{ contactName: string; text: string } | null>(null);
 
   const handleAdd = () => {
     if (!name.trim()) return;
@@ -205,7 +208,7 @@ export default function PeopleSheet({ onClose, finished = [] }: Props) {
               {p.phone && (
                 <a
                   href={`tel:${p.phone}`}
-                  className="p-1.5 text-ink-400 active:text-sage-300 transition-colors"
+                  className="min-h-11 min-w-11 p-1.5 flex items-center justify-center text-ink-400 active:text-sage-300 transition-colors"
                   aria-label={`Call ${p.name}`}
                   title="Call"
                 >
@@ -222,17 +225,14 @@ export default function PeopleSheet({ onClose, finished = [] }: Props) {
                     const s = lastDur % 60;
                     const durStr = `${m}:${s.toString().padStart(2, '0')}`;
                     const msg = `${finished.length} contractions so far. Last was ${durStr}.`;
-                    if (navigator.share) {
-                      try { await navigator.share({ text: msg }); return; } catch { /* cancelled */ }
-                    }
-                    try {
-                      await navigator.clipboard.writeText(msg);
+                    const result = await shareSummary(msg);
+                    if (result === 'copied') {
                       toast.success(`Update for ${p.name} copied to clipboard`);
-                    } catch {
-                      toast.info(msg, { duration: 8000 });
+                    } else if (result === 'manual') {
+                      setManualShare({ contactName: p.name, text: msg });
                     }
                   }}
-                  className="p-1.5 text-ink-400 active:text-rose-300 transition-colors"
+                  className="min-h-11 min-w-11 p-1.5 flex items-center justify-center text-ink-400 active:text-rose-300 transition-colors"
                   aria-label={`Send update to ${p.name}`}
                   title="Send update"
                 >
@@ -241,7 +241,7 @@ export default function PeopleSheet({ onClose, finished = [] }: Props) {
               )}
               <button
                 onClick={() => handleDelete(p.id)}
-                className="p-1.5 text-ink-400 active:text-rose-300 transition-colors"
+                className="min-h-11 min-w-11 p-1.5 flex items-center justify-center text-ink-400 active:text-rose-300 transition-colors"
                 aria-label="Remove"
               >
                 <Trash2 className="w-3.5 h-3.5" />
@@ -251,7 +251,14 @@ export default function PeopleSheet({ onClose, finished = [] }: Props) {
         ))}
       </ul>
         </div>
-    </div>
-  </>
+      </div>
+      {manualShare && (
+        <ManualShareSheet
+          title={`update for ${manualShare.contactName}`}
+          text={manualShare.text}
+          onClose={() => setManualShare(null)}
+        />
+      )}
+    </>
   );
 }

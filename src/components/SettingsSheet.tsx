@@ -70,7 +70,7 @@ export default function SettingsSheet({
               aria-label="Big text"
               aria-checked={bigText}
               onClick={() => setBigTextState((v) => !v)}
-                className={`w-10 h-6 rounded-full transition-colors ${bigText ? 'bg-rose-300/60' : 'bg-ink-100/20'}`}
+                className={`w-12 min-h-11 rounded-full flex items-center transition-colors ${bigText ? 'bg-rose-300/60' : 'bg-ink-100/20'}`}
             >
               <span
                 className={`block w-5 h-5 rounded-full bg-ink-50 shadow transition-transform ${bigText ? 'translate-x-5' : 'translate-x-0.5'}`}
@@ -91,7 +91,7 @@ export default function SettingsSheet({
                 onClick={() =>
                   setMuteScheduleState((s) => ({ ...s, enabled: !s.enabled }))
                 }
-                className={`w-10 h-6 rounded-full transition-colors ${muteSchedule.enabled ? 'bg-rose-300/60' : 'bg-ink-100/20'}`}
+                className={`w-12 min-h-11 rounded-full flex items-center transition-colors ${muteSchedule.enabled ? 'bg-rose-300/60' : 'bg-ink-100/20'}`}
               >
                 <span
                   className={`block w-5 h-5 rounded-full bg-ink-50 shadow transition-transform ${muteSchedule.enabled ? 'translate-x-5' : 'translate-x-0.5'}`}
@@ -212,7 +212,7 @@ export default function SettingsSheet({
                 </div>
               </button>
             </div>
-            <p className="text-xs text-ink-300 mt-3 leading-relaxed">A backup includes your records, notes, and contacts. For a readable contraction message, use Share summary in History.</p>
+            <p className="text-xs text-ink-300 mt-3 leading-relaxed">A backup includes timing records, notes, care contacts, sessions, exams, checklist items, and Birth journey details. App preferences such as theme, time format, and quiet hours are not included. For a readable contraction message, use Share summary in History.</p>
           </div>
 
           <section aria-label="Privacy and support" className="border-t border-ink-200/20 mt-3 pt-3">

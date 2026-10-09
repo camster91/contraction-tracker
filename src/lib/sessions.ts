@@ -31,19 +31,27 @@ const PEOPLE_KEY = 'contraction-tracker:people';
 const ACTIVE_SESSION_KEY = 'contraction-tracker:active-session';
 
 // ---- helpers (with shadow mirrors for corruption recovery, same pattern as storage.ts) ----
-function readJSON<T>(key: string, fallback: T): T {
-  try {
-    const raw = localStorage.getItem(key);
-    if (raw) return JSON.parse(raw) as T;
-  } catch { /* fall through */ }
-  try {
-    const shadow = localStorage.getItem(`${key}::shadow`);
-    if (shadow) {
-      try { localStorage.setItem(key, shadow); } catch { /* ignore */ }
-      return JSON.parse(shadow) as T;
+function readArray<T>(key: string, isItem: (value: unknown) => value is T): T[] {
+  const read = (candidate: string): { raw: string; value: T[] } | null => {
+    try {
+      const raw = localStorage.getItem(candidate);
+      if (!raw) return null;
+      const parsed: unknown = JSON.parse(raw);
+      if (!Array.isArray(parsed) || !parsed.every(isItem)) return null;
+      return { raw, value: parsed };
+    } catch {
+      return null;
     }
-  } catch { /* fall through */ }
-  return fallback;
+  };
+
+  const primary = read(key);
+  if (primary) return primary.value;
+  const shadow = read(`${key}::shadow`);
+  if (shadow) {
+    try { localStorage.setItem(key, shadow.raw); } catch { /* best effort */ }
+    return shadow.value;
+  }
+  return [];
 }
 
 function writeJSON(key: string, value: unknown): boolean {
@@ -57,8 +65,28 @@ function writeJSON(key: string, value: unknown): boolean {
 
 // ---- Sessions ----
 
+function isSession(value: unknown): value is Session {
+  if (!value || typeof value !== 'object') return false;
+  const session = value as Partial<Session>;
+  return typeof session.id === 'string' && session.id.length > 0
+    && typeof session.name === 'string'
+    && typeof session.startedAt === 'string' && Number.isFinite(Date.parse(session.startedAt))
+    && (session.endedAt === null || (typeof session.endedAt === 'string' && Number.isFinite(Date.parse(session.endedAt))));
+}
+
+function isPerson(value: unknown): value is Person {
+  if (!value || typeof value !== 'object') return false;
+  const person = value as Partial<Person>;
+  return typeof person.id === 'string' && person.id.length > 0
+    && typeof person.name === 'string'
+    && typeof person.relationship === 'string'
+    && typeof person.createdAt === 'string' && Number.isFinite(Date.parse(person.createdAt))
+    && (person.phone === undefined || typeof person.phone === 'string')
+    && (person.email === undefined || typeof person.email === 'string');
+}
+
 export function getSessions(): Session[] {
-  const list = readJSON<Session[]>(SESSIONS_KEY, []);
+  const list = readArray(SESSIONS_KEY, isSession);
   // Ensure a "primary" session always exists at index 0 (back-compat for v1.6 data)
   if (!list.find((s) => s.id === PRIMARY_SESSION_ID)) {
     // Synthesize a primary session. Old code set startedAt to 30 days ago,
@@ -96,7 +124,14 @@ export function setSessions(sessions: Session[]) {
 }
 
 export function getActiveSessionId(): string {
-  return localStorage.getItem(ACTIVE_SESSION_KEY) || PRIMARY_SESSION_ID;
+  try {
+    const stored = localStorage.getItem(ACTIVE_SESSION_KEY);
+    if (!stored) return PRIMARY_SESSION_ID;
+    const session = getSessions().find((candidate) => candidate.id === stored);
+    return session && !session.endedAt ? stored : PRIMARY_SESSION_ID;
+  } catch {
+    return PRIMARY_SESSION_ID;
+  }
 }
 
 export function setActiveSessionId(id: string) {
@@ -129,7 +164,7 @@ export function deleteSession(id: string) {
 // ---- People ----
 
 export function getPeople(): Person[] {
-  return readJSON<Person[]>(PEOPLE_KEY, []);
+  return readArray(PEOPLE_KEY, isPerson);
 }
 
 export function setPeople(people: Person[]) {

@@ -29,3 +29,20 @@ test('unreadable storage never creates a false assurance that saved data exists'
   storage();
   assert.equal(await recoverCrashBackup(), null);
 });
+
+test('crash recovery preserves valid records and drops malformed local entries', async () => {
+  storage([
+    ['contraction-tracker:v1', JSON.stringify({
+      contractions: [
+        { id: 'valid', start: '2026-10-05T12:00:00.000Z', end: '2026-10-05T12:01:00.000Z' },
+        { id: 'bad', start: 'not-a-date', end: null },
+      ],
+      savedAt: '2026-10-05T12:02:00.000Z',
+    })],
+    ['contraction-tracker:current', JSON.stringify({ id: 'bad-current', start: 'not-a-date', end: null })],
+  ]);
+  const backup = await recoverCrashBackup();
+  assert.equal(backup?.contractions.length, 1);
+  assert.equal(backup?.contractions[0].id, 'valid');
+  assert.equal(backup?.current, null);
+});
