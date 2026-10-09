@@ -5,6 +5,7 @@
 import { useState } from 'react';
 import { Plus, Trash2, ArrowLeft, Phone, User, MessageSquare } from 'lucide-react';
 import { addPerson, deletePerson, getPeople, type Person } from '../lib/sessions';
+import { shareSummary } from '../lib/shareSummary';
 import { toast } from '../lib/toast';
 import { useModalDialog } from '../hooks/useModalDialog';
 
@@ -222,13 +223,10 @@ export default function PeopleSheet({ onClose, finished = [] }: Props) {
                     const s = lastDur % 60;
                     const durStr = `${m}:${s.toString().padStart(2, '0')}`;
                     const msg = `${finished.length} contractions so far. Last was ${durStr}.`;
-                    if (navigator.share) {
-                      try { await navigator.share({ text: msg }); return; } catch { /* cancelled */ }
-                    }
-                    try {
-                      await navigator.clipboard.writeText(msg);
+                    const result = await shareSummary(msg);
+                    if (result === 'copied') {
                       toast.success(`Update for ${p.name} copied to clipboard`);
-                    } catch {
+                    } else if (result === 'manual') {
                       toast.info(msg, { duration: 8000 });
                     }
                   }}

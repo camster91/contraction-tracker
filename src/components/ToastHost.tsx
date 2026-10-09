@@ -1,10 +1,8 @@
 // ToastHost — renders the current toast from the global store.
 // Mount once at the app root.
 //
-// Visual design: matches the existing Undo toast in App.tsx.
-// Bottom-center for success/info (calm, not interrupting the timer),
-// top-center for error (more attention, like the existing data-
-// damaged and quota toasts).
+// Visual design: matches the existing Undo toast in App.tsx. All variants
+// stay below the timer so an error cannot cover the elapsed-time readout.
 //
 // Accessibility:
 //   - aria-live="polite" for success/info (announce when idle)
@@ -37,10 +35,9 @@ export default function ToastHost() {
   const isError = t.variant === 'error';
   const isInfo = t.variant === 'info';
   const Icon = isError ? AlertTriangle : isInfo ? Info : Check;
-  // Success: bottom-center (calm, doesn't block the timer).
-  // Error: top-center (more attention, matches the existing data-
-  // damaged and quota toasts in App.tsx).
-  const position = isError ? 'top-6' : 'bottom-6';
+  // Keep global feedback below the timer and above the device safe area. A
+  // top toast can hide the active duration while someone is timing a record.
+  const position = 'bottom-[calc(env(safe-area-inset-bottom)+1.5rem)]';
   const tone = isError
     ? 'bg-rose-300/15 border-rose-300/40 text-rose-200'
     : isInfo
@@ -54,13 +51,13 @@ export default function ToastHost() {
       aria-live={isError ? 'assertive' : 'polite'}
     >
       <div
-        className={`pointer-events-auto mx-4 flex items-center gap-3 ${tone} border backdrop-blur-xl rounded-2xl px-4 py-2.5 shadow-[0_8px_32px_-8px_rgba(0,0,0,0.6)] max-w-sm animate-fade-in`}
+        className={`pointer-events-auto mx-4 flex items-start gap-3 ${tone} border backdrop-blur-xl rounded-2xl px-4 py-2.5 shadow-[0_8px_32px_-8px_rgba(0,0,0,0.6)] max-w-sm max-h-[min(30vh,12rem)] overflow-y-auto animate-fade-in`}
       >
         <Icon className={`w-4 h-4 flex-shrink-0 ${isError ? 'text-rose-300' : isInfo ? 'text-ink-300' : 'text-rose-300'}`} strokeWidth={2} />
         <span className="text-sm flex-1 min-w-0">{t.message}</span>
         <button
           onClick={() => toast.dismiss()}
-          className="p-1 text-ink-400 active:text-ink-200 flex-shrink-0"
+          className="min-h-11 min-w-11 -my-1 -mr-2 flex items-center justify-center text-ink-400 active:text-ink-200 flex-shrink-0"
           aria-label="Dismiss"
         >
           <X className="w-4 h-4" />

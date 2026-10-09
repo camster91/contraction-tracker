@@ -212,7 +212,7 @@ export default function SettingsSheet({
                 </div>
               </button>
             </div>
-            <p className="text-xs text-ink-300 mt-3 leading-relaxed">A backup includes your records, notes, and contacts. For a readable contraction message, use Share summary in History.</p>
+            <p className="text-xs text-ink-300 mt-3 leading-relaxed">A backup includes timing records, notes, care contacts, sessions, exams, checklist items, and Birth journey details. App preferences such as theme, time format, and quiet hours are not included. For a readable contraction message, use Share summary in History.</p>
           </div>
 
           <section aria-label="Privacy and support" className="border-t border-ink-200/20 mt-3 pt-3">
