@@ -8,6 +8,7 @@ import { addPerson, deletePerson, getPeople, type Person } from '../lib/sessions
 import { shareSummary } from '../lib/shareSummary';
 import { toast } from '../lib/toast';
 import { useModalDialog } from '../hooks/useModalDialog';
+import ManualShareSheet from './ManualShareSheet';
 
 type Props = {
   onClose: () => void;
@@ -36,6 +37,7 @@ export default function PeopleSheet({ onClose, finished = [] }: Props) {
   const [relationship, setRelationship] = useState('partner');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
+  const [manualShare, setManualShare] = useState<{ contactName: string; text: string } | null>(null);
 
   const handleAdd = () => {
     if (!name.trim()) return;
@@ -227,7 +229,7 @@ export default function PeopleSheet({ onClose, finished = [] }: Props) {
                     if (result === 'copied') {
                       toast.success(`Update for ${p.name} copied to clipboard`);
                     } else if (result === 'manual') {
-                      toast.info(msg, { duration: 8000 });
+                      setManualShare({ contactName: p.name, text: msg });
                     }
                   }}
                   className="p-1.5 text-ink-400 active:text-rose-300 transition-colors"
@@ -249,7 +251,14 @@ export default function PeopleSheet({ onClose, finished = [] }: Props) {
         ))}
       </ul>
         </div>
-    </div>
-  </>
+      </div>
+      {manualShare && (
+        <ManualShareSheet
+          title={`update for ${manualShare.contactName}`}
+          text={manualShare.text}
+          onClose={() => setManualShare(null)}
+        />
+      )}
+    </>
   );
 }
