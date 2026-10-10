@@ -1,3 +1,5 @@
+> October 10 human UX continuation: build 15 is merged and observed Testing in both existing TestFlight groups, with one installation reported by Apple. The approved UX pass is committed locally and validated with 308 Chromium/WebKit checks, 49 JavaScript unit tests, iOS structure and Android host checks. This replacement candidate uses build 16; no build 16 upload or physical acceptance is claimed yet. See docs/HUMAN-UX-20261010.md. Previous build receipts below remain history.
+
 > October 9 correction round: build 15 is being validated after the agent bug, feature and UI audit. See docs/REMEDIATION-BUILD15.md for current implementation and limits. Earlier build numbers, original-key instructions and console receipts below are historical; they do not establish build 15 distribution or acceptance.
 
 ## Approved execution plan — October 8, 2026
