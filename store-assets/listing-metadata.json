@@ -1,7 +1,7 @@
 {
   "schema": "olive-store-metadata-v1",
   "version": "1.3.0",
-  "build": 15,
+  "build": 16,
   "bundleId": "com.ashbi.olive",
   "locale": "en",
   "name": "Olive \u2014 Contraction Timer",
