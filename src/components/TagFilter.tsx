@@ -17,7 +17,7 @@ export default function TagFilter({ knownTags, finishedCount, tagFilter, onSetTa
       <button
         onClick={() => onSetTagFilter(null)}
         aria-pressed={tagFilter === null}
-        className={`text-[11px] px-2.5 py-1 rounded-full font-medium transition-colors ${
+        className={`text-sm px-2.5 py-1 rounded-full font-medium transition-colors ${
           tagFilter === null
             ? 'bg-rose-300/20 text-rose-200 border border-rose-300/40'
             : 'bg-ink-100/5 text-ink-400 border border-ink-200/30 active:bg-ink-100/10'
@@ -30,7 +30,7 @@ export default function TagFilter({ knownTags, finishedCount, tagFilter, onSetTa
           key={tag}
           onClick={() => onSetTagFilter(tagFilter === tag ? null : tag)}
           aria-pressed={tagFilter === tag}
-          className={`text-[11px] px-2.5 py-1 rounded-full font-medium transition-colors flex items-center gap-1 ${
+          className={`text-sm px-2.5 py-1 rounded-full font-medium transition-colors flex items-center gap-1 ${
             tagFilter === tag
               ? 'bg-rose-300/20 text-rose-200 border border-rose-300/40'
               : 'bg-ink-100/5 text-ink-300 border border-ink-200/30 active:bg-ink-100/10'

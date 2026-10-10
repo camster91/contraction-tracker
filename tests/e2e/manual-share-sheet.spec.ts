@@ -33,11 +33,11 @@ test('a failed contact share opens an explicit selectable copy sheet', async ({ 
   await page.goto('/');
   await waitForApp(page);
   await page.getByRole('button', { name: 'Care contacts' }).click();
-  await page.getByRole('button', { name: `Send update to ${person.name}` }).click();
+  await page.getByRole('button', { name: `Share update for ${person.name}` }).click();
 
   await expect(page.getByRole('dialog', { name: /Share update for Fabricated Support Person/ })).toBeVisible();
   const shareText = page.getByRole('textbox', { name: /update for Fabricated Support Person text/i });
-  await expect(shareText).toHaveValue(/1 contractions so far/);
+  await expect(shareText).toHaveValue(/1 contraction so far/);
   await page.getByRole('button', { name: 'Select all' }).click();
   await expect(page.getByRole('status')).toContainText('Text selected');
   await page.getByRole('button', { name: 'Close share text' }).click();

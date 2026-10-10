@@ -46,6 +46,8 @@ export default defineConfig({
     {
       name: 'iPhone 14 (chromium)',
       use: {
+        // Hosts with full Chrome for Testing can run without a second headless-shell download.
+        channel: process.env.OLIVE_CHROMIUM_CHANNEL === 'chromium' ? 'chromium' : undefined,
         // iPhone 14 dimensions, chromium engine.
         // Note: `devices['iPhone 14']` in Playwright maps to WebKit, not
         // Chromium. We want the chromium engine for our PWA testing, so

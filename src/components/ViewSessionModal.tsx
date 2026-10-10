@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { X, Clock } from 'lucide-react';
 import { formatClock, formatDuration, getTags, durationSeconds, intervalSeconds } from '../lib/contractions';
 import type { Contraction } from '../lib/contractions';
-import type { Session } from '../lib/sessions';
+import { sessionDisplayName, type Session } from '../lib/sessions';
 import { useModalDialog } from '../hooks/useModalDialog';
 
 type Props = {
@@ -28,7 +28,7 @@ export default function ViewSessionModal({ session, contractions, onClose }: Pro
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
-        aria-label={`Session ${session.name}`}
+        aria-label={`Session ${sessionDisplayName(session)}`}
         tabIndex={-1}
         className="fixed inset-x-0 bottom-0 z-50 rounded-t-3xl border-t border-ink-200/30 bg-plum-950/98  shadow-[0_-8px_32px_-8px_rgba(0,0,0,0.6)] max-h-[90dvh] flex flex-col animate-slide-up"
       >
@@ -38,8 +38,8 @@ export default function ViewSessionModal({ session, contractions, onClose }: Pro
         </div>
         <div className="flex items-center justify-between px-5 pb-3">
           <div>
-            <div className="text-base font-semibold text-ink-50 font-display">{session.name}</div>
-            <div className="text-[11px] text-ink-400 mt-0.5 flex items-center gap-1.5">
+            <div className="text-base font-semibold text-ink-50 font-display">{sessionDisplayName(session)}</div>
+            <div className="text-sm text-ink-400 mt-0.5 flex items-center gap-1.5">
               <Clock className="w-3 h-3" />
               Ended {new Date(session.endedAt!).toLocaleDateString()} · {sorted.length} contractions
             </div>
@@ -72,7 +72,7 @@ export default function ViewSessionModal({ session, contractions, onClose }: Pro
                       {formatDuration(dur)}
                     </span>
                     {c.intensity && (
-                      <span className="text-[10px] uppercase tracking-wider text-ink-400 font-semibold">
+                      <span className="text-xs uppercase tracking-wider text-ink-400 font-semibold">
                         · {c.intensity}/10
                       </span>
                     )}
@@ -80,7 +80,7 @@ export default function ViewSessionModal({ session, contractions, onClose }: Pro
                   <div className="text-xs text-ink-400 mt-0.5 flex items-center gap-1.5 flex-wrap">
                     {gap !== null && <span>{formatDuration(gap)} apart</span>}
                     {getTags(c).map((t) => (
-                      <span key={t} className="text-[10px] bg-rose-300/15 text-rose-200 px-1.5 py-0.5 rounded-full">
+                      <span key={t} className="text-xs bg-rose-300/15 text-rose-200 px-1.5 py-0.5 rounded-full">
                         {t}
                       </span>
                     ))}

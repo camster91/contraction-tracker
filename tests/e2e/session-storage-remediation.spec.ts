@@ -119,7 +119,7 @@ test('ended sessions remain view-only and active deletion falls back to primary'
   await page.getByRole('button', { name: 'Sessions', exact: true }).click();
   await expect(sheet).toBeVisible();
   await expect(sheet.getByText('Active session', { exact: true })).toHaveCount(0);
-  await expect(sheet.getByText('Current session:').locator('..')).toContainText('Primary');
+  await expect(sheet.getByText('Current session:').locator('..')).toContainText('This birth');
 });
 
 test('requires stopping the active timer before creating or switching sessions', async ({ page }) => {
@@ -143,5 +143,5 @@ test('requires stopping the active timer before creating or switching sessions',
   await expect(sheet.getByRole('status')).toContainText('Stop the active contraction before changing sessions.');
   await expect(sheet.locator('li').filter({ hasText: 'Hospital visit' }).locator('button').first()).toBeDisabled();
   await expect(sheet.getByRole('status')).toContainText('Stop the active contraction before changing sessions.');
-  await expect(sheet.getByText('Current session:').locator('..')).toContainText('Primary');
+  await expect(sheet.getByText('Current session:').locator('..')).toContainText('This birth');
 });

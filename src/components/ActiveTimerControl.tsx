@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
 import { Square } from 'lucide-react';
 import { formatDuration } from '../lib/contractions';
+import { useActiveDialog } from '../hooks/useActiveDialog';
 
 type Props = {
   elapsed: number;
@@ -13,7 +14,7 @@ type Props = {
 export default function ActiveTimerControl({ elapsed, onStop, buttonRef }: Props) {
   const heroRef = useRef<HTMLDivElement>(null);
   const [offscreen, setOffscreen] = useState(false);
-  const [dialog, setDialog] = useState<HTMLElement | null>(null);
+  const dialog = useActiveDialog();
 
   useEffect(() => {
     const hero = heroRef.current;
@@ -22,20 +23,6 @@ export default function ActiveTimerControl({ elapsed, onStop, buttonRef }: Props
       setOffscreen(entry.intersectionRatio < 0.99);
     }, { threshold: [0, 0.99, 1] });
     observer.observe(hero);
-    return () => observer.disconnect();
-  }, []);
-
-  useEffect(() => {
-    // Portal into the open dialog so Stop remains part of its accessible tree
-    // and keyboard focus trap, rather than a control behind an aria-modal sheet.
-    const refreshDialog = () => {
-      const dialogs = document.querySelectorAll<HTMLElement>('[role="dialog"][aria-modal="true"]');
-      const top = dialogs.item(dialogs.length - 1);
-      setDialog(previous => previous === top ? previous : top);
-    };
-    refreshDialog();
-    const observer = new MutationObserver(refreshDialog);
-    observer.observe(document.getElementById('root')!, { childList: true, subtree: true });
     return () => observer.disconnect();
   }, []);
 
@@ -48,7 +35,7 @@ export default function ActiveTimerControl({ elapsed, onStop, buttonRef }: Props
         : 'w-full min-h-[200px] rounded-3xl bg-ink-50 text-plum-950 active:scale-[0.99] transition-transform duration-150 flex flex-col items-center justify-center px-6 py-6'}>
       <span className={`font-display ${compact ? 'text-2xl' : 'text-6xl'} font-light tabular-nums leading-none`} aria-hidden="true">{formatDuration(elapsed)}</span>
       <span className={`flex items-center gap-2 ${compact ? '' : 'mt-3'} text-xl font-semibold`}><Square className="w-4 h-4" fill="currentColor" strokeWidth={0} />Stop</span>
-      {!compact && <span className="text-[10px] uppercase tracking-[0.18em] opacity-70 mt-2">Tap when it passes</span>}
+      {!compact && <span className="text-xs uppercase tracking-[0.18em] opacity-70 mt-2">Tap when it passes</span>}
     </button>
   );
 

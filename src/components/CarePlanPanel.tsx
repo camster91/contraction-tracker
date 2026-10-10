@@ -6,7 +6,7 @@ export default function CarePlanPanel({
   onCarePlanChange,
 }: {
   carePlan: CarePlan;
-  onCarePlanChange: (value: CarePlan) => void;
+  onCarePlanChange: (value: CarePlan) => boolean;
 }) {
   const [reminder, setReminder] = useState(() => ({
     enabled: carePlan.enabled,
@@ -37,7 +37,7 @@ export default function CarePlanPanel({
       </p>
       <label
         htmlFor="care-provider-input"
-        className="block text-[11px] text-ink-300 mb-1"
+        className="block text-xs text-ink-300 mb-1"
       >
         Care provider or team
       </label>
@@ -45,16 +45,17 @@ export default function CarePlanPanel({
         id="care-provider-input"
         type="text"
         value={carePlan.providerName}
-        onChange={(event) =>
-          onCarePlanChange({ ...carePlan, providerName: event.target.value })
-        }
+        onChange={(event) => {
+          const saved = onCarePlanChange({ ...carePlan, providerName: event.target.value });
+          setReminderStatus(saved ? '' : 'Could not save provider details. Your last saved value is still shown.');
+        }}
         placeholder="e.g. North Star Midwives"
         maxLength={80}
-        className="w-full bg-ink-100/5 border border-ink-200/30 rounded-xl px-3 py-2 text-base text-ink-50 placeholder:text-ink-500 focus:outline-none focus:border-rose-300/50"
+        className="w-full min-h-11 bg-ink-100/5 border border-ink-200/30 rounded-xl px-3 py-2 text-base text-ink-50 placeholder:text-ink-500 focus:outline-none focus:border-rose-300/50"
       />
       <label
         htmlFor="care-provider-phone"
-        className="block text-[11px] text-ink-300 mb-1 mt-3"
+        className="block text-xs text-ink-300 mb-1 mt-3"
       >
         Care provider phone
       </label>
@@ -63,13 +64,17 @@ export default function CarePlanPanel({
         type="tel"
         inputMode="tel"
         value={carePlan.providerPhone}
-        onChange={(event) =>
-          onCarePlanChange({ ...carePlan, providerPhone: event.target.value })
-        }
+        onChange={(event) => {
+          const saved = onCarePlanChange({ ...carePlan, providerPhone: event.target.value });
+          setReminderStatus(saved ? '' : 'Could not save provider details. Your last saved value is still shown.');
+        }}
         placeholder="e.g. +1 416 555 0142"
         maxLength={30}
-        className="w-full bg-ink-100/5 border border-ink-200/30 rounded-xl px-3 py-2 text-base text-ink-50 placeholder:text-ink-500 focus:outline-none focus:border-rose-300/50"
+        className="w-full min-h-11 bg-ink-100/5 border border-ink-200/30 rounded-xl px-3 py-2 text-base text-ink-50 placeholder:text-ink-500 focus:outline-none focus:border-rose-300/50"
       />
+      <p className="text-sm text-ink-400 leading-relaxed mt-3">
+        Provider details save as you type. The Save reminder button below saves the timing values.
+      </p>
       <p className="text-sm text-ink-200 mt-3">
         Enter only instructions your care team gave you. No timing values are
         recommended by Olive.
@@ -124,7 +129,7 @@ export default function CarePlanPanel({
         type="button"
         disabled={reminder.enabled && !reminderValid}
         onClick={() => {
-          onCarePlanChange({
+          const saved = onCarePlanChange({
             ...carePlan,
             enabled: reminder.enabled,
             ...(reminderValid
@@ -135,11 +140,11 @@ export default function CarePlanPanel({
                 }
               : {}),
           });
-          setReminderStatus(
-            reminder.enabled
+          setReminderStatus(saved
+            ? (reminder.enabled
               ? "Care-team reminder saved and enabled."
-              : "Care-team reminder is off.",
-          );
+              : "Care-team reminder is off.")
+            : "Could not save the reminder. Your draft values are still here; try again or export a backup.");
         }}
         className="min-h-11 rounded-xl bg-rose-300 px-4 py-2 text-sm font-semibold text-plum-950 disabled:opacity-50"
       >

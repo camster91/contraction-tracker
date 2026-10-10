@@ -46,7 +46,7 @@ export default function Onboarding({ onDismiss }: Props) {
         </div>
         <button
           onClick={handleDismiss}
-          className="text-[11px] text-ink-400 active:text-ink-200 px-2 py-1 min-h-[44px]"
+          className="text-sm text-ink-400 active:text-ink-200 px-2 py-1 min-h-[44px]"
           aria-label="Dismiss onboarding"
         >
           Not now

@@ -7,6 +7,7 @@ import { toast } from '../lib/toast';
 import { Plus, Square, Trash2, ArrowLeft, Play, Eye } from 'lucide-react';
 import {
   PRIMARY_SESSION_ID,
+  sessionDisplayName,
   type Session,
   createSession,
   deleteSession,
@@ -63,18 +64,22 @@ export default function SessionsSheet({
   const stopBeforeChanging = () => {
     const message = 'Stop the active contraction before changing sessions.';
     setFeedback({ message, variant: 'info' });
-    toast.info(message);
   };
 
   const switchTo = (id: string, available = sessions, force = false) => {
     const target = available.find((session) => session.id === id);
-    if (!target || target.endedAt) return;
+    if (!target || target.endedAt) return false;
     if (!force && runningSessionId && runningSessionId !== id) {
       stopBeforeChanging();
-      return;
+      return false;
     }
-    setActiveSessionId(id);
+    if (!setActiveSessionId(id)) {
+      const message = 'Could not switch sessions. Free some storage and try again.';
+      setFeedback({ message, variant: 'error' });
+      return false;
+    }
     onActiveChange(id);
+    return true;
   };
 
   const handleCreate = () => {
@@ -85,8 +90,7 @@ export default function SessionsSheet({
     const sess = createSession(name);
     if (!sess) { toast.error('Could not save this session. Free up space and try again.'); return; }
     const next = refreshSessions();
-    switchTo(sess.id, next);
-    setFeedback(null);
+    if (switchTo(sess.id, next)) setFeedback(null);
     setCreating(false);
     setName('');
   };
@@ -100,10 +104,14 @@ export default function SessionsSheet({
     // End-session is reversible (the session stays in the list, can be
     // re-opened) and there's no data loss. No confirm needed. (Previously
     // used window.confirm, which blocks the page and is flaky on iOS PWAs.)
-    endSession(id);
+    if (!endSession(id)) {
+      const message = 'Could not end this session. Nothing was changed; free some storage and try again.';
+      setFeedback({ message, variant: 'error' });
+      return;
+    }
     const next = refreshSessions();
     setFeedback(null);
-    if (wasActive) switchTo(PRIMARY_SESSION_ID, next, true);
+    if (wasActive && next.some(session => session.id === PRIMARY_SESSION_ID)) onActiveChange(PRIMARY_SESSION_ID);
   };
 
   // Inline two-tap delete confirmation. First tap arms it; second tap
@@ -155,16 +163,19 @@ export default function SessionsSheet({
       checklistCount ? `${checklistCount} checklist item${checklistCount === 1 ? '' : 's'}` : '',
     ].filter(Boolean);
     if (savedParts.length > 0) {
-      const message = `Cannot delete ${target.name}: it has ${savedParts.join(', ')}. Remove these records first.`;
+      const message = `Cannot delete ${sessionDisplayName(target)}: it has ${savedParts.join(', ')}. Remove these records first.`;
       setFeedback({ message, variant: 'error' });
-      toast.error(message);
       return;
     }
     const wasActive = activeSessionId === id || getActiveSessionId() === id;
-    deleteSession(id);
+    if (!deleteSession(id)) {
+      const message = 'Could not delete this session. Nothing was changed; free some storage and try again.';
+      setFeedback({ message, variant: 'error' });
+      return;
+    }
     const next = refreshSessions();
     setFeedback(null);
-    if (wasActive) switchTo(PRIMARY_SESSION_ID, next, true);
+    if (wasActive && next.some(session => session.id === PRIMARY_SESSION_ID)) onActiveChange(PRIMARY_SESSION_ID);
   };
 
   return (
@@ -177,7 +188,7 @@ export default function SessionsSheet({
         <div className="flex items-center gap-2">
           <button
             onClick={onClose}
-            className="p-1 -ml-1 text-ink-400 active:text-ink-200"
+            className="min-h-11 min-w-11 p-1 -ml-1 text-ink-400 active:text-ink-200"
             aria-label="Close Sessions"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -205,10 +216,10 @@ export default function SessionsSheet({
           aria-live={feedback?.variant === 'error' ? 'assertive' : 'polite'}
           className={`mb-3 rounded-xl border px-3 py-2 text-xs ${feedback?.variant === 'error' ? 'border-rose-300/40 bg-rose-300/10 text-rose-200' : 'border-ink-200/30 bg-ink-100/5 text-ink-200'}`}
         >
-          {feedback?.message ?? 'Stop the active contraction before changing sessions.'}
+          {feedback?.message ?? 'Stop the active contraction before changing sessions. You can still view past sessions.'}
         </p>
       )}
-      <p className="text-sm text-ink-300 mb-3">Current session: <strong className="text-ink-50">{sessions.find((s) => s.id === activeSessionId)?.name ?? 'Primary'}</strong></p>
+      <p className="text-sm text-ink-300 mb-3">Current session: <strong className="text-ink-50">{sessionDisplayName(sessions.find((s) => s.id === activeSessionId))}</strong></p>
       {creating && (
         <div className="mb-3 rounded-xl border border-ink-200/30 bg-ink-100/5 p-3">
           <label htmlFor="session-name-input" className="block text-sm text-ink-300 mb-2">
@@ -261,14 +272,14 @@ export default function SessionsSheet({
                   : 'border-ink-200/30 bg-ink-100/5'
               }`}
             >
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col gap-2">
                 <button
                   onClick={() => switchTo(s.id)}
                   disabled={Boolean(s.endedAt) || Boolean(runningSessionId && runningSessionId !== s.id)}
                   aria-disabled={Boolean(runningSessionId && runningSessionId !== s.id)}
                   title={s.endedAt ? 'Ended session — use View to inspect it' : runningSessionId && runningSessionId !== s.id ? 'Stop the active contraction before switching sessions' : undefined}
                   aria-pressed={isActive}
-                  className="flex-1 text-left min-w-0"
+                  className="min-h-11 flex-1 text-left min-w-0"
                 >
                   <div className="text-sm font-medium text-ink-50 truncate flex items-center gap-1.5">
                     {s.endedAt ? (
@@ -276,9 +287,9 @@ export default function SessionsSheet({
                     ) : (
                       <Play className="w-3 h-3 text-rose-300 fill-rose-300" strokeWidth={0} />
                     )}
-                    {s.name}
+                    {sessionDisplayName(s)}
                   </div>
-                  <div className="text-[10px] text-ink-500 mt-0.5">
+                  <div className="text-xs text-ink-500 mt-0.5">
                     {count} {count === 1 ? 'contraction' : 'contractions'} ·{' '}
                     {new Date(s.startedAt).toLocaleDateString()}
                     {s.startedAt && (() => {
@@ -290,15 +301,15 @@ export default function SessionsSheet({
                     })()}
                   </div>
                 </button>
-                <div className="flex items-center gap-0.5">
+                <div className="flex flex-wrap items-center gap-2">
                   {s.endedAt && (
                     <button
                       onClick={() => onViewSession(s)}
-                      className="p-1.5 text-ink-400 active:text-sage-300 transition-colors"
+                      className="min-h-11 px-3 inline-flex items-center text-ink-400 active:text-sage-300 transition-colors"
                       aria-label="View"
                       title="View"
                     >
-                      <Eye className="w-3.5 h-3.5" />
+                      <Eye className="w-3.5 h-3.5 inline mr-1.5" />View
                     </button>
                   )}
                   {s.id !== PRIMARY_SESSION_ID && (
@@ -306,21 +317,21 @@ export default function SessionsSheet({
                       {!s.endedAt && (
                         <button
                           onClick={() => handleEnd(s.id)}
-                          className="p-1.5 text-ink-400 active:text-ink-200 transition-colors"
+                          className="min-h-11 px-3 inline-flex items-center text-ink-400 active:text-ink-200 transition-colors"
                           aria-label="End session"
                           title="End session"
                         >
-                          <Square className="w-3.5 h-3.5" />
+                          <Square className="w-3.5 h-3.5 inline mr-1.5" />End session
                         </button>
                       )}
                       <button
                         onClick={() => handleDelete(s.id)}
                         disabled={s.id === PRIMARY_SESSION_ID}
-                        className={`p-1.5 transition-colors ${s.id === PRIMARY_SESSION_ID ? 'text-ink-600 cursor-not-allowed' : armedDeleteId === s.id ? 'text-rose-300 bg-rose-300/15 rounded-lg' : 'text-ink-400 active:text-rose-300'}`}
+                        className={`min-h-11 px-3 inline-flex items-center transition-colors ${s.id === PRIMARY_SESSION_ID ? 'text-ink-600 cursor-not-allowed' : armedDeleteId === s.id ? 'text-rose-300 bg-rose-300/15 rounded-lg' : 'text-ink-400 active:text-rose-300'}`}
                         aria-label={armedDeleteId === s.id ? 'Tap again to confirm delete' : 'Delete'}
-                        title={s.id === PRIMARY_SESSION_ID ? 'Primary session cannot be deleted' : armedDeleteId === s.id ? 'Tap again to confirm' : 'Delete'}
+                        title={s.id === PRIMARY_SESSION_ID ? 'This birth cannot be deleted' : armedDeleteId === s.id ? 'Tap again to confirm' : 'Delete'}
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <Trash2 className="w-3.5 h-3.5 inline mr-1.5" />{armedDeleteId === s.id ? 'Confirm delete' : 'Delete'}
                       </button>
                     </>
                   )}

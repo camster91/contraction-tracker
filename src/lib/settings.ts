@@ -51,8 +51,8 @@ export function getCarePlan(): CarePlan {
   return normalizeCarePlan(load<Partial<CarePlan>>(KEYS.CARE_PLAN, DEFAULT_CARE_PLAN));
 }
 
-export function setCarePlan(value: CarePlan): void {
-  save(KEYS.CARE_PLAN, normalizeCarePlan(value));
+export function setCarePlan(value: CarePlan): boolean {
+  return save(KEYS.CARE_PLAN, normalizeCarePlan(value));
 }
 
 /** Returns true if the current local hour falls within the quiet hours window. */

@@ -92,6 +92,7 @@ import ToastHost from './components/ToastHost';
 import { toast } from './lib/toast';
 import {
   contractionsInSession,
+  sessionDisplayName,
   getSessions,
   getActiveSessionId,
   getPeople,
@@ -190,7 +191,16 @@ export default function App() {
     () => contractionsInSession(contractions, activeSessionId),
     [contractions, activeSessionId],
   );
-  const activeSessionName = sessions.find((session) => session.id === activeSessionId)?.name ?? 'Primary';
+  const activeSessionName = sessionDisplayName(sessions.find((session) => session.id === activeSessionId));
+  const commitJourneyChange = (next: JourneyDocument): boolean => {
+    if (!saveJourney(next)) {
+      toast.error('Could not save that change. Your saved journey is unchanged. Free some storage and try again.');
+      return false;
+    }
+    setJourney(next);
+    return true;
+  };
+
 
 
   // Viewing an ended session read-only (without switching active session)
@@ -275,6 +285,7 @@ export default function App() {
   });
 
   const undo = useUndo();
+  const dismissUndo = undo.dismiss;
   // Separate timestamp for re-alert tracking (10-minute repeat interval)
   const lastAlertAtRef = useRef<number>(0);
   const lastAnnouncedMinuteRef = useRef<number>(0);
@@ -413,10 +424,10 @@ export default function App() {
   // BroadcastChannel sync — keep other tabs up to date when data changes
   useEffect(() => {
     initSync(
-      (incoming) => setContractions(incoming),
-      (incoming) => setCurrent(incoming),
+      (incoming) => { dismissUndo(); setContractions(incoming); },
+      (incoming) => { dismissUndo(); setCurrent(incoming); },
     );
-  }, []);
+  }, [dismissUndo]);
 
   // Save to localStorage + mirror to IndexedDB on every change.
   useEffect(() => {
@@ -432,7 +443,6 @@ export default function App() {
   }, [contractions, current, recoveryLoaded]);
   useEffect(() => {
     if (!recoveryLoaded) return;
-    if (!saveJourney(journey)) toast.error('Could not save your journey. Export a backup before closing Olive.');
     autoBackupJourney(journey).catch(() => {});
   }, [journey, recoveryLoaded]);
 
@@ -518,11 +528,27 @@ export default function App() {
     document.documentElement.classList.toggle('big-text', bigText);
   }, [bigText]);
 
+  // Commit user changes before presenting them as saved. History and the
+  // active timer form one record so Undo and Stop cannot partially succeed.
+  const commitRecording = (next: Contraction[], nextCurrent: Contraction | null = current): boolean => {
+    if (!commitLocalStorageBatch([
+      { key: STORAGE_KEY, value: JSON.stringify({ contractions: next, savedAt: new Date().toISOString() }), shadow: true },
+      { key: SESSION_KEY, value: JSON.stringify(nextCurrent), shadow: true },
+    ])) {
+      toast.error('Could not save this change. Your previous record is unchanged. Free up space and try again.');
+      return false;
+    }
+    setContractions(next);
+    setCurrent(nextCurrent);
+    undo.dismiss();
+    return true;
+  };
+
   const handleStart = () => {
     if (current && !current.end) return;
     // iOS: the start tap counts as a user gesture, so the audio context can unlock here
     unlockAudio();
-    setCurrent({ id: uid(), start: new Date().toISOString(), end: null, intensity: null, sessionId: activeSessionId, source: 'timer' });
+    if (!commitRecording(contractions, { id: uid(), start: new Date().toISOString(), end: null, intensity: null, sessionId: activeSessionId, source: 'timer' })) return;
     chimeStart();
     enableWakeLock();
     // Tactile feedback — vital when phone is in a pillow or screen is dim
@@ -535,9 +561,8 @@ export default function App() {
     const finished: Contraction = { ...current, end: new Date(stoppedAt).toISOString() };
     // Render statistics against the saved end time immediately; the display
     // tick can otherwise lag behind it and briefly exclude the new record.
+    if (!commitRecording([...contractions, finished], null)) return;
     setNow(stoppedAt);
-    setContractions((prev) => [...prev, finished]);
-    setCurrent(null);
     disableWakeLock();
     chimeStop();
     // Tactile feedback — distinct double-pulse for stop so the user can
@@ -561,7 +586,7 @@ export default function App() {
     if (!last?.end) return;
     const changed = withEndOffset(last, -seconds);
     if (!changed) { toast.error('That adjustment would create an invalid duration.'); return; }
-    setContractions((prev) => prev.map((c) => (c.id === last.id ? { ...c, ...changed } : c)));
+    commitRecording(contractions.map((c) => (c.id === last.id ? { ...c, ...changed } : c)));
   };
 
   const startRef = useRef(handleStart);
@@ -694,8 +719,7 @@ export default function App() {
     const note = noteDraft.trim();
     // De-dupe tags and strip empty
     const cleanTags = Array.from(new Set(tagsDraft.filter(Boolean)));
-    setContractions((prev) =>
-      prev.map((c) => (c.id === editingId
+    const next = contractions.map((c) => (c.id === editingId
         ? {
             ...c,
             start: timingDraft?.id === c.id ? timingDraft.start : c.start,
@@ -705,8 +729,8 @@ export default function App() {
             tags: cleanTags.length ? cleanTags : undefined,
             painLocations: painLocationsDraft.length ? painLocationsDraft : undefined,
           }
-        : c)),
-    );
+        : c));
+    if (!commitRecording(next)) return;
     setEditingId(null);
     setTimingDraft(null);
     setIntensityDraft('');
@@ -727,7 +751,7 @@ export default function App() {
   const handleDelete = (id: string) => {
     const target = contractions.find((c) => c.id === id);
     if (!target) return;
-    setContractions((prev) => prev.filter((c) => c.id !== id));
+    if (!commitRecording(contractions.filter((c) => c.id !== id))) return;
     undo.push({
       kind: 'delete',
       label: `Deleted contraction (${formatDuration(durationSeconds(target, now))})`,
@@ -739,8 +763,7 @@ export default function App() {
   const handleUndo = () => {
     const entry = undo.take();
     if (!entry) return;
-    setContractions(entry.contractions);
-    setCurrent(entry.current);
+    if (!commitRecording(entry.contractions, entry.current)) return;
     // Close any open edit panel that referenced a now-restored entry
     setEditingId(null);
     setTimingDraft(null);
@@ -892,7 +915,7 @@ export default function App() {
       }
       setBackupError(null);
       toast.success(
-        `Imported ${result.contractions} contractions, ${result.sessions} session(s), ${result.people} contacts, ${result.exams} exams.`,
+        `Imported ${pluralContraction(result.contractions)}, ${result.sessions} ${result.sessions === 1 ? 'session' : 'sessions'}, ${result.people} ${result.people === 1 ? 'contact' : 'contacts'}, ${result.exams} ${result.exams === 1 ? 'exam' : 'exams'}.`,
         { duration: 5000 },
       );
     } catch (err) {
@@ -1024,34 +1047,6 @@ export default function App() {
 
   return (
     <div data-timer-active={!!current} className="olive-app flex flex-col h-dvh text-ink-50 max-w-md mx-auto w-full">
-      {/* Undo toast — fixed to the bottom of the screen so it doesn't push content.
-          Auto-dismisses after 5s; user can tap Undo to reverse the last action. */}
-      {undo.pending && (
-        <div
-          className="fixed inset-x-0 bottom-6 z-50 flex justify-center pointer-events-none"
-          role="status"
-          aria-live="polite"
-        >
-          <div className="pointer-events-auto mx-4 flex items-center gap-3 bg-plum-950/95 border border-ink-200/40 backdrop-blur-xl rounded-2xl px-4 py-2.5 shadow-[0_8px_32px_-8px_rgba(0,0,0,0.6)] max-w-sm animate-fade-in">
-            <span className="text-sm text-ink-100 flex-1">{undo.pending.label}</span>
-            <button
-              onClick={handleUndo}
-              className="text-sm text-rose-300 active:text-rose-200 font-semibold flex items-center gap-1 px-2 py-1 rounded-lg active:bg-rose-300/10"
-            >
-              <Undo2 className="w-4 h-4" />
-              Undo
-            </button>
-            <button
-              onClick={undo.dismiss}
-              className="p-1 text-ink-400 active:text-ink-200"
-              aria-label="Dismiss"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* Data integrity recovery toast — shown when corrupted primary was healed from shadow */}
       {dataDamagedToast && (
         <div
@@ -1169,10 +1164,8 @@ export default function App() {
         <ManualContractionSheet
           onClose={() => setShowManual(false)}
           onSave={(start, end) => {
-            setContractions((prev) =>
-              [...prev, { id: uid(), start, end, intensity: null, sessionId: activeSessionId, source: 'manual' as const }].sort((a, b) => a.start.localeCompare(b.start)),
-            );
-            setShowManual(false);
+            const next = [...contractions, { id: uid(), start, end, intensity: null, sessionId: activeSessionId, source: 'manual' as const }].sort((a, b) => a.start.localeCompare(b.start));
+            if (commitRecording(next)) setShowManual(false);
           }}
         />
       )}
@@ -1208,16 +1201,20 @@ export default function App() {
           carePlan={carePlan}
           onCarePlanChange={(value) => {
             const normalized = normalizeCarePlan(value);
+            if (!setCarePlan(normalized)) {
+              toast.error('Could not save your care-team details. Free some storage and try again.');
+              return false;
+            }
             setCarePlanState(normalized);
-            setCarePlan(normalized);
+            return true;
           }}
           initialView={journeyInitialView}
           onOpenChecklist={() => openJourneyTool('checklist')}
           onOpenExams={() => openJourneyTool('exams')}
           onOpenContacts={() => openJourneyTool('contacts')}
-          onJourneyChange={setJourney}
+          onJourneyChange={commitJourneyChange}
           onPhaseChange={(nextPhase: JourneyPhase) => {
-            setJourney((currentJourney) => updateJourneyPhase(currentJourney, nextPhase));
+            return commitJourneyChange(updateJourneyPhase(journey, nextPhase));
           }}
           onClose={() => {
             setShowJourney(false);
@@ -1233,6 +1230,7 @@ export default function App() {
             runningSessionId={current && !current.end ? current.sessionId : undefined}
             onSessionsChange={setSessions}
             onActiveChange={(id) => {
+              undo.dismiss();
               setActiveId(id);
               setTagFilter(null);
               setEditingId(null);
@@ -1313,7 +1311,7 @@ export default function App() {
       </header>
 
       <main className="flex-1 min-h-0 overflow-y-auto px-5 pb-8 w-full">
-        <p className="pt-1 pb-2 text-center text-xs text-ink-300">Recording in <span className="font-semibold text-ink-100">{activeSessionName}</span></p>
+        <p className="pt-1 pb-2 text-center text-xs text-ink-300">Session: <span className="font-semibold text-ink-100">{activeSessionName}</span></p>
         {/* Hero CTA */}
         <div className="pt-2 pb-6">
           {!current ? (
@@ -1326,7 +1324,7 @@ export default function App() {
                 <Play className="w-6 h-6" fill="currentColor" strokeWidth={0} />
               </div>
               <div className="font-display text-3xl font-medium tracking-tight leading-none">Start</div>
-              <div className="text-[10px] uppercase tracking-[0.18em] opacity-70 mt-2 font-semibold text-center">
+              <div className="text-xs uppercase tracking-[0.18em] opacity-70 mt-2 font-semibold text-center">
                 Tap when it begins
               </div>
             </button>
@@ -1337,7 +1335,7 @@ export default function App() {
               <span role="timer" aria-label={`Elapsed contraction time: ${formatDurationSpoken(currentElapsed)}`} className="sr-only">{formatDuration(currentElapsed)}</span>
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-2 h-2 rounded-full bg-rose-300 animate-pulse-live" />
-                <div className="text-[10px] uppercase tracking-[0.25em] text-rose-300 font-semibold">
+                <div className="text-xs uppercase tracking-[0.25em] text-rose-300 font-semibold">
                   <span role="status">In progress</span>
                 </div>
                 {canUsePip && !document.pictureInPictureElement && (
@@ -1372,8 +1370,9 @@ export default function App() {
                   onChange={(e) => {
                     const changed = withClockTime(current, 'start', e.target.value);
                     if (!changed) { toast.error('Choose a valid start time within the last four hours.'); return; }
-                    setStartCorrection({ id: current.id, start: current.start });
-                    setCurrent({ ...current, start: changed.start });
+                    if (commitRecording(contractions, { ...current, start: changed.start })) {
+                      setStartCorrection({ id: current.id, start: current.start });
+                    }
                   }}
                   className="bg-transparent text-ink-400 border-none outline-none focus:underline focus:text-rose-300 cursor-pointer"
                   aria-label="Edit start time"
@@ -1382,14 +1381,15 @@ export default function App() {
                   {[10, 30, 60].map((seconds) => <button key={seconds} type="button" className="min-h-11 rounded-xl border border-ink-200/30 px-3 text-sm text-ink-200" onClick={() => {
                     const changed = withStartOffset(current, -seconds);
                     if (!changed) { toast.error('That adjustment would exceed four hours.'); return; }
-                    setStartCorrection({ id: current.id, start: current.start });
-                    setCurrent({ ...current, start: changed.start });
+                    if (commitRecording(contractions, { ...current, start: changed.start })) {
+                      setStartCorrection({ id: current.id, start: current.start });
+                    }
                   }}>Started {seconds}s earlier</button>)}
-                  {startCorrection?.id === current.id && <button type="button" className="min-h-11 px-3 text-sm text-sage-300" onClick={() => { setCurrent({ ...current, start: startCorrection.start }); setStartCorrection(null); }}>Undo start adjustment</button>}
+                  {startCorrection?.id === current.id && <button type="button" className="min-h-11 px-3 text-sm text-sage-300" onClick={() => { if (commitRecording(contractions, { ...current, start: startCorrection.start })) setStartCorrection(null); }}>Undo start adjustment</button>}
                 </div>
                 </details>
               </div>
-              <div className="text-[10px] text-sage-300/80 mt-1.5 tracking-wide flex items-center gap-1.5">
+              <div className="text-xs text-sage-300/80 mt-1.5 tracking-wide flex items-center gap-1.5">
                 <span className={`w-1.5 h-1.5 rounded-full ${isWakeLockHeld() ? 'bg-sage-300/70' : 'bg-amber-300/70'}`} />
                 <span>{isWakeLockHeld() ? 'Screen will stay on' : 'Screen may dim — tap to keep awake'}</span>
               </div>
@@ -1398,10 +1398,10 @@ export default function App() {
           )}
         </div>
 
-        <nav aria-label="Care access" className="grid grid-cols-2 gap-2 mb-4">
+        {(!current || carePlan.providerPhone) && <nav aria-label="Care access" className={`grid gap-2 mb-4 ${current ? 'grid-cols-1' : 'grid-cols-2'}`}>
           {carePlan.providerPhone ? <a href={`tel:${carePlan.providerPhone.replace(/[^+\d]/g, '')}`} className="min-h-11 rounded-xl border border-sage-300/40 px-3 py-3 text-sm text-sage-300 text-center break-words">Call {carePlan.providerName || 'care team'}</a> : <button type="button" onClick={(event) => { event.currentTarget.focus(); openJourney('plan'); }} className="min-h-11 rounded-xl border border-ink-200/30 px-3 py-3 text-sm text-ink-200">Set care-team contact</button>}
-          <button type="button" onClick={(event) => { event.currentTarget.focus(); setShowPeople(true); }} className="min-h-11 rounded-xl border border-ink-200/30 px-3 py-3 text-sm text-ink-200">Care contacts</button>
-        </nav>
+          {!current && <button type="button" onClick={(event) => { event.currentTarget.focus(); setShowPeople(true); }} className="min-h-11 rounded-xl border border-ink-200/30 px-3 py-3 text-sm text-ink-200">Care contacts</button>}
+        </nav>}
 
       {/* User-configured care-plan reminder */}
       {showAlert && (
@@ -1448,7 +1448,7 @@ export default function App() {
               This contraction started {formatRelative(new Date(current.start), now)}. Did you forget to stop it?
             </div>
             <button
-              onClick={() => setCurrent(null)}
+              onClick={() => commitRecording(contractions, null)}
               className="text-xs bg-amber-300/20 active:bg-amber-300/30 text-amber-200 rounded-lg px-3 py-1.5 font-semibold mt-2.5 transition-colors"
             >
               Discard timer
@@ -1468,19 +1468,19 @@ export default function App() {
         {!current && finished.length > 0 && secondsSinceFinish !== null && (
           <div className="mb-4 rounded-2xl border border-ink-200/30 bg-gradient-to-br from-ink-100/[0.04] to-transparent px-4 py-4 animate-fade-in">
             <div className="flex items-center justify-between">
-              <div className="text-[10px] uppercase tracking-[0.2em] text-ink-400 font-semibold">{hasRecentTiming ? 'Since last' : 'Last recorded'}</div>
+              <div className="text-xs uppercase tracking-[0.2em] text-ink-400 font-semibold">{hasRecentTiming ? 'Since last ended' : 'Last recorded'}</div>
             </div>
             <div className="font-display text-4xl font-light text-ink-50 tabular-nums mt-1 leading-none">
               {hasRecentTiming ? formatDuration(secondsSinceFinish) : formatRelative(new Date(finished[finished.length - 1].end!), now)}
             </div>
-            <div className="text-[10px] text-ink-500 mt-1.5">
+            <div className="text-xs text-ink-500 mt-1.5">
               {finished.length === 1
-                ? 'First one recorded. Keep tracking and follow the instructions from your care team.'
+                ? 'First contraction recorded. Tap Start when the next one begins.'
                 : `${pluralContraction(finished.length)} logged · started ${formatElapsed(totalLogElapsedSec)} ago`}
             </div>
-            {hasRecentTiming && <div className="flex items-center gap-1.5 mt-3 text-xs text-ink-300">
+            {hasRecentTiming && withEndOffset(finished[finished.length - 1], -10) && <div className="flex items-center gap-1.5 mt-3 text-xs text-ink-300">
               <span>Stopped late?</span>
-              {[10, 30].map((sec) => (
+              {[10, 30].filter((sec) => withEndOffset(finished[finished.length - 1], -sec)).map((sec) => (
                 <button
                   key={sec}
                   type="button"
@@ -1510,7 +1510,7 @@ export default function App() {
             type="button"
             aria-label="Add missed contraction"
             onClick={() => setShowManual(true)}
-            className="mb-4 inline-flex items-center gap-1.5 text-[11px] text-ink-400 active:text-rose-300 rounded-full border border-ink-200/30 bg-ink-100/5 px-3 py-1.5 min-h-[44px] transition-colors"
+            className="mb-4 inline-flex items-center gap-1.5 text-sm text-ink-400 active:text-rose-300 rounded-full border border-ink-200/30 bg-ink-100/5 px-3 py-1.5 min-h-[44px] transition-colors"
           >
             <Plus className="w-3.5 h-3.5" strokeWidth={1.75} />
             Forgot to tap? Add it
@@ -1591,7 +1591,7 @@ export default function App() {
                           </div>
                         </div>
                         {/* Quick-adjust end time — for when you stopped late */}
-                        <div className="flex items-center gap-1.5 text-[10px] text-ink-500">
+                        <div className="flex items-center gap-1.5 text-xs text-ink-500">
                           <span>Stop was late?</span>
                           {[-5, -10, -15, -30].map((sec) => (
                             <button
@@ -1614,7 +1614,7 @@ export default function App() {
                           <summary className="min-h-11 cursor-pointer text-sm text-ink-200 flex items-center">Optional details</summary>
                           <div className="space-y-3 pt-2">
                         <div className="flex items-center gap-3">
-                          <label className="text-[11px] uppercase tracking-[0.15em] text-ink-400 font-semibold">
+                          <label className="text-sm uppercase tracking-[0.15em] text-ink-400 font-semibold">
                             Intensity
                           </label>
                           <div className="flex gap-1.5 flex-wrap">
@@ -1649,7 +1649,7 @@ export default function App() {
                                     active ? cur.filter((x) => x !== t) : [...cur, t],
                                   )
                                 }
-                                className={`text-[11px] uppercase tracking-wider px-3 py-2 rounded-full font-semibold transition-colors flex items-center gap-1 ${
+                                className={`text-sm uppercase tracking-wider px-3 py-2 rounded-full font-semibold transition-colors flex items-center gap-1 ${
                                   active
                                     ? 'bg-rose-300/20 text-rose-200 border border-rose-300/40'
                                     : 'bg-ink-100/5 text-ink-300 border border-ink-200/30 active:bg-ink-100/10'
@@ -1666,7 +1666,7 @@ export default function App() {
                               <button
                                 key={t}
                                 onClick={() => setTagsDraft((cur) => cur.filter((x) => x !== t))}
-                                className="text-[10px] uppercase tracking-wider px-2.5 py-1.5 rounded-full font-semibold bg-rose-300/20 text-rose-200 border border-rose-300/40 transition-colors flex items-center gap-1"
+                                className="text-xs uppercase tracking-wider px-2.5 py-1.5 rounded-full font-semibold bg-rose-300/20 text-rose-200 border border-rose-300/40 transition-colors flex items-center gap-1"
                               >
                                 <Tag className="w-2.5 h-2.5" />
                                 {t}
@@ -1771,21 +1771,21 @@ export default function App() {
             {canUsePip && !document.pictureInPictureElement && (
               <button
                 onClick={handleEnterPip}
-                className="mt-4 inline-flex items-center gap-1.5 text-[11px] text-ink-400 active:text-rose-300 border border-ink-200/20 rounded-full px-3 py-1.5 min-h-[32px] transition-colors"
+                className="mt-4 inline-flex items-center gap-1.5 text-sm text-ink-400 active:text-rose-300 border border-ink-200/20 rounded-full px-3 py-1.5 min-h-[44px] transition-colors"
               >
                 <PictureInPicture2 className="w-3.5 h-3.5" strokeWidth={1.75} />
                 Open floating timer
               </button>
             )}
             {!canUsePip && (
-              <p className="mt-2 text-[10px] text-ink-500 text-center">
+              <p className="mt-2 text-xs text-ink-500 text-center">
                 While timing, Olive tries to keep the screen awake.
               </p>
             )}
             {canUsePip && document.pictureInPictureElement && (
               <button
                 onClick={handleEnterPip}
-                className="mt-4 inline-flex items-center gap-1.5 text-[11px] text-rose-300 border border-rose-300/30 rounded-full px-3 py-1.5 min-h-[32px] transition-colors"
+                className="mt-4 inline-flex items-center gap-1.5 text-sm text-rose-300 border border-rose-300/30 rounded-full px-3 py-1.5 min-h-[44px] transition-colors"
               >
                 <X className="w-3.5 h-3.5" strokeWidth={1.75} />
                 Close floating timer
@@ -1796,7 +1796,7 @@ export default function App() {
 
 
         {/* Checklist sheet (hospital bag) — opens from the header Briefcase icon */}
-        <button type="button" ref={journeyOpenerRef} onClick={(event) => { event.currentTarget.focus(); openJourney(); }} aria-label="Open birth journey" className="my-4 w-full min-h-11 rounded-xl border border-ink-200/30 px-4 py-3 text-sm text-ink-200">Care details & preparation</button>
+
 
         {showChecklist && (
           <ChecklistSheet sessionId={activeSessionId} onClose={closeJourneyTool} />
@@ -1825,6 +1825,37 @@ export default function App() {
             elements (Undo, DataRestored, QuotaExceeded). */}
         <ToastHost />
       </main>
+      <nav aria-label="Care tools" className="shrink-0 px-5 py-2 border-t border-ink-200/25 bg-plum-950">
+        <button type="button" ref={journeyOpenerRef} onClick={(event) => { event.currentTarget.focus(); openJourney(); }} aria-label="Open birth journey" className="w-full min-h-11 rounded-xl border border-ink-200/30 px-4 py-2 text-sm text-ink-200">Birth journey</button>
+      </nav>
+      {/* Undo toast — in a reserved footer so it never covers the timing summary. */}
+      {undo.pending && (
+        <div
+          className="shrink-0 flex justify-center px-4 py-2 border-t border-ink-200/25 bg-plum-950"
+          role="status"
+          aria-label="Recent action"
+          aria-live="polite"
+        >
+          <div className="w-full flex items-center gap-3 max-w-sm">
+            <span className="text-sm text-ink-100 flex-1">{undo.pending.label}</span>
+            <button
+              onClick={handleUndo}
+              className="min-h-11 min-w-11 text-sm text-rose-300 active:text-rose-200 font-semibold flex items-center gap-1 px-2 py-1 rounded-lg active:bg-rose-300/10"
+            >
+              <Undo2 className="w-4 h-4" />
+              Undo
+            </button>
+            <button
+              onClick={undo.dismiss}
+              className="min-h-11 min-w-11 flex items-center justify-center p-1 text-ink-400 active:text-ink-200"
+              aria-label="Dismiss"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
@@ -1836,8 +1867,8 @@ function RecentTimingSummary({ contractions, now }: { contractions: Contraction[
     <p className="text-xs text-ink-300 mt-1">{summary.count} completed · selected session</p>
     {summary.count > 0 && <dl className="grid grid-cols-2 gap-3 mt-3">
       <div><dt className="text-xs text-ink-300">Average duration</dt><dd className="text-xl font-display text-rose-300 mt-1">{formatDuration(summary.averageDuration!)}</dd></div>
-      <div><dt className="text-xs text-ink-300">Average spacing</dt><dd className="text-xl font-display text-sage-300 mt-1">{summary.averageSpacing === null ? '—' : formatDuration(summary.averageSpacing)}</dd></div>
+      <div><dt className="text-xs text-ink-300">Between starts</dt><dd className="text-xl font-display text-sage-300 mt-1">{summary.averageSpacing === null ? '—' : formatDuration(summary.averageSpacing)}</dd></div>
     </dl>}
-    <p className="text-xs text-ink-300 mt-3">Spacing is measured start to start.{summary.count === 1 ? ' Add another contraction to see spacing.' : ''}</p>
+    <p className="text-xs text-ink-300 mt-3">Time between the start of one contraction and the next.{summary.count === 1 ? ' Add another contraction to see spacing.' : ''}</p>
   </section>;
 }

@@ -42,7 +42,7 @@ test('a fabricated contact persists after reload', async ({ page }) => {
   const sheet = page.getByRole('dialog', { name: 'Care contacts' });
   await sheet.getByRole('button', { name: 'Add', exact: true }).click();
   await sheet.getByPlaceholder('Name (required)').fill('Example support person');
-  await sheet.getByRole('button', { name: 'Add', exact: true }).click();
+  await sheet.getByRole('button', { name: 'Add contact', exact: true }).click();
   await expect(sheet.getByText('Example support person')).toBeVisible();
   await page.reload({ waitUntil: 'domcontentloaded' });
   await waitForApp(page);

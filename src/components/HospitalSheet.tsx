@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { X, Plus, Trash2, Stethoscope } from 'lucide-react';
 import { toast } from '../lib/toast';
-import { addExam, deleteExam, getExams, type CervicalExam } from '../lib/hospital';
+import { addExam, getExams, writeExams, type CervicalExam } from '../lib/hospital';
 import { isHour12Preferred } from '../lib/contractions';
 import { useModalDialog } from '../hooks/useModalDialog';
 
@@ -17,20 +17,55 @@ export default function HospitalSheet({ sessionId, onClose }: Props) {
   const dialogRef = useModalDialog(onClose);
   const [exams, setExams] = useState<CervicalExam[]>(() => getExams(sessionId));
   const [adding, setAdding] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [dilation, setDilation] = useState<number | null>(null);
   const [effacement, setEffacement] = useState<number | null>(null);
   const [station, setStation] = useState<number | null>(null);
   const [notes, setNotes] = useState('');
+  const [deletedExam, setDeletedExam] = useState<{ exam: CervicalExam; index: number } | null>(null);
 
   const validMeasurement = (value: number | null, min: number, max: number) => value === null || (Number.isFinite(value) && value >= min && value <= max);
   const canSave = (dilation !== null || effacement !== null || station !== null || !!notes.trim())
     && validMeasurement(dilation, 0, 10) && validMeasurement(effacement, 0, 100) && validMeasurement(station, -3, 3);
-  const startAdding = () => {
-    setDilation(null); setEffacement(null); setStation(null); setNotes(''); setAdding(true);
+  const resetForm = () => {
+    setDilation(null); setEffacement(null); setStation(null); setNotes(''); setEditingId(null); setAdding(false);
   };
 
-  const handleAdd = () => {
+  const startAdding = () => {
+    setDilation(null); setEffacement(null); setStation(null); setNotes(''); setEditingId(null); setAdding(true);
+  };
+
+  const startEditing = (exam: CervicalExam) => {
+    setDilation(exam.dilationCm);
+    setEffacement(exam.effacementPct);
+    setStation(exam.station);
+    setNotes(exam.notes ?? '');
+    setEditingId(exam.id);
+    setAdding(true);
+  };
+
+  const handleSave = () => {
     if (!canSave) return;
+    const existing = editingId ? getExams(sessionId).find((candidate) => candidate.id === editingId) : null;
+    if (editingId && !existing) {
+      toast.error('This exam is no longer available.');
+      resetForm();
+      return;
+    }
+    if (existing) {
+      const next = getExams(sessionId).map((candidate) => candidate.id === editingId ? {
+        ...candidate,
+        dilationCm: dilation,
+        effacementPct: effacement,
+        station,
+        notes: notes.trim() || undefined,
+      } : candidate);
+      if (!writeExams(sessionId, next)) { toast.error('Could not update this exam. Free up space and try again.'); return; }
+      setExams(next);
+      toast.success('Exam updated');
+      resetForm();
+      return;
+    }
     const exam = addExam(sessionId, {
       time: new Date().toISOString(),
       dilationCm: dilation,
@@ -40,13 +75,36 @@ export default function HospitalSheet({ sessionId, onClose }: Props) {
     });
     if (!exam) { toast.error('Could not save this exam. Free up space and try again.'); return; }
     setExams(getExams(sessionId));
-    setAdding(false);
-    setNotes('');
+    toast.success('Exam saved');
+    resetForm();
   };
 
   const handleDelete = (id: string) => {
-    deleteExam(sessionId, id);
-    setExams(getExams(sessionId));
+    const current = getExams(sessionId);
+    const index = current.findIndex((exam) => exam.id === id);
+    const exam = current[index];
+    if (!exam) return;
+    const next = current.filter((candidate) => candidate.id !== id);
+    if (!writeExams(sessionId, next)) {
+      toast.error('Could not remove this exam. Free up space and try again.');
+      return;
+    }
+    setExams(next);
+    setDeletedExam({ exam, index });
+  };
+
+  const undoDelete = () => {
+    if (!deletedExam) return;
+    const current = getExams(sessionId);
+    if (current.some((exam) => exam.id === deletedExam.exam.id)) return;
+    const insertAt = Math.min(deletedExam.index, current.length);
+    const next = [...current.slice(0, insertAt), deletedExam.exam, ...current.slice(insertAt)];
+    if (!writeExams(sessionId, next)) {
+      toast.error('Could not restore this exam. Free up space and try again.');
+      return;
+    }
+    setExams(next);
+    setDeletedExam(null);
   };
 
   return (
@@ -77,7 +135,7 @@ export default function HospitalSheet({ sessionId, onClose }: Props) {
             </div>
             <div>
               <div className="text-base font-semibold text-ink-50 font-display">Exams</div>
-              <div className="text-[11px] text-ink-400 mt-0.5">
+              <div className="text-xs text-ink-400 mt-0.5">
                 {exams.length === 0 ? 'No exams logged' : `${exams.length} exam${exams.length === 1 ? '' : 's'} logged`}
               </div>
             </div>
@@ -86,7 +144,7 @@ export default function HospitalSheet({ sessionId, onClose }: Props) {
             {!adding && (
               <button
                 onClick={startAdding}
-                className="text-xs text-rose-300 active:text-rose-200 font-semibold flex items-center gap-1 px-2.5 py-1.5 rounded-lg active:bg-rose-300/10 transition-colors"
+                className="min-h-11 text-sm text-rose-300 active:text-rose-200 font-semibold flex items-center gap-1 px-2.5 py-1.5 rounded-lg active:bg-rose-300/10 transition-colors"
               >
                 <Plus className="w-3.5 h-3.5" />
                 Log exam
@@ -94,7 +152,7 @@ export default function HospitalSheet({ sessionId, onClose }: Props) {
             )}
             <button
               onClick={onClose}
-              className="p-2 text-ink-400 active:text-ink-200 rounded-xl active:bg-ink-100/10 transition-colors"
+              className="min-h-11 min-w-11 p-2 text-ink-400 active:text-ink-200 rounded-xl active:bg-ink-100/10 transition-colors"
               aria-label="Close"
             >
               <X className="w-5 h-5" strokeWidth={1.75} />
@@ -106,7 +164,7 @@ export default function HospitalSheet({ sessionId, onClose }: Props) {
         {/* Add exam form */}
         {adding && (
           <div className="mx-5 mb-3 rounded-2xl border border-ink-200/30 bg-ink-100/5 p-4 space-y-3">
-            <div className="text-sm font-semibold text-ink-50 font-display">New exam</div>
+            <div className="text-sm font-semibold text-ink-50 font-display">{editingId ? 'Edit exam' : 'New exam'}</div>
 
             <p className="text-xs text-ink-300">Enter only measurements reported to you. Leave anything unknown blank.</p>
             <label className="block text-sm text-ink-300">
@@ -137,25 +195,33 @@ export default function HospitalSheet({ sessionId, onClose }: Props) {
               placeholder="Notes (fetal position, anything else...)"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="w-full bg-ink-100/5 border border-ink-200/30 rounded-xl px-3 py-2 text-base text-ink-50 placeholder-ink-400 focus:outline-none focus:border-rose-300/50"
+              className="w-full min-h-11 bg-ink-100/5 border border-ink-200/30 rounded-xl px-3 py-2 text-base text-ink-50 placeholder-ink-400 focus:outline-none focus:border-rose-300/50"
             />
             </label>
 
             <div className="flex gap-2 pt-1">
               <button
-                onClick={() => setAdding(false)}
-                className="flex-1 text-xs bg-ink-100/5 active:bg-ink-100/10 border border-ink-200/30 text-ink-200 rounded-xl py-2 font-medium transition-colors"
+                onClick={resetForm}
+                className="flex-1 min-h-11 text-sm bg-ink-100/5 active:bg-ink-100/10 border border-ink-200/30 text-ink-200 rounded-xl py-2 font-medium transition-colors"
               >
                 Cancel
               </button>
               <button
-                onClick={handleAdd}
+                onClick={handleSave}
                 disabled={!canSave}
                 className="flex-1 min-h-11 text-sm bg-rose-300 active:bg-rose-400 text-plum-950 rounded-xl py-2 font-semibold transition-colors disabled:opacity-40"
               >
-                Save exam
+                {editingId ? 'Save changes' : 'Save exam'}
               </button>
             </div>
+          </div>
+        )}
+
+        {deletedExam && (
+          <div role="status" className="mx-5 mb-3 flex items-center gap-3 rounded-xl border border-ink-200/30 bg-ink-100/5 px-3 py-2 text-sm text-ink-200">
+            <span className="min-w-0 flex-1 truncate">Exam removed.</span>
+            <button type="button" onClick={undoDelete} className="min-h-11 rounded-lg px-3 text-sm font-semibold text-rose-300 active:bg-rose-300/10">Undo</button>
+            <button type="button" onClick={() => setDeletedExam(null)} className="min-h-11 rounded-lg px-3 text-sm font-medium text-ink-300 active:bg-ink-100/10" aria-label="Dismiss exam removal">Dismiss</button>
           </div>
         )}
 
@@ -179,32 +245,40 @@ export default function HospitalSheet({ sessionId, onClose }: Props) {
                     <div className="font-display text-lg font-medium text-ink-50">
                       {time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: isHour12Preferred() })}
                     </div>
-                    <div className="text-[10px] text-ink-500 mt-0.5">
+                    <div className="text-xs text-ink-500 mt-0.5">
                       {time.toLocaleDateString([], { month: 'short', day: 'numeric' })}
                     </div>
                   </div>
                   <button
                     onClick={() => handleDelete(exam.id)}
-                    className="p-1.5 text-ink-400 active:text-rose-300 transition-colors"
-                    aria-label="Delete exam"
+                    className="min-h-11 min-w-11 p-1.5 text-ink-400 active:text-rose-300 transition-colors"
+                    aria-label={`Delete exam from ${time.toLocaleDateString()}`}
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => startEditing(exam)}
+                  className="min-h-11 rounded-lg border border-ink-200/25 px-3 text-sm text-ink-300 active:bg-ink-100/10"
+                  aria-label={`Edit exam from ${time.toLocaleDateString()}`}
+                >
+                  Edit exam
+                </button>
                 <div className="mt-2 grid grid-cols-3 gap-3">
                   <div className="text-center">
                     <div className={`${exam.dilationCm == null ? 'text-xs' : 'text-2xl font-display font-light'} text-rose-300`}>{exam.dilationCm ?? 'Not recorded'}</div>
-                    <div className="text-[9px] uppercase tracking-wider text-ink-500 mt-0.5">cm</div>
+                    <div className="text-xs uppercase tracking-wider text-ink-500 mt-0.5">cm</div>
                   </div>
                   <div className="text-center">
                     <div className={`${exam.effacementPct == null ? 'text-xs' : 'text-2xl font-display font-light'} text-ink-200`}>{exam.effacementPct == null ? 'Not recorded' : `${exam.effacementPct}%`}</div>
-                    <div className="text-[9px] uppercase tracking-wider text-ink-500 mt-0.5">effaced</div>
+                    <div className="text-xs uppercase tracking-wider text-ink-500 mt-0.5">effaced</div>
                   </div>
                   <div className="text-center">
                     <div className={`${exam.station == null ? 'text-xs' : 'text-2xl font-display font-light'} text-ink-200`}>
                       {exam.station == null ? 'Not recorded' : exam.station > 0 ? `+${exam.station}` : exam.station}
                     </div>
-                    <div className="text-[9px] uppercase tracking-wider text-ink-500 mt-0.5">station</div>
+                    <div className="text-xs uppercase tracking-wider text-ink-500 mt-0.5">station</div>
                   </div>
                 </div>
                 {exam.notes && (

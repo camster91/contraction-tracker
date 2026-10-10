@@ -129,7 +129,7 @@ export default function SettingsSheet({
               </div>
             )}
             {muteSchedule.enabled && isInQuietHours(muteSchedule) && (
-              <div className="text-[10px] text-amber-300 mt-2">
+              <div className="text-xs text-amber-300 mt-2">
                 Quiet hours are active now. All sounds, including saved care-plan reminders, are quiet.
               </div>
             )}
@@ -229,7 +229,7 @@ export default function SettingsSheet({
             <div className="flex items-center justify-between mb-2">
               <div>
                 <div className="text-xs uppercase tracking-[0.12em] text-ink-300 font-semibold">App version</div>
-                <div className="text-[11px] text-ink-300 mt-0.5">Olive v{appVersion}</div>
+                <div className="text-sm text-ink-300 mt-0.5">Olive v{appVersion}</div>
               </div>
             </div>
             <div className="text-xs text-ink-300 mt-1.5 text-center">

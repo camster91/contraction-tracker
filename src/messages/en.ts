@@ -17,6 +17,6 @@ export const journeyMessages = {
   archived: {
     eyebrow: 'Your journey',
     title: 'Keep the story',
-    detail: 'Review or export the record you chose to preserve.',
+    detail: 'Keep this journey for later. You can still review, edit, or share its details.',
   },
 } as const;

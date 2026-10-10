@@ -7,7 +7,7 @@ import {
 
 export default function CareCardPanel({ journey, onChange }: {
   journey: JourneyDocument;
-  onChange: (journey: JourneyDocument) => void;
+  onChange: (journey: JourneyDocument) => boolean;
 }) {
   const [draft, setDraft] = useState(() => ({
     preferredName: journey.profile.preferredName ?? '',
@@ -22,27 +22,33 @@ export default function CareCardPanel({ journey, onChange }: {
 
   const save = (event: FormEvent) => {
     event.preventDefault();
-    onChange(updateJourneyProfile(journey, draft));
+    const saved = onChange(updateJourneyProfile(journey, draft));
+    if (!saved) {
+      setStatus('Could not save the care card. Your draft is still here; try again or export a backup.');
+      return;
+    }
     setStatus('Care card saved on this device');
     setEditing(!Object.values(draft).some(Boolean));
   };
 
   const copy = async () => {
+    const source = editing ? updateJourneyProfile(journey, draft) : journey;
     try {
-      await navigator.clipboard.writeText(buildCareCardSummary(journey));
+      await navigator.clipboard.writeText(buildCareCardSummary(source));
       setStatus('Care card copied');
     } catch {
-      setStatus('Could not copy. Your care card is still saved.');
+      setStatus('Could not copy. Try again or select the card text manually.');
     }
   };
 
-  const fieldClass = 'w-full bg-ink-100/5 border border-ink-200/30 rounded-xl px-3 py-2 text-base text-ink-50 placeholder:text-ink-500 focus:outline-none focus:border-rose-300/50';
+  const fieldClass = 'w-full min-h-11 bg-ink-100/5 border border-ink-200/30 rounded-xl px-3 py-2 text-base text-ink-50 placeholder:text-ink-500 focus:outline-none focus:border-rose-300/50';
 
   if (!editing) return <section className="space-y-4">
     <h3 className="font-display text-xl text-ink-50">Care card</h3>
     <p className="text-sm text-ink-300">Your saved details. Review before showing or sharing.</p>
     <pre className="whitespace-pre-wrap break-words font-sans text-base text-ink-100 rounded-xl border border-ink-200/30 p-4">{buildCareCardSummary(journey)}</pre>
     <div className="flex gap-3"><button type="button" onClick={() => setEditing(true)} className="min-h-11 rounded-xl border border-ink-200/30 px-4 text-sm text-ink-100">Edit care card</button><button type="button" onClick={copy} className="min-h-11 rounded-xl border border-ink-200/30 px-4 text-sm text-ink-100">Copy care card</button></div>
+    <p className="text-sm text-ink-400 leading-relaxed">Copy places the card text on your clipboard so you can paste it into a message or note.</p>
     {status && <p role="status" className="text-sm text-sage-300">{status}</p>}
   </section>;
 
@@ -50,42 +56,45 @@ export default function CareCardPanel({ journey, onChange }: {
     <form onSubmit={save} className="space-y-3">
       <div>
         <h3 className="font-display text-xl text-ink-50">Care card</h3>
-        <p className="text-[11px] text-ink-400 leading-relaxed mt-1">
-          Optional details owned by you. Everything stays on this device.
+        <p className="text-sm text-ink-400 leading-relaxed mt-1">
+          Optional details owned by you. Records stay private on this device until you copy or share this card.
         </p>
       </div>
-      <label className="block text-[11px] text-ink-300">
+      <label className="block text-sm text-ink-300">
         Preferred name
         <input className={`${fieldClass} mt-1`} value={draft.preferredName} maxLength={80}
           onChange={(event) => setDraft({ ...draft, preferredName: event.target.value })} />
       </label>
-      <label className="block text-[11px] text-ink-300">
+      <label className="block text-sm text-ink-300">
         Pronouns
         <input className={`${fieldClass} mt-1`} value={draft.pronouns} maxLength={60}
           onChange={(event) => setDraft({ ...draft, pronouns: event.target.value })} />
       </label>
-      <label className="block text-[11px] text-ink-300">
+      <label className="block text-sm text-ink-300">
         Estimated due date
         <input type="date" className={`${fieldClass} mt-1`} value={draft.estimatedDueDate}
           onChange={(event) => setDraft({ ...draft, estimatedDueDate: event.target.value })} />
       </label>
-      <label className="block text-[11px] text-ink-300">
+      <label className="block text-sm text-ink-300">
         Birth location
         <input className={`${fieldClass} mt-1`} value={draft.birthLocation} maxLength={120}
           onChange={(event) => setDraft({ ...draft, birthLocation: event.target.value })} />
       </label>
-      <label className="block text-[11px] text-ink-300">
+      <label className="block text-sm text-ink-300">
         Birth address
         <input className={`${fieldClass} mt-1`} value={draft.birthAddress} maxLength={240}
           onChange={(event) => setDraft({ ...draft, birthAddress: event.target.value })} />
       </label>
-      <label className="block text-[11px] text-ink-300">
+      <label className="block text-sm text-ink-300">
         Important notes entered by you
         <textarea className={`${fieldClass} mt-1 min-h-[88px] resize-y`} value={draft.importantNotes} maxLength={2000}
           onChange={(event) => setDraft({ ...draft, importantNotes: event.target.value })} />
       </label>
-      <p className="text-[10px] text-ink-500 leading-relaxed">
+      <p className="text-sm text-ink-500 leading-relaxed">
         These are your notes, not verified medical instructions. Review them before showing or sharing the card.
+      </p>
+      <p className="text-sm text-ink-400 leading-relaxed">
+        Copy places the card text on your clipboard so you can paste it into a message or note.
       </p>
       <div className="grid grid-cols-2 gap-2">
         <button type="submit" className="min-h-[44px] rounded-xl bg-rose-300 text-plum-950 text-sm font-semibold px-3 py-2">
@@ -95,7 +104,7 @@ export default function CareCardPanel({ journey, onChange }: {
           Copy care card
         </button>
       </div>
-      {status && <div role="status" className="text-[11px] text-sage-300">{status}</div>}
+      {status && <div role="status" className="text-sm text-sage-300">{status}</div>}
     </form>
   );
 }
