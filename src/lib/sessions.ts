@@ -5,6 +5,7 @@
 // implicit "primary" session.
 
 import type { Contraction } from './contractions';
+import { commitLocalStorageBatch } from './storage.ts';
 
 export const PRIMARY_SESSION_ID = 'primary';
 
@@ -24,6 +25,12 @@ export type Person = {
   email?: string;
   createdAt: string;
 };
+
+/** Human-facing name for the legacy default session; stored IDs/data stay intact. */
+export function sessionDisplayName(session?: Session): string {
+  if (!session || (session.id === PRIMARY_SESSION_ID && session.name === 'Primary')) return 'This birth';
+  return session.name;
+}
 
 // ---- localStorage keys ----
 const SESSIONS_KEY = 'contraction-tracker:sessions';
@@ -134,8 +141,9 @@ export function getActiveSessionId(): string {
   }
 }
 
-export function setActiveSessionId(id: string) {
-  localStorage.setItem(ACTIVE_SESSION_KEY, id);
+export function setActiveSessionId(id: string): boolean {
+  try { localStorage.setItem(ACTIVE_SESSION_KEY, id); return true; }
+  catch { return false; }
 }
 
 export function createSession(name: string): Session | null {
@@ -150,15 +158,23 @@ export function createSession(name: string): Session | null {
   return session;
 }
 
-export function endSession(id: string) {
+export function endSession(id: string): boolean {
   const sessions = getSessions();
-  setSessions(sessions.map((s) => (s.id === id ? { ...s, endedAt: new Date().toISOString() } : s)));
+  if (!sessions.some(session => session.id === id)) return false;
+  const next = sessions.map((s) => (s.id === id ? { ...s, endedAt: new Date().toISOString() } : s));
+  return commitSessionChange(next, getActiveSessionId() === id);
 }
 
-export function deleteSession(id: string) {
-  if (id === PRIMARY_SESSION_ID) return; // never delete the primary session
-  setSessions(getSessions().filter((s) => s.id !== id));
-  if (getActiveSessionId() === id) setActiveSessionId(PRIMARY_SESSION_ID);
+export function deleteSession(id: string): boolean {
+  if (id === PRIMARY_SESSION_ID) return false;
+  return commitSessionChange(getSessions().filter((s) => s.id !== id), getActiveSessionId() === id);
+}
+
+function commitSessionChange(sessions: Session[], resetActive: boolean): boolean {
+  return commitLocalStorageBatch([
+    { key: SESSIONS_KEY, value: JSON.stringify(sessions), shadow: true },
+    ...(resetActive ? [{ key: ACTIVE_SESSION_KEY, value: PRIMARY_SESSION_ID }] : []),
+  ]);
 }
 
 // ---- People ----
@@ -181,8 +197,8 @@ export function addPerson(input: Omit<Person, 'id' | 'createdAt'>): Person | nul
   return person;
 }
 
-export function updatePerson(id: string, patch: Partial<Omit<Person, 'id' | 'createdAt'>>) {
-  setPeople(getPeople().map((p) => (p.id === id ? { ...p, ...patch } : p)));
+export function updatePerson(id: string, patch: Partial<Omit<Person, 'id' | 'createdAt'>>): boolean {
+  return setPeople(getPeople().map((p) => (p.id === id ? { ...p, ...patch } : p)));
 }
 
 export function deletePerson(id: string) {

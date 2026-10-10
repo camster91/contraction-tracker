@@ -11,11 +11,14 @@
 //   - Dismiss button has an aria-label
 
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { useActiveDialog } from '../hooks/useActiveDialog';
 import { X, Check, AlertTriangle, Info } from 'lucide-react';
 import { useToast, toast } from '../lib/toast';
 
 export default function ToastHost() {
   const t = useToast();
+  const dialog = useActiveDialog();
   // Tick once a second so the auto-dismiss timer fires on schedule
   // even if the user is idle (no other state change triggers a
   // re-render). Cheap.
@@ -44,9 +47,9 @@ export default function ToastHost() {
       ? 'bg-ink-100/10 border-ink-200/40 text-ink-100'
       : 'bg-plum-950/95 border-ink-200/40 text-ink-100';
 
-  return (
+  const feedback = (
     <div
-      className={`fixed inset-x-0 ${position} z-50 flex justify-center pointer-events-none`}
+      className={dialog ? 'shrink-0 relative z-50 flex justify-center px-4 py-2 border-t border-ink-200/25' : `fixed inset-x-0 ${position} z-50 flex justify-center pointer-events-none`}
       role={isError ? 'alert' : 'status'}
       aria-live={isError ? 'assertive' : 'polite'}
     >
@@ -65,4 +68,5 @@ export default function ToastHost() {
       </div>
     </div>
   );
+  return dialog ? createPortal(feedback, dialog) : feedback;
 }

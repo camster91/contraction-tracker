@@ -47,7 +47,7 @@ test('cancelling a care-contact share does not copy the private update', async (
   await page.goto('/');
   await waitForApp(page);
   await page.getByRole('button', { name: 'Care contacts' }).click();
-  await page.getByRole('button', { name: `Send update to ${person.name}` }).click();
+  await page.getByRole('button', { name: `Share update for ${person.name}` }).click();
   await page.waitForTimeout(150);
 
   await expect.poll(() => page.evaluate(() => ({
@@ -65,8 +65,8 @@ test('without Web Share, a successful clipboard copy is reported', async ({ page
   await page.goto('/');
   await waitForApp(page);
   await page.getByRole('button', { name: 'Care contacts' }).click();
-  await page.getByRole('button', { name: `Send update to ${person.name}` }).click();
+  await page.getByRole('button', { name: `Share update for ${person.name}` }).click();
 
   await expect(page.getByText(`Update for ${person.name} copied to clipboard`)).toBeVisible();
-  expect(await page.evaluate(() => (window as unknown as { clipboardWrites: string[] }).clipboardWrites[0])).toContain('1 contractions so far');
+  expect(await page.evaluate(() => (window as unknown as { clipboardWrites: string[] }).clipboardWrites[0])).toContain('1 contraction so far');
 });

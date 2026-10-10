@@ -45,7 +45,7 @@ test('backup import preserves a live session created on this device', async ({ p
     buffer: Buffer.from(JSON.stringify(backup)),
   });
 
-  await expect(page.getByText(/Imported 1 contractions, 1 session/)).toBeVisible();
+  await expect(page.getByText(/Imported 1 contraction, 1 session/)).toBeVisible();
   const sessions = await page.evaluate(() => JSON.parse(localStorage.getItem('contraction-tracker:sessions') || '[]'));
   expect(sessions.map((session: { id: string }) => session.id)).toEqual(expect.arrayContaining(['primary', 'imported-session']));
   expect(sessions.map((session: { name: string }) => session.name)).toContain('Live session');

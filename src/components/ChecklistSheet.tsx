@@ -17,6 +17,7 @@ export default function ChecklistSheet({ sessionId, onClose }: Props) {
   const [adding, setAdding] = useState(false);
   const [reordering, setReordering] = useState(false);
   const [newText, setNewText] = useState('');
+  const [deletedItem, setDeletedItem] = useState<{ item: ChecklistItem; index: number } | null>(null);
   const dragItem = useRef<string | null>(null);
   const dragOverItem = useRef<string | null>(null);
 
@@ -40,9 +41,24 @@ export default function ChecklistSheet({ sessionId, onClose }: Props) {
   };
 
   const handleDelete = (itemId: string) => {
+    const index = items.findIndex((item) => item.id === itemId);
+    const item = items[index];
+    if (!item) return;
     const next = items.filter((i) => i.id !== itemId);
     if (!saveChecklist(sessionId, next)) { toast.error('Could not save this checklist. Free up space and try again.'); return; }
     setItems(next);
+    setDeletedItem({ item, index });
+  };
+
+  const undoDelete = () => {
+    if (!deletedItem) return;
+    const current = getChecklist(sessionId);
+    if (current.some((item) => item.id === deletedItem.item.id)) return;
+    const insertAt = Math.min(deletedItem.index, current.length);
+    const next = [...current.slice(0, insertAt), deletedItem.item, ...current.slice(insertAt)];
+    if (!saveChecklist(sessionId, next)) { toast.error('Could not restore this checklist item. Free up space and try again.'); return; }
+    setItems(next);
+    setDeletedItem(null);
   };
 
   const moveItem = (index: number, offset: number) => {
@@ -111,7 +127,7 @@ export default function ChecklistSheet({ sessionId, onClose }: Props) {
             </div>
             <div>
               <div className="text-base font-semibold text-ink-50 font-display">Hospital Bag</div>
-              <div className="text-[11px] text-ink-400 mt-0.5">{packed} of {total} packed</div>
+              <div className="text-xs text-ink-400 mt-0.5">{packed} of {total} packed</div>
             </div>
           </div>
           <div className="flex items-center gap-1">
@@ -165,7 +181,7 @@ export default function ChecklistSheet({ sessionId, onClose }: Props) {
             <button
               onClick={handleAdd}
               disabled={!newText.trim()}
-              className="px-3 py-1.5 text-xs bg-rose-300 active:bg-rose-400 text-plum-950 rounded-lg font-semibold transition-colors disabled:opacity-40"
+              className="min-h-11 px-3 py-1.5 text-sm bg-rose-300 active:bg-rose-400 text-plum-950 rounded-lg font-semibold transition-colors disabled:opacity-40"
             >
               Add
             </button>
@@ -173,12 +189,19 @@ export default function ChecklistSheet({ sessionId, onClose }: Props) {
         )}
 
         {items.length > 1 && <button type="button" aria-pressed={reordering} onClick={() => setReordering(value => !value)} className="mx-5 mb-3 min-h-11 rounded-xl border border-ink-200/30 px-3 text-sm text-ink-200">{reordering ? 'Done reordering' : 'Reorder items'}</button>}
+        {deletedItem && (
+          <div role="status" className="mx-5 mb-3 flex items-center gap-3 rounded-xl border border-ink-200/30 bg-ink-100/5 px-3 py-2 text-sm text-ink-200">
+            <span className="min-w-0 flex-1 truncate">{deletedItem.item.text} removed.</span>
+            <button type="button" onClick={undoDelete} className="min-h-11 rounded-lg px-3 text-sm font-semibold text-rose-300 active:bg-rose-300/10">Undo</button>
+            <button type="button" onClick={() => setDeletedItem(null)} className="min-h-11 rounded-lg px-3 text-sm font-medium text-ink-300 active:bg-ink-100/10" aria-label="Dismiss checklist item removal">Dismiss</button>
+          </div>
+        )}
         {/* Items list */}
         <div className="flex-1 min-h-0 overflow-y-auto px-5 pb-6 space-y-1.5">
           {items.length === 0 && !adding && (
             <div className="text-center py-8">
               <div className="text-sm text-ink-300 font-medium">No items yet</div>
-              <div className="text-[11px] text-ink-500 mt-1">Start packing — tap Add to build your hospital bag list.</div>
+              <div className="text-xs text-ink-500 mt-1">Start packing — tap Add to build your hospital bag list.</div>
             </div>
           )}
           {items.map((item, index) => (
@@ -200,6 +223,7 @@ export default function ChecklistSheet({ sessionId, onClose }: Props) {
               </div>}
 
               <button
+                type="button"
                 onClick={() => handleToggle(item.id)}
                 className="min-h-11 flex items-center gap-2.5 flex-1 min-w-0"
                 aria-label={item.packed ? `Mark ${item.text} as not packed` : `Mark ${item.text} as packed`}

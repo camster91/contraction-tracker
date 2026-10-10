@@ -21,7 +21,7 @@ test('Sessions opens in the viewport, restores focus, and switches context', asy
   await expect(sheet).toBeInViewport();
   await expect(sheet.getByRole('button', { name: 'New', exact: true })).toBeInViewport();
   await expect(sheet.getByRole('button', { name: 'Close Sessions' })).toBeInViewport();
-  await expect(sheet.getByText('Current session:')).toContainText('Primary');
+  await expect(sheet.getByText('Current session:')).toContainText('This birth');
   await page.screenshot({ path: 'test-results/review-sessions.png' });
   await page.keyboard.press('Escape');
   await expect(sheet).toBeHidden();

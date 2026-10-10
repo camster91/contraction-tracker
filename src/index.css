@@ -12,6 +12,8 @@
 @theme {
   --font-display: 'Fraunces', Georgia, serif;
   --font-sans: 'Inter', system-ui, sans-serif;
+  --text-xs: 0.8125rem;
+  --text-xs--line-height: 1.5;
   --color-ink-50: #F5F1E7;
   --color-ink-100: #EAE8DC;
   --color-ink-200: #DFDFD0;
