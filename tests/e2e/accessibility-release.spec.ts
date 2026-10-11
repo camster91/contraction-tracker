@@ -74,16 +74,30 @@ test('primary timer control activates with Space', async ({ page }) => {
   await expect(page.getByRole('button', { name: /Stop/i })).toBeVisible();
 });
 
-test('onboarding step controls have at least 24 by 24 CSS pixel targets', async ({ page }) => {
+test('help tips have clear navigation, usable targets, and persistent dismissal', async ({ page }) => {
   await page.goto('/', { waitUntil: 'domcontentloaded' });
   await waitForApp(page);
   await page.evaluate(() => localStorage.clear());
   await page.reload({ waitUntil: 'domcontentloaded' });
-
-  for (const step of [1, 2]) {
-    const box = await page.getByRole('button', { name: `Go to step ${step}` }).boundingBox();
-    expect(box, `step ${step} should be visible`).not.toBeNull();
-    expect(box!.width).toBeGreaterThanOrEqual(24);
-    expect(box!.height).toBeGreaterThanOrEqual(24);
+  await expect(page.getByText('Tip 1 of 2', { exact: true })).toBeVisible();
+  await page.screenshot({ path: 'test-results/help-tip-one.png' });
+  const next = page.getByRole('button', { name: 'Next', exact: true });
+  await next.click();
+  await expect(page.getByText('Tip 2 of 2', { exact: true })).toBeVisible();
+  await expect(page.getByText('Keep or share your timing', { exact: true })).toBeVisible();
+  await page.screenshot({ path: 'test-results/help-tip-two.png' });
+  for (const label of ['Back', 'Got it']) {
+    const box = await page.getByRole('button', { name: label, exact: true }).boundingBox();
+    expect(box).not.toBeNull();
+    expect(box!.width).toBeGreaterThanOrEqual(44);
+    expect(box!.height).toBeGreaterThanOrEqual(44);
   }
+  await page.getByRole('button', { name: 'Back', exact: true }).click();
+  await expect(page.getByText('Tip 1 of 2', { exact: true })).toBeVisible();
+  await next.click();
+  await page.getByRole('button', { name: 'Got it', exact: true }).click();
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await waitForApp(page);
+  await expect(next).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /^Start/ })).toBeVisible();
 });

@@ -1458,7 +1458,7 @@ export default function App() {
       )}
 
       {/* Active labor indicator */}
-      {nativeTimerUnavailable && <p role="status" className="mb-3 rounded-xl border border-ink-200/30 p-3 text-xs text-ink-200">The lock-screen timer is unavailable. Olive is still timing here. Check notification or Live Activity settings on your device.</p>}
+      {nativeTimerUnavailable && <p role="status" className="mb-3 rounded-xl border border-ink-200/30 p-3 text-xs text-ink-200">{Capacitor.getPlatform() === 'ios' ? 'Olive is still timing. The timer could not appear on your lock screen. Check that Live Activities are allowed for Olive in Settings, then try again when you time your next contraction.' : 'Olive is still timing. The timer notification could not start. Check that notifications are allowed for Olive in Settings, then try again when you time your next contraction.'}</p>}
       <ActiveLaborBanner contractions={sessionContractions} now={now} />
 
         {/* "Since last" hero stat — biggest reading on the page during active
@@ -1497,7 +1497,7 @@ export default function App() {
 
         {laborView && finished.length > 0 && <div className="mb-4"><RecentTimingSummary contractions={finished} now={now} /></div>}
 
-        {/* Onboarding — 3 inline hint cards for first-time users */}
+        {/* Onboarding — 2 inline hint cards for first-time users */}
         {onboardingStep !== null && finished.length === 0 && !current && (
           <Onboarding onDismiss={() => setOnboardingStep(null)} />
         )}
