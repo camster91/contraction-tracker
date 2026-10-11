@@ -106,7 +106,8 @@ import Onboarding from './components/Onboarding';
 import { BrandWordmark } from './components/Brand';
 import TagFilter from './components/TagFilter';
 import HistoryHeader from './components/HistoryHeader';
-import JourneySheet from './components/JourneySheet';
+import JourneySheet, { type JourneyView } from './components/JourneySheet';
+import JourneyTodayPanel from './components/JourneyTodayPanel';
 import {
   getJourney,
   getJourneyAsync,
@@ -212,10 +213,10 @@ export default function App() {
   // Hospital sheet (cervical exams)
   const [showHospital, setShowHospital] = useState(false);
   const [showJourney, setShowJourney] = useState(false);
-  const [journeyInitialView, setJourneyInitialView] = useState<'home' | 'plan'>('home');
+  const [journeyInitialView, setJourneyInitialView] = useState<JourneyView>('home');
   const [returnToJourney, setReturnToJourney] = useState(false);
   const journeyReturnFocus = useRef<HTMLElement | null>(null);
-  const openJourney = (view: 'home' | 'plan' = 'home') => {
+  const openJourney = (view: JourneyView = 'home') => {
     if (!returnToJourney && document.activeElement instanceof HTMLElement) journeyReturnFocus.current = document.activeElement;
     setJourneyInitialView(view);
     setShowJourney(true);
@@ -1312,20 +1313,24 @@ export default function App() {
 
       <main className="flex-1 min-h-0 overflow-y-auto px-5 pb-8 w-full">
         <p className="pt-1 pb-2 text-center text-xs text-ink-300">Session: <span className="font-semibold text-ink-100">{activeSessionName}</span></p>
+        {!laborView && <JourneyTodayPanel journey={journey} onOpen={openJourney} />}
         {/* Hero CTA */}
         <div className="pt-2 pb-6">
+          {!laborView && <p className="mb-2 text-sm text-ink-300">Contraction timer</p>}
           {!current ? (
             <button
               ref={timerButtonRef}
               onClick={handleStart}
-              className="w-full min-h-[200px] rounded-3xl bg-gradient-to-br from-rose-300 via-rose-400 to-rose-500 text-plum-950 active:scale-[0.99] transition-transform duration-150 flex flex-col items-center justify-center px-6 py-8"
+              className={`w-full rounded-3xl bg-gradient-to-br from-rose-300 via-rose-400 to-rose-500 text-plum-950 active:scale-[0.99] transition-transform duration-150 flex items-center justify-center ${laborView ? 'min-h-[200px] flex-col px-6 py-8' : 'min-h-20 gap-3 px-4 py-3'}`}
             >
-              <div className="w-14 h-14 rounded-full bg-plum-950/10 backdrop-blur-sm flex items-center justify-center mb-3">
+              <div className={`rounded-full bg-plum-950/10 backdrop-blur-sm flex items-center justify-center shrink-0 ${laborView ? 'w-14 h-14 mb-3' : 'w-10 h-10'}`}>
                 <Play className="w-6 h-6" fill="currentColor" strokeWidth={0} />
               </div>
-              <div className="font-display text-3xl font-medium tracking-tight leading-none">Start</div>
-              <div className="text-xs uppercase tracking-[0.18em] opacity-70 mt-2 font-semibold text-center">
-                Tap when it begins
+              <div>
+                <div className={`font-display font-medium tracking-tight leading-none ${laborView ? 'text-3xl' : 'text-xl'}`}>Start</div>
+                <div className={`text-xs opacity-70 mt-2 font-semibold ${laborView ? 'uppercase tracking-[0.18em] text-center' : 'text-left'}`}>
+                  Tap when it begins
+                </div>
               </div>
             </button>
           ) : (
@@ -1756,7 +1761,7 @@ export default function App() {
         )}
 
         {/* Empty state */}
-        {finished.length === 0 && !current && onboardingStep === null && (
+        {laborView && finished.length === 0 && !current && onboardingStep === null && (
           <div className="text-center pt-4 pb-2 animate-fade-in">
             <div>
               <div className="font-display text-2xl font-light text-ink-200 tracking-tight">
