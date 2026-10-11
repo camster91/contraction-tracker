@@ -33,13 +33,13 @@ const PHASES: Array<{ value: JourneyPhase; label: string }> = [
   { value: 'archived', label: 'Archived' },
 ];
 
-export type JourneyView = 'home' | 'plan' | 'care' | 'questions' | 'responsibilities' | 'timeline' | 'pregnancy' | 'appointments' | 'provider';
+type View = 'home' | 'plan' | 'care' | 'questions' | 'responsibilities' | 'timeline' | 'pregnancy' | 'appointments' | 'provider';
 
 export default function JourneySheet({ journey, onJourneyChange, onPhaseChange, onClose, carePlan, onCarePlanChange, initialView = 'home', onOpenChecklist, onOpenExams, onOpenContacts }: {
   journey: JourneyDocument;
   carePlan: CarePlan;
   onCarePlanChange: (value: CarePlan) => boolean;
-  initialView?: JourneyView;
+  initialView?: 'home' | 'plan';
   onOpenChecklist: () => void;
   onOpenExams: () => void;
   onOpenContacts: () => void;
@@ -48,7 +48,7 @@ export default function JourneySheet({ journey, onJourneyChange, onPhaseChange, 
   onClose: () => void;
 }) {
   const dialogRef = useModalDialog(onClose);
-  const [view, setView] = useState<JourneyView>(initialView);
+  const [view, setView] = useState<View>(initialView);
   const message = journeyMessages[journey.profile.phase];
 
   return (

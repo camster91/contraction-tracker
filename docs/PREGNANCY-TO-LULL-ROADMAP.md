@@ -62,7 +62,7 @@ Lull main inspected at `1af708f2617a269ca369d61b15e85d48500debad`: baby profile,
 | Baby care in Lull | “When was the last feed, diaper, or sleep?” | A clear optional handoff; factual logs and caregiver continuity in Lull. The parent can return to Olive anytime. |
 | Pause, loss, or another pregnancy | Continuing countdowns can hurt; resetting can erase valued records. | Immediately pause pregnancy prompts without explaining why. Preserve/export a record, archive it, and start a separate new journey deliberately. Do not assume loss or infer it from dates. |
 
-Navigation target: **Today / Prepare / Birth / My record**. Before birth, Today carries appointments/questions/support; Birth is always accessible. During active timing, the timer overrides any other view and Stop remains reachable. After birth, Today supports recovery and offers Lull, while all birth records remain available. First slice below stays within the existing sheet; the wider home redesign still requires implementation and rendered review.
+Navigation decision: keep the existing timer-focused home and one Birth journey entry. Pregnancy planning, appointments, questions, recovery, and optional Lull access live inside the sheet. The previously proposed Today home/navigation expansion is superseded by Cameron’s request for no added home-screen content. Stop remains reachable during active timing.
 
 ## Prioritized execution and acceptance
 
@@ -74,7 +74,7 @@ Effort bands are comparative: small = bounded component, medium = multi-componen
 | P0: optional Lull website handoff | Implemented and host-verified locally; evidence below | Appears only in manually chosen postpartum view; destination is clearly a website; no health data in URL; no transfer or installation claim; parent recovery stays available. Small. |
 | P0: pause and separate pregnancy records | Planned | Silence prompts immediately; archive/export before new record; migration preserves existing journey and timing associations; cancel never deletes. Requires a versioned multi-journey design and backup migration. Large, data-loss risk. |
 | P0: professional and real-user validation | Existing release gates, not complete | Two independent maternity-professional copy reviews; observed parent tasks including early pregnancy, birth, recovery, changed plans, accessibility. Do not invent participant results or contact recruits without authorization. |
-| P1: stage-appropriate Today home | Implemented locally; host verification recorded below | Optional entry stage, unknown date supported; no automatic pregnancy-status change; at most three next actions; active Stop overrides layout; day/night and large text tested. Medium. |
+| P1: stage-appropriate Today home | Removed from scope at Cameron’s request | Keep the timer-focused home. Pregnancy, appointment, question, recovery, and optional Lull tools stay inside Birth journey; no added home panel or shortcuts. |
 | P1: appointment preparation and factual visit share | Foundation exists; enhancement planned | Link questions and notes to chosen appointment, edit/reschedule, choose included fields, review system-share text. No PDF revival; no automatic contact or sharing. Medium. |
 | P1: birth preferences brief | Planned | Optional prompts, skipped fields stay absent; user-entered wishes distinct from professional instructions; change-plan section; concise reviewed text share. Medium; professional copy review. |
 | P1: practical support templates | Foundation exists; templates planned | User chooses meal/transport/visit/household/rest tasks, can edit/delete/assign; no silent sharing; no completion percentage suggesting readiness. Small/medium. |
@@ -109,7 +109,7 @@ Local candidate adds a Pregnancy planner entry under Preparing, provider-contact
 
 Verification completed October 11: lint, TypeScript, and production build passed; 49 unit tests passed; 27 targeted Chromium mobile browser tests passed in the final combined run. Coverage includes chosen-question persistence/deduplication, rejected writes, appointment persistence and next-visit display, provider-contact persistence, offline interaction and saving in an already-open app, 320px overflow checks, existing editing/undo/backup journeys, and postpartum-only Lull link scope. Browser reopening was performed online; this is not proof of native offline startup. Phone-sized screenshots were inspected. WebKit and physical iOS/Android checks were not run for this increment; native installation, maternity-professional review, and store upload remain separate.
 
-Next increment after verification: pause/archive and separate-pregnancy record design. The current Archived home only quiets the entry screen; it does not create separate pregnancy records or pause all reminders. Preserve the uploaded build 16 and the previous help/date improvements; freeze a new candidate only after its added journeys are independently checked.
+Next increment after verification: pause/archive and separate-pregnancy record design. The Archived stage does not create separate pregnancy records or pause all reminders. Preserve the uploaded build 16 and the previous help/date improvements; freeze a new candidate only after its added journeys are independently checked.
 
 
 ### Stage-based home verification, October 11
@@ -120,3 +120,10 @@ Next increment after verification: pause/archive and separate-pregnancy record d
 - Rendered screenshots inspected at 320 pixels in the default appearance and 375 pixels with Daylight and Big text. The 200% text settings/manual-entry regression passed. Verified direct-tool focus return, explicit phase persistence, active Stop, and open-app offline interaction. No physical-device, fresh native build, clinical-copy approval, or store acceptance is claimed.
 - Lull's existing local birth-date form passed its two targeted profile tests. No Lull code was changed or published in this increment.
 - Evidence: task workspace `outputs/pregnancy-journey-research-2026-10-11/today-home/`. Local changes are separate from the previously uploaded Olive build 16. Native packaging is currently constrained by very low available disk space.
+
+
+### Home-screen correction, October 11
+
+Cameron requested no additional content on the home screen. Removed the stage-based panel and direct shortcuts, and restored the previous timer layout. Pregnancy planning and recovery remain within the existing Birth journey sheet. The stage-based home screenshots and checks above describe a superseded experiment, not the current candidate. The Lull birth-date verification remains valid. Future journey improvements must not add home-screen content without a new explicit request.
+
+Correction verification: lint, typecheck, and production build passed; all 16 affected timing, journey-foundation, and pregnancy-planner browser checks passed. This correction is local and has not been uploaded.
