@@ -8,6 +8,15 @@ import {
 } from '../lib/journey';
 import { getPeople } from '../lib/sessions';
 
+const SUPPORT_IDEAS = [
+  'Arrange a ride to an appointment',
+  'Prepare a meal or snacks',
+  'Help with laundry or dishes',
+  'Help with pets or older children',
+  'Coordinate visitors with my preferences',
+  'Make time for a rest break',
+] as const;
+
 export default function ResponsibilitiesPanel({ journey, onChange }: {
   journey: JourneyDocument;
   onChange: (journey: JourneyDocument) => boolean;
@@ -20,6 +29,7 @@ export default function ResponsibilitiesPanel({ journey, onChange }: {
   const [editAssigneePersonId, setEditAssigneePersonId] = useState('');
   const [deleted, setDeleted] = useState<{ item: JourneyDocument['responsibilities'][number]; index: number } | null>(null);
   const editButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const titleInputRef = useRef<HTMLInputElement | null>(null);
 
   const add = (event: FormEvent) => {
     event.preventDefault();
@@ -74,7 +84,7 @@ export default function ResponsibilitiesPanel({ journey, onChange }: {
     <div>
       <h3 className="font-display text-xl text-ink-50">Responsibilities</h3>
       <p className="text-sm text-ink-400 leading-relaxed mt-1 mb-4">
-        Keep practical support visible. Responsibilities stay on this device.
+        Keep practical support visible. Responsibilities stay on this device. Assigning someone does not send them a message.
       </p>
       {deleted && (
         <div role="status" aria-live="polite" className="mb-3 flex items-center gap-2 rounded-xl border border-ink-200/30 bg-ink-100/5 px-3 py-2 text-xs text-ink-200">
@@ -88,7 +98,7 @@ export default function ResponsibilitiesPanel({ journey, onChange }: {
       <form onSubmit={add} className="rounded-2xl border border-ink-200/25 bg-ink-100/5 p-3 space-y-3">
         <label className="block text-sm text-ink-300">
           Responsibility
-          <input value={title} onChange={(event) => setTitle(event.target.value)} maxLength={160}
+          <input ref={titleInputRef} value={title} onChange={(event) => setTitle(event.target.value)} maxLength={160}
             className="mt-1 w-full min-h-[44px] bg-plum-950/50 border border-ink-200/30 rounded-xl px-3 py-2 text-base text-ink-50 focus:outline-none focus:border-rose-300/50" />
         </label>
         <label className="block text-sm text-ink-300">
@@ -104,6 +114,17 @@ export default function ResponsibilitiesPanel({ journey, onChange }: {
           Add responsibility
         </button>
       </form>
+
+      <details className="mt-3 rounded-xl border border-ink-200/25 p-3">
+        <summary className="min-h-11 py-3 cursor-pointer text-sm text-ink-100">Ideas for practical help</summary>
+        <p id="support-ideas-help" className="my-3 text-sm text-ink-300">Choose only what would help you. Each idea goes into the form so you can edit it before saving. Clear your draft before choosing another idea.</p>
+        <div className="space-y-2">{SUPPORT_IDEAS.map(idea => <button key={idea} type="button"
+          disabled={!!title.trim() || editingId !== null} aria-describedby="support-ideas-help"
+          onClick={() => { setTitle(idea); titleInputRef.current?.focus(); }}
+          className="block w-full min-h-11 rounded-xl border border-ink-200/25 px-3 py-2 text-left text-sm text-ink-100 disabled:opacity-50">
+          {idea}
+        </button>)}</div>
+      </details>
 
       <div className="space-y-2 mt-4">
         {journey.responsibilities.length === 0 && (
