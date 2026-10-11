@@ -24,6 +24,7 @@ import { BrandIllustration } from './Brand';
 import ProviderQuestionsPanel from './ProviderQuestionsPanel';
 import ResponsibilitiesPanel from './ResponsibilitiesPanel';
 import PostpartumTimelinePanel from './PostpartumTimelinePanel';
+import PregnancyPlannerPanel from './PregnancyPlannerPanel';
 
 const PHASES: Array<{ value: JourneyPhase; label: string }> = [
   { value: 'preparing', label: 'Preparing' },
@@ -32,7 +33,7 @@ const PHASES: Array<{ value: JourneyPhase; label: string }> = [
   { value: 'archived', label: 'Archived' },
 ];
 
-type View = 'home' | 'plan' | 'care' | 'questions' | 'responsibilities' | 'timeline';
+type View = 'home' | 'plan' | 'care' | 'questions' | 'responsibilities' | 'timeline' | 'pregnancy' | 'appointments' | 'provider';
 
 export default function JourneySheet({ journey, onJourneyChange, onPhaseChange, onClose, carePlan, onCarePlanChange, initialView = 'home', onOpenChecklist, onOpenExams, onOpenContacts }: {
   journey: JourneyDocument;
@@ -71,10 +72,15 @@ export default function JourneySheet({ journey, onJourneyChange, onPhaseChange, 
 
         <div className="flex-1 min-h-0 overflow-y-auto px-5 pb-7">
           {view === 'plan' && <CarePlanPanel carePlan={carePlan} onCarePlanChange={onCarePlanChange} />}
+          {view === 'provider' && <CarePlanPanel carePlan={carePlan} onCarePlanChange={onCarePlanChange} contactOnly />}
           {view === 'care' && <CareCardPanel journey={journey} onChange={onJourneyChange} />}
           {view === 'questions' && <ProviderQuestionsPanel journey={journey} onChange={onJourneyChange} />}
           {view === 'responsibilities' && <ResponsibilitiesPanel journey={journey} onChange={onJourneyChange} />}
           {view === 'timeline' && <PostpartumTimelinePanel journey={journey} onChange={onJourneyChange} />}
+          {view === 'appointments' && <PostpartumTimelinePanel journey={journey} onChange={onJourneyChange} context="pregnancy" />}
+          {view === 'pregnancy' && <PregnancyPlannerPanel journey={journey} onChange={onJourneyChange}
+            onOpenAppointments={() => setView('appointments')} onOpenQuestions={() => setView('questions')}
+            onOpenCareCard={() => setView('care')} onOpenCarePlan={() => setView('provider')} />}
 
           {view === 'home' && (
             <>
@@ -102,11 +108,20 @@ export default function JourneySheet({ journey, onJourneyChange, onPhaseChange, 
               </fieldset>
 
               <div className="space-y-5 mt-6">
+                {journey.profile.phase === 'preparing' && <ModuleSection id="journey-pregnancy" title="Pregnancy" detail="A place to start, from your first care conversation onward.">
+                  <ModuleButton icon={<ClipboardList className="w-4 h-4" />} title="Pregnancy planner" detail="Appointments, care details, and questions for your provider" onClick={() => setView('pregnancy')} />
+                </ModuleSection>}
                 {journey.profile.phase === 'postpartum' && (
                   <ModuleSection id="journey-after-birth" title="After birth" detail="Keep the first weeks organized at your own pace.">
                     <ModuleButton icon={<Baby className="w-4 h-4" />} title="First 12 weeks"
                       detail={journey.entries.length ? `${journey.entries.length} timeline item${journey.entries.length === 1 ? '' : 's'}` : 'Appointments, notes, and support'}
                       onClick={() => setView('timeline')} />
+                    <div className="rounded-xl border border-ink-200/25 bg-ink-100/5 p-4">
+                      <h4 className="font-display text-base text-ink-100">Baby care in Lull</h4>
+                      <p className="text-sm text-ink-300 mt-2">Log sleep, feeds, and diapers in Lull. Keep your recovery notes, appointments, and support plan here in Olive.</p>
+                      <a href="https://lull.ashbi.ca" target="_blank" rel="noopener noreferrer" className="min-h-11 inline-flex items-center mt-2 text-sm font-semibold text-rose-200 underline">Open Lull website</a>
+                      <p className="text-sm text-ink-400 mt-1">Opening Lull does not transfer your Olive records. You choose what to enter there.</p>
+                    </div>
                   </ModuleSection>
                 )}
                 <ModuleSection id="journey-care-now" title="Care now" detail="Stay connected to the people and information you need today.">

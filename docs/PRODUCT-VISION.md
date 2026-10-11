@@ -1,11 +1,13 @@
 # Olive product vision
 
-Status: approved product direction. Last updated: 2026-09-23.
+Status: product direction expanded by Cameron on 2026-10-11. Execution and evidence: [Pregnancy-to-Lull roadmap](PREGNANCY-TO-LULL-ROADMAP.md). Existing release gates remain separate.
 
 ## North star
 
-Olive is a calm, private companion for the final weeks of
-pregnancy, birth day, and the first 12 postpartum weeks. It helps the expecting
+Olive is a calm, private companion from discovering
+pregnancy through birth day and postpartum recovery. Lull continues baby sleep,
+feed, and diaper logging; Olive keeps the parent's own support and recovery plan.
+It helps the expecting
 parent stay prepared and organized without attempting diagnosis or
 replacing professional care.
 
