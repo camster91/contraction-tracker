@@ -58,11 +58,12 @@ class ReleaseTests(unittest.TestCase):
             with patch('subprocess.check_output',return_value=json.dumps([{'check_runs':[good,check]}]).encode()), self.assertRaises(ValueError): release.source(CONFIG,'a'*40)
 
     def test_environment_and_tag_restrictions(self):
-        policy={'protection_rules':[{'type':'required_reviewers','prevent_self_review':False,'reviewers':[{'type':'User','reviewer':{'id':33962910}}]}],'deployment_branch_policy':{'protected_branches':False,'custom_branch_policies':True}}
+        policy={'can_admins_bypass':False,'protection_rules':[{'type':'required_reviewers','prevent_self_review':False,'reviewers':[{'type':'User','reviewer':{'id':33962910}}]}],'deployment_branch_policy':{'protected_branches':False,'custom_branch_policies':True}}
         tags={'total_count':1,'branch_policies':[{'type':'tag','name':'v*'}]}
         with patch.object(release,'api',side_effect=[policy,tags]): release.environment(CONFIG,'ios-auto-signing')
         for modified in [dict(tags,total_count=2), {'total_count':1,'branch_policies':[{'type':'branch','name':'main'}]}]:
             with patch.object(release,'api',side_effect=[policy,modified]), self.assertRaises(ValueError): release.environment(CONFIG,'ios-auto-signing')
+        with patch.object(release,'api',return_value=dict(policy,can_admins_bypass=True)), self.assertRaises(ValueError): release.environment(CONFIG,'ios-auto-signing')
         broken=copy.deepcopy(policy); broken['protection_rules'][0]['reviewers'][0]['reviewer']['id']=1
         with patch.object(release,'api',return_value=broken), self.assertRaises(ValueError): release.environment(CONFIG,'ios-auto-signing')
 

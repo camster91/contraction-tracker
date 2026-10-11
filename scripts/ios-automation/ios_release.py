@@ -78,6 +78,8 @@ def source(config, sha):
 
 def environment(config, name):
     payload = api(f"repos/{config['repository']}/environments/{name}")
+    if payload.get('can_admins_bypass') is not False:
+        raise ValueError('Administrator bypass must be disabled')
     rules = [r for r in payload['protection_rules'] if r['type'] == 'required_reviewers']
     if len(rules) != 1 or rules[0].get('prevent_self_review') is not False:
         raise ValueError('Solo owner review is required')
