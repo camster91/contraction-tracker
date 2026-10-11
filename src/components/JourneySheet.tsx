@@ -85,7 +85,7 @@ export default function JourneySheet({ journey, onJourneyChange, onPhaseChange, 
           {view === 'home' && (
             <>
               <div className="rounded-2xl border border-sage-300/25 bg-sage-300/10 px-4 py-4 mb-5">
-                <BrandIllustration name={journey.profile.phase === 'postpartum' ? 'support' : 'care'} className="w-20 h-20 float-right ml-3 mb-2" />
+                {journey.profile.phase !== 'archived' && <BrandIllustration name={journey.profile.phase === 'postpartum' ? 'support' : 'care'} className="w-20 h-20 float-right ml-3 mb-2" />}
                 <div className="text-xs uppercase tracking-[0.18em] text-sage-300 font-semibold">{message.eyebrow}</div>
                 <div className="font-display text-xl text-ink-50 mt-1">{message.title}</div>
                 <p className="text-xs text-ink-300 leading-relaxed mt-1.5">{message.detail}</p>
@@ -93,7 +93,7 @@ export default function JourneySheet({ journey, onJourneyChange, onPhaseChange, 
 
               <fieldset>
                 <legend className="text-xs uppercase tracking-[0.16em] text-ink-400 font-semibold mb-2">Choose your phase</legend>
-                <p className="text-[13px] text-ink-500 leading-relaxed mb-3">Olive never changes this automatically. Choose the view that feels useful now.</p>
+                <p className="text-[13px] text-ink-500 leading-relaxed mb-3">{journey.profile.phase === 'archived' ? 'Choose another phase when you want to resume guidance.' : 'Olive never changes your phase automatically. Archived pauses planning prompts and care-plan reminders without deleting records.'}</p>
                 <div className="grid grid-cols-2 gap-2">
                   {PHASES.map((item) => {
                     const selected = journey.profile.phase === item.value;
@@ -107,7 +107,18 @@ export default function JourneySheet({ journey, onJourneyChange, onPhaseChange, 
                 </div>
               </fieldset>
 
-              <div className="space-y-5 mt-6">
+              {journey.profile.phase === 'archived' ? <div className="mt-6">
+                <ModuleSection id="journey-saved-records" title="Saved records" detail="Review or edit what you have kept. Nothing is deleted by archiving.">
+                  <ModuleButton icon={<IdCard className="w-4 h-4" />} title="Care card" detail="Your saved details" onClick={() => setView('care')} />
+                  <ModuleButton icon={<Stethoscope className="w-4 h-4" />} title="Care-team contact" detail="Saved provider details" onClick={() => setView('provider')} />
+                  <ModuleButton icon={<CircleQuestionMark className="w-4 h-4" />} title="Provider questions" detail="Your saved questions and notes" onClick={() => setView('questions')} />
+                  <ModuleButton icon={<ClipboardList className="w-4 h-4" />} title="Responsibilities" detail="Your saved support tasks" onClick={() => setView('responsibilities')} />
+                  <ModuleButton icon={<ClipboardList className="w-4 h-4" />} title="Appointments & notes" detail="Your dated records" onClick={() => setView('appointments')} />
+                  <ModuleButton icon={<UsersRound className="w-4 h-4" />} title="Care contacts" detail="Your saved people" onClick={onOpenContacts} />
+                  <ModuleButton icon={<Hospital className="w-4 h-4" />} title="Exams" detail="Your saved measurements" onClick={onOpenExams} />
+                  <ModuleButton icon={<BriefcaseBusiness className="w-4 h-4" />} title="Hospital bag" detail="Your saved checklist" onClick={onOpenChecklist} />
+                </ModuleSection>
+              </div> : <div className="space-y-5 mt-6">
                 {journey.profile.phase === 'preparing' && <ModuleSection id="journey-pregnancy" title="Pregnancy" detail="A place to start, from your first care conversation onward.">
                   <ModuleButton icon={<ClipboardList className="w-4 h-4" />} title="Pregnancy planner" detail="Appointments, care details, and questions for your provider" onClick={() => setView('pregnancy')} />
                 </ModuleSection>}
@@ -148,7 +159,7 @@ export default function JourneySheet({ journey, onJourneyChange, onPhaseChange, 
                     detail={journey.entries.length ? `${journey.entries.length} timeline item${journey.entries.length === 1 ? '' : 's'}` : 'Appointments, notes, and support'}
                     onClick={() => setView('timeline')} />
                 </ModuleSection>}
-              </div>
+              </div>}
             </>
           )}
         </div>

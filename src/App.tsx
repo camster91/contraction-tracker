@@ -990,7 +990,8 @@ export default function App() {
       setContractions(migrated);
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
-  const showAlert = isCarePlanPattern(sessionContractions, carePlan, now);
+  const guidancePaused = journey.profile.phase === 'archived';
+  const showAlert = !guidancePaused && isCarePlanPattern(sessionContractions, carePlan, now);
 
   // Care-plan progress: count recent contractions near the saved duration.
 
@@ -1214,7 +1215,9 @@ export default function App() {
           onOpenContacts={() => openJourneyTool('contacts')}
           onJourneyChange={commitJourneyChange}
           onPhaseChange={(nextPhase: JourneyPhase) => {
-            return commitJourneyChange(updateJourneyPhase(journey, nextPhase));
+            const saved = commitJourneyChange(updateJourneyPhase(journey, nextPhase));
+            if (saved && nextPhase === 'archived') stopSpeaking();
+            return saved;
           }}
           onClose={() => {
             setShowJourney(false);
@@ -1459,7 +1462,7 @@ export default function App() {
 
       {/* Active labor indicator */}
       {nativeTimerUnavailable && <p role="status" className="mb-3 rounded-xl border border-ink-200/30 p-3 text-xs text-ink-200">{Capacitor.getPlatform() === 'ios' ? 'Olive is still timing. The timer could not appear on your lock screen. Check that Live Activities are allowed for Olive in Settings, then try again when you time your next contraction.' : 'Olive is still timing. The timer notification could not start. Check that notifications are allowed for Olive in Settings, then try again when you time your next contraction.'}</p>}
-      <ActiveLaborBanner contractions={sessionContractions} now={now} />
+      {!guidancePaused && <ActiveLaborBanner contractions={sessionContractions} now={now} />}
 
         {/* "Since last" hero stat — biggest reading on the page during active
             labor, between contractions. Hidden while a contraction is in
@@ -1475,7 +1478,7 @@ export default function App() {
             </div>
             <div className="text-xs text-ink-500 mt-1.5">
               {finished.length === 1
-                ? 'First contraction recorded. Tap Start when the next one begins.'
+                ? guidancePaused ? 'First contraction recorded.' : 'First contraction recorded. Tap Start when the next one begins.'
                 : `${pluralContraction(finished.length)} logged · started ${formatElapsed(totalLogElapsedSec)} ago`}
             </div>
             {hasRecentTiming && withEndOffset(finished[finished.length - 1], -10) && <div className="flex items-center gap-1.5 mt-3 text-xs text-ink-300">
@@ -1498,7 +1501,7 @@ export default function App() {
         {laborView && finished.length > 0 && <div className="mb-4"><RecentTimingSummary contractions={finished} now={now} /></div>}
 
         {/* Onboarding — 2 inline hint cards for first-time users */}
-        {onboardingStep !== null && finished.length === 0 && !current && (
+        {onboardingStep !== null && finished.length === 0 && !current && !guidancePaused && (
           <Onboarding onDismiss={() => setOnboardingStep(null)} />
         )}
 
@@ -1756,7 +1759,7 @@ export default function App() {
         )}
 
         {/* Empty state */}
-        {finished.length === 0 && !current && onboardingStep === null && (
+        {finished.length === 0 && !current && onboardingStep === null && !guidancePaused && (
           <div className="text-center pt-4 pb-2 animate-fade-in">
             <div>
               <div className="font-display text-2xl font-light text-ink-200 tracking-tight">
