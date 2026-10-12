@@ -4,9 +4,11 @@ import type { CarePlan } from "../lib/settings";
 export default function CarePlanPanel({
   carePlan,
   onCarePlanChange,
+  contactOnly = false,
 }: {
   carePlan: CarePlan;
   onCarePlanChange: (value: CarePlan) => boolean;
+  contactOnly?: boolean;
 }) {
   const [reminder, setReminder] = useState(() => ({
     enabled: carePlan.enabled,
@@ -29,11 +31,10 @@ export default function CarePlanPanel({
   return (
     <div>
       <div className="text-xs uppercase tracking-[0.12em] text-ink-300 font-semibold mb-1.5">
-        Care-plan reminder
+        {contactOnly ? 'Care-team contact' : 'Care-plan reminder'}
       </div>
       <p className="text-xs text-ink-300 leading-relaxed mb-3">
-        Save the timing instructions given by your care team. Olive reports
-        observed timing only and does not diagnose labor.
+        {contactOnly ? 'Keep the provider or team you contact during pregnancy easy to find.' : 'Save the timing instructions given by your care team. Olive reports observed timing only and does not diagnose labor.'}
       </p>
       <label
         htmlFor="care-provider-input"
@@ -73,8 +74,9 @@ export default function CarePlanPanel({
         className="w-full min-h-11 bg-ink-100/5 border border-ink-200/30 rounded-xl px-3 py-2 text-base text-ink-50 placeholder:text-ink-500 focus:outline-none focus:border-rose-300/50"
       />
       <p className="text-sm text-ink-400 leading-relaxed mt-3">
-        Provider details save as you type. The Save reminder button below saves the timing values.
+        {contactOnly ? 'Provider details save on this device as you type.' : 'Provider details save as you type. The Save reminder button below saves the timing values.'}
       </p>
+      {!contactOnly && <>
       <p className="text-sm text-ink-200 mt-3">
         Enter only instructions your care team gave you. No timing values are
         recommended by Olive.
@@ -155,6 +157,7 @@ export default function CarePlanPanel({
           Complete all three fields within the listed ranges before enabling.
         </p>
       )}
+      </>}
       {reminderStatus && (
         <p role="status" className="mt-2 text-sm text-sage-300">
           {reminderStatus}

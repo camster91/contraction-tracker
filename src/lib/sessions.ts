@@ -26,9 +26,12 @@ export type Person = {
   createdAt: string;
 };
 
-/** Human-facing name for the legacy default session; stored IDs/data stay intact. */
+/** Date labels for unnamed sessions; custom names and stored legacy data stay intact. */
 export function sessionDisplayName(session?: Session): string {
-  if (!session || (session.id === PRIMARY_SESSION_ID && session.name === 'Primary')) return 'This birth';
+  if (!session) return 'Current session';
+  if (session.id === PRIMARY_SESSION_ID && session.name === 'Primary') {
+    return new Date(session.startedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  }
   return session.name;
 }
 
@@ -150,7 +153,7 @@ export function createSession(name: string): Session | null {
   const sessions = getSessions();
   const session: Session = {
     id: `sess-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
-    name: name.trim() || `Session ${sessions.length + 1}`,
+    name: name.trim() || new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }),
     startedAt: new Date().toISOString(),
     endedAt: null,
   };

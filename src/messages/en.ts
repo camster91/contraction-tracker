@@ -16,7 +16,7 @@ export const journeyMessages = {
   },
   archived: {
     eyebrow: 'Your journey',
-    title: 'Keep the story',
-    detail: 'Keep this journey for later. You can still review, edit, or share its details.',
+    title: 'Guidance paused',
+    detail: 'Planning prompts and care-plan reminders are paused. Your records and manual timer stay available.',
   },
 } as const;

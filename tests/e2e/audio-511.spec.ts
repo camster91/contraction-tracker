@@ -85,3 +85,19 @@ test('saved and frequent notices leave the primary Stop fully visible', async ({
   await stop.click();
   await expect(page.getByRole('button', { name: /^Start/ })).toBeInViewport({ ratio: 1 });
 });
+
+test('Archived suppresses care-plan speech until a phase is deliberately resumed', async ({ page }) => {
+  await page.goto('/');
+  await waitForApp(page);
+  await expect.poll(() => spoken(page)).toHaveLength(1);
+  await page.getByRole('button', { name: 'Open birth journey' }).click();
+  await page.getByRole('button', { name: 'Archived', exact: true }).click();
+  await page.getByRole('button', { name: 'Close birth journey' }).click();
+  await page.clock.fastForward(10 * 60000 + 1000);
+  expect(await spoken(page)).toHaveLength(1);
+  await expect(page.getByText('Saved care-plan reminder', { exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Open birth journey' }).click();
+  await page.getByRole('button', { name: 'Preparing', exact: true }).click();
+  await page.getByRole('button', { name: 'Close birth journey' }).click();
+  await expect.poll(() => spoken(page)).toHaveLength(2);
+});

@@ -16,9 +16,10 @@ const ENTRY_TYPES: Array<{ value: JourneyEntryKind; label: string }> = [
   { value: 'milestone', label: 'Personal milestone' },
 ];
 
-export default function PostpartumTimelinePanel({ journey, onChange }: {
+export default function PostpartumTimelinePanel({ journey, onChange, context = 'postpartum' }: {
   journey: JourneyDocument;
   onChange: (journey: JourneyDocument) => boolean;
+  context?: 'pregnancy' | 'postpartum';
 }) {
   const [title, setTitle] = useState('');
   const [kind, setKind] = useState<JourneyEntryKind>('appointment');
@@ -102,9 +103,9 @@ export default function PostpartumTimelinePanel({ journey, onChange }: {
 
   return (
     <div>
-      <h3 className="font-display text-xl text-ink-50">First 12 weeks</h3>
+      <h3 className="font-display text-xl text-ink-50">{context === 'pregnancy' ? 'Appointments & notes' : 'First 12 weeks'}</h3>
       <p className="text-sm text-ink-400 leading-relaxed mt-1 mb-4">
-        A private timeline for logistics and your own notes. Olive does not score recovery or provide an all-clear.
+        {context === 'pregnancy' ? 'Keep appointments, calls, and your own notes together. Dates are entered by you; Olive does not create a medical care schedule.' : 'A private timeline for logistics and your own notes. Olive does not score recovery or provide an all-clear.'}
       </p>
       {deleted && (
         <div role="status" aria-live="polite" className="mb-3 flex items-center gap-2 rounded-xl border border-ink-200/30 bg-ink-100/5 px-3 py-2 text-xs text-ink-200">

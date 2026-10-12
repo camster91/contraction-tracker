@@ -19,9 +19,9 @@ test('legacy default session has a human name without changing its stored identi
   ])));
   await page.reload();
   await waitForApp(page);
-  await expect(page.getByText('Session: This birth', { exact: true })).toBeVisible();
+  await expect(page.getByText(`Session: ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`, { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Sessions', exact: true }).click();
-  await expect(page.getByText('Current session: This birth', { exact: true })).toBeVisible();
+  await expect(page.getByText(`Current session: ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`, { exact: true })).toBeVisible();
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('contraction-tracker:sessions')!)[0].name)).toBe('Primary');
 });
 
@@ -98,4 +98,20 @@ test('care tools remain reachable without scrolling a long contraction history',
   await page.getByRole('button', { name: 'Close birth journey' }).click();
   await expect(opener).toBeFocused();
   await expect(opener).toBeInViewport({ ratio: 1 });
+});
+
+
+test('a session can use its date without requiring a name and keeps it after reopening', async ({ page }) => {
+  await page.clock.install({ time: new Date('2026-10-11T16:00:00Z') });
+  await page.goto('/');
+  await waitForApp(page);
+  await page.getByRole('button', { name: 'Sessions', exact: true }).click();
+  await page.getByRole('button', { name: 'New', exact: true }).click();
+  await expect(page.getByLabel('Session name (optional)')).toHaveValue('');
+  await page.getByRole('button', { name: 'Create', exact: true }).click();
+  await expect(page.getByText('Session: Oct 11, 2026', { exact: true })).toBeVisible();
+  await page.clock.fastForward(86_400_000);
+  await page.reload();
+  await waitForApp(page);
+  await expect(page.getByText('Session: Oct 11, 2026', { exact: true })).toBeVisible();
 });

@@ -223,14 +223,14 @@ export default function SessionsSheet({
       {creating && (
         <div className="mb-3 rounded-xl border border-ink-200/30 bg-ink-100/5 p-3">
           <label htmlFor="session-name-input" className="block text-sm text-ink-300 mb-2">
-            Session name
+            Session name (optional)
           </label>
           <input
             id="session-name-input"
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Name (e.g. First labor)"
+            placeholder="Leave blank to use today’s date"
             className="w-full bg-transparent text-base text-ink-50 placeholder-ink-400 focus:outline-none mb-2"
             autoFocus
           />
@@ -329,7 +329,7 @@ export default function SessionsSheet({
                         disabled={s.id === PRIMARY_SESSION_ID}
                         className={`min-h-11 px-3 inline-flex items-center transition-colors ${s.id === PRIMARY_SESSION_ID ? 'text-ink-600 cursor-not-allowed' : armedDeleteId === s.id ? 'text-rose-300 bg-rose-300/15 rounded-lg' : 'text-ink-400 active:text-rose-300'}`}
                         aria-label={armedDeleteId === s.id ? 'Tap again to confirm delete' : 'Delete'}
-                        title={s.id === PRIMARY_SESSION_ID ? 'This birth cannot be deleted' : armedDeleteId === s.id ? 'Tap again to confirm' : 'Delete'}
+                        title={s.id === PRIMARY_SESSION_ID ? 'The default session cannot be deleted' : armedDeleteId === s.id ? 'Tap again to confirm' : 'Delete'}
                       >
                         <Trash2 className="w-3.5 h-3.5 inline mr-1.5" />{armedDeleteId === s.id ? 'Confirm delete' : 'Delete'}
                       </button>

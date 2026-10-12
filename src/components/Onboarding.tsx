@@ -17,7 +17,7 @@ const STEPS = [
   },
   {
     illustration: 'support' as const,
-    title: 'Tap again when it passes',
+    title: 'Keep or share your timing',
     desc: 'Your records stay on this device. Add a note or share a summary when you choose.',
   },
 ] as const;
@@ -30,8 +30,6 @@ export default function Onboarding({ onDismiss }: Props) {
     onDismiss();
   };
 
-
-
   return (
     <div className="mb-4 rounded-2xl border border-rose-300/30 bg-rose-300/[0.06] px-4 py-3 animate-fade-in">
       <div className="flex items-start gap-3">
@@ -40,7 +38,7 @@ export default function Onboarding({ onDismiss }: Props) {
           <div className="text-sm font-semibold text-ink-100 font-display">
             {STEPS[step].title}
           </div>
-          <div className="text-xs text-ink-300 mt-1 leading-relaxed">
+          <div className="text-sm text-ink-300 mt-1 leading-relaxed">
             {STEPS[step].desc}
           </div>
         </div>
@@ -53,38 +51,32 @@ export default function Onboarding({ onDismiss }: Props) {
         </button>
       </div>
       <div className="flex items-center justify-between mt-3">
-        <div className="flex gap-1.5">
-          {[0, 1].map((i) => (
+        <span className="text-sm text-ink-300" aria-live="polite">Tip {step + 1} of {STEPS.length}</span>
+        <div className="flex items-center gap-2">
+          {step > 0 && (
             <button
-              key={i}
-              onClick={() => setStep(i)}
-              className="group w-6 h-6 flex items-center justify-center rounded-full"
-              aria-label={`Go to step ${i + 1}`}
+              onClick={() => setStep((s) => s - 1)}
+              className="text-sm text-ink-200 rounded-lg px-3 min-h-[44px] min-w-[44px]"
             >
-              <span
-                aria-hidden="true"
-                className={`h-1.5 rounded-full transition-all ${
-                  i === step ? 'w-6 bg-rose-300' : 'w-1.5 bg-ink-400/40 group-active:bg-ink-400/60'
-                }`}
-              />
+              Back
             </button>
-          ))}
+          )}
+          {step < 1 ? (
+            <button
+              onClick={() => setStep((s) => s + 1)}
+              className="text-sm bg-rose-300 active:bg-rose-400 text-plum-950 rounded-lg px-3 py-1.5 font-semibold transition-colors min-h-[44px]"
+            >
+              Next
+            </button>
+          ) : (
+            <button
+              onClick={handleDismiss}
+              className="text-sm bg-rose-300 active:bg-rose-400 text-plum-950 rounded-lg px-3 py-1.5 font-semibold transition-colors min-h-[44px]"
+            >
+              Got it
+            </button>
+          )}
         </div>
-        {step < 1 ? (
-          <button
-            onClick={() => setStep((s) => s + 1)}
-            className="text-xs bg-rose-300 active:bg-rose-400 text-plum-950 rounded-lg px-3 py-1.5 font-semibold transition-colors min-h-[44px]"
-          >
-            Next
-          </button>
-        ) : (
-          <button
-            onClick={handleDismiss}
-            className="text-xs bg-rose-300 active:bg-rose-400 text-plum-950 rounded-lg px-3 py-1.5 font-semibold transition-colors min-h-[44px]"
-          >
-            Got it
-          </button>
-        )}
       </div>
     </div>
   );
