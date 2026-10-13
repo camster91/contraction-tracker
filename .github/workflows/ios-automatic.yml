@@ -1,0 +1,187 @@
+name: Automatic iOS TestFlight
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: read
+  actions: read
+  checks: read
+concurrency:
+  group: automatic-ios-testflight
+  cancel-in-progress: false
+jobs:
+  preflight:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck && npm run lint && npm run build
+      - run: node --test tests/unit/*.mjs
+      - run: node scripts/check-offline-build.mjs && node scripts/check-store-metadata.mjs && node scripts/check-store-assets.mjs
+      - run: python3 scripts/ios-automation/test_ios_release.py
+      - run: python3 scripts/ios-automation/ios_release.py resolve
+      - run: python3 scripts/ios-automation/ios_release.py source
+        env:
+          GH_TOKEN: ${{ github.token }}
+  archive:
+    needs: preflight
+    environment: ios-auto-signing
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Require solo-owner signing approval policy
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/ios-automation/ios_release.py environment --environment ios-auto-signing
+      - run: npm ci
+      - run: python3 scripts/ios-automation/ios_release.py resolve
+      - run: npm run build && npx cap sync ios
+      - name: Prepare signing authentication
+        env:
+          ASC_API_PRIVATE_KEY: ${{ secrets.ASC_API_PRIVATE_KEY }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_TEAM_ID: ${{ secrets.ASC_TEAM_ID }}
+        run: |
+          set -euo pipefail
+          for name in ASC_API_PRIVATE_KEY ASC_KEY_ID ASC_ISSUER_ID ASC_TEAM_ID; do
+            [[ -n "${!name}" ]] || { echo "::error::Missing protected signing input: $name"; exit 1; }
+          done
+          umask 077
+          printf '%s' "$ASC_API_PRIVATE_KEY" > "$RUNNER_TEMP/AuthKey_ci.p8"
+          python3 - <<'PY'
+          import os, plistlib
+          with open('ios/App/App/exportOptions.plist', 'wb') as output:
+              plistlib.dump({'method': 'app-store-connect', 'signingStyle': 'automatic', 'teamID': os.environ['ASC_TEAM_ID'], 'destination': 'export', 'uploadSymbols': True}, output)
+          PY
+      - name: Check Apple identity and unused build number
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_PATH: ${{ runner.temp }}/AuthKey_ci.p8
+        run: python3 scripts/ios-automation/apple_build_guard.py
+      - name: Archive and export signed app with matching widget version
+        working-directory: ios/App
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_TEAM_ID: ${{ secrets.ASC_TEAM_ID }}
+        run: |
+          set -euo pipefail
+          xcodebuild -project App.xcodeproj -scheme App -configuration Release \
+            -archivePath build/App.xcarchive -destination 'generic/platform=iOS' \
+            -allowProvisioningUpdates -authenticationKeyPath "$RUNNER_TEMP/AuthKey_ci.p8" \
+            -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+            archive CODE_SIGN_STYLE=Automatic DEVELOPMENT_TEAM="$ASC_TEAM_ID" \
+            MARKETING_VERSION="$MARKETING_VERSION" CURRENT_PROJECT_VERSION="$CURRENT_PROJECT_VERSION"
+          xcodebuild -exportArchive -archivePath build/App.xcarchive -exportPath build/ipa \
+            -exportOptionsPlist App/exportOptions.plist -allowProvisioningUpdates \
+            -authenticationKeyPath "$RUNNER_TEMP/AuthKey_ci.p8" \
+            -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+      - name: Verify archive signature
+        run: codesign --verify --deep --strict ios/App/build/App.xcarchive/Products/Applications/App.app
+      - name: Normalize exported IPA and record actual bundle metadata
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import shutil
+          candidates = list(Path('ios/App/build/ipa').glob('*.ipa'))
+          if len(candidates) != 1: raise SystemExit('Expected exactly one exported IPA')
+          Path('release-candidate').mkdir()
+          shutil.copyfile(candidates[0], 'release-candidate/app.ipa')
+          PY
+          python3 scripts/ios-automation/ios_release.py record --metadata native-version.json --artifact release-candidate/app.ipa --output native-artifact.json
+      - name: Retain approved candidate for separate upload
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ios-approved-ipa-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            release-candidate/app.ipa
+            native-version.json
+            native-artifact.json
+          if-no-files-found: error
+          retention-days: 7
+      - name: Retain sanitized source and checksum evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ios-release-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            native-version.json
+            native-artifact.json
+          if-no-files-found: error
+          retention-days: 90
+      - name: Remove temporary signing key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/AuthKey_ci.p8"
+  upload:
+    needs: archive
+    environment: ios-auto-upload
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Require independent TestFlight upload approval policy
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/ios-automation/ios_release.py environment --environment ios-auto-upload
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: ios-approved-ipa-${{ github.run_id }}-${{ github.run_attempt }}
+          path: approved-ipa
+      - name: Revalidate the exact approved IPA before upload
+        run: |
+          set -euo pipefail
+          python3 scripts/ios-automation/ios_release.py resolve
+          cmp native-version.json approved-ipa/native-version.json
+          python3 scripts/ios-automation/ios_release.py record --metadata approved-ipa/native-version.json --artifact approved-ipa/release-candidate/app.ipa --output upload-native-artifact.json
+          cmp approved-ipa/native-artifact.json upload-native-artifact.json
+      - name: Require protected upload authentication
+        env:
+          ASC_API_PRIVATE_KEY: ${{ secrets.ASC_API_PRIVATE_KEY }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          set -euo pipefail
+          for name in ASC_API_PRIVATE_KEY ASC_KEY_ID ASC_ISSUER_ID; do
+            [[ -n "${!name}" ]] || { echo "::error::Missing protected upload input: $name"; exit 1; }
+          done
+      - name: Recheck Apple build history immediately before upload
+        env:
+          ASC_API_PRIVATE_KEY: ${{ secrets.ASC_API_PRIVATE_KEY }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_PATH: ${{ runner.temp }}/AuthKey_ci.p8
+        run: |
+          set -euo pipefail
+          umask 077
+          printf '%s' "$ASC_API_PRIVATE_KEY" > "$RUNNER_TEMP/AuthKey_ci.p8"
+          python3 scripts/ios-automation/apple_build_guard.py
+      - name: Upload approved IPA to TestFlight
+        uses: apple-actions/upload-testflight-build@14df18fee5a4ff3b76971dd382f033494a0194e9 # v5.5.0
+        with:
+          app-path: approved-ipa/release-candidate/app.ipa
+          app-type: ios
+          issuer-id: ${{ secrets.ASC_ISSUER_ID }}
+          api-key-id: ${{ secrets.ASC_KEY_ID }}
+          api-private-key: ${{ secrets.ASC_API_PRIVATE_KEY }}
+      - run: echo 'Upload action completed. Confirm Apple processing, TestFlight availability and physical installation; no App Review submission was requested.' >> "$GITHUB_STEP_SUMMARY"
+      - name: Remove temporary upload key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/AuthKey_ci.p8"
