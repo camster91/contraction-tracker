@@ -9,7 +9,15 @@ export type ValidationResult =
 /** Validate the shape of stored data. Returns the data if valid, or null/unpacked. */
 export function validateStoredData(key: string): ValidationResult {
   try {
-    const raw = localStorage.getItem(key);
+    return validateRaw(key, localStorage.getItem(key));
+  } catch (e) {
+    return { ok: false, reason: String(e) };
+  }
+}
+
+/** Same shape check, applied to a raw JSON string (primary key or shadow copy). */
+function validateRaw(key: string, raw: string | null): ValidationResult {
+  try {
     if (!raw) return { ok: true, data: undefined };
     const parsed = JSON.parse(raw);
     if (key === 'contraction-tracker:v1') {
@@ -41,11 +49,11 @@ export function load<T>(key: string, fallback: T): T {
   // Shape check failed — try shadow
   try {
     const shadow = localStorage.getItem(`${key}::shadow`);
-    if (shadow) {
-      const parsed = JSON.parse(shadow);
-      // Heal the primary key from the shadow
+    const checked = validateRaw(key, shadow);
+    if (shadow && checked.ok && checked.data !== undefined) {
+      // Heal the primary key from the validated shadow
       try { localStorage.setItem(key, shadow); } catch { /* ignore */ }
-      return parsed as T;
+      return checked.data as T;
     }
   } catch {
     /* both corrupted */

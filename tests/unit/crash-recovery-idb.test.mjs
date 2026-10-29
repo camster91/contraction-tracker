@@ -22,12 +22,12 @@ function localHistory(savedAt) {
   } });
 }
 
-test('newer IDB recovery preserves updated annotations and local-only records', async () => {
+test('newer IDB snapshot wins and does not resurrect records deleted after the local copy', async () => {
   localHistory('2026-10-05T12:02:00Z');
   mirrored = { savedAt: '2026-10-05T12:03:00Z', current: null, contractions: [{ ...record, note: 'newer mirrored note' }] };
   const backup = await recoverCrashBackup();
   assert.equal(backup.contractions.find(c => c.id === record.id).note, 'newer mirrored note');
-  assert.equal(backup.contractions.some(c => c.id === 'local-only'), true);
+  assert.equal(backup.contractions.some(c => c.id === 'local-only'), false);
 });
 
 test('older IDB recovery cannot overwrite a newer local annotation', async () => {

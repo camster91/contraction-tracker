@@ -6,7 +6,7 @@ test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
     const state = window as unknown as { __spoken: string[]; __tones: number };
     state.__spoken = []; state.__tones = 0;
-    Object.defineProperty(window, 'speechSynthesis', { configurable: true, value: { getVoices: () => [], cancel: () => {}, speak: (utterance: { text: string }) => state.__spoken.push(utterance.text) } });
+    Object.defineProperty(window, 'speechSynthesis', { configurable: true, value: { getVoices: () => [{ name: 'Samantha', lang: 'en-US', localService: true }], cancel: () => {}, speak: (utterance: { text: string }) => state.__spoken.push(utterance.text) } });
     Object.defineProperty(window, 'SpeechSynthesisUtterance', { configurable: true, value: class { text: string; constructor(text: string) { this.text = text; } } });
     const param = { setValueAtTime: () => {}, linearRampToValueAtTime: () => {}, exponentialRampToValueAtTime: () => {} };
     Object.defineProperty(window, 'AudioContext', { configurable: true, value: class {
