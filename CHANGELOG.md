@@ -1,5 +1,16 @@
 # Olive — Changelog
 
+## v1.3.0 build 17 (October 2026) — v1 fixes, English-only
+
+- Spoken alerts use on-device voices only; if none is available Olive stays silent and relies on tones and haptics.
+- Startup no longer waits on a blocked IndexedDB; it times out after 3 seconds and continues from local storage.
+- Recovery treats each backup as a full snapshot, so deleted contractions are not brought back; recovered and shadow copies are validated first.
+- The floating (picture-in-picture) timer shows live status after Start or Stop.
+- Android release builds stop with an error when signing is missing; removed a leftover MainActivity from another app.
+- English-only for v1: removed the partial French catalog and native French strings.
+- Added an in-app and store medical disclaimer; store fields updated to 1.3.0 (17).
+- Removed old build backups, archived code, retired tests, unused images and unused CSV code.
+
 ## v1.3.0 build 7 (October 2026) — Botanical branding candidate
 
 - Integrated the approved leaf-O wordmark, olive/ivory palette and original illustrations.
