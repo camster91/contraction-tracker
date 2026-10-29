@@ -1,5 +1,3 @@
-import { csvCell } from './csv.ts';
-
 // Pure contraction math — no React, no DOM. Easy to reason about, easy to test.
 //
 // DATA MODEL: backward-compatible additive evolution only.
@@ -288,18 +286,6 @@ export function buildCareSummary(
   }
   lines.push('', 'This summary reports recorded observations and does not diagnose labor.');
   return lines.join('\n');
-}
-
-export function buildContractionsCsv(contractions: Contraction[], now = Date.now()): string {
-  const sorted = [...contractions].sort((a, b) => a.start.localeCompare(b.start));
-  const rows = [['id', 'session_id', 'source', 'start', 'end', 'duration_seconds', 'interval_seconds', 'intensity', 'note', 'tags', 'pain_locations']];
-  sorted.forEach((c, i) => rows.push([
-    c.id, c.sessionId || 'primary', c.source || 'timer', c.start, c.end || '',
-    String(durationSeconds(c, now)), i ? String(intervalSeconds(sorted[i - 1], c)) : '',
-    c.intensity == null ? '' : String(c.intensity), c.note || '',
-    (c.tags || []).join('; '), (c.painLocations || []).join('; '),
-  ]));
-  return rows.map((row) => row.map(csvCell).join(',')).join('\r\n') + '\r\n';
 }
 
 /** Completed records that started in the last hour; spacing uses only pairs within that window. */
