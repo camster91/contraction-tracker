@@ -218,6 +218,7 @@ export default function SettingsSheet({
           <section aria-label="Privacy and support" className="border-t border-ink-200/20 mt-3 pt-3">
             <h2 className="text-base font-display text-ink-50">Private by design</h2>
             <p className="text-sm text-ink-300 mt-2 leading-relaxed">No account or tracking. Records stay on this device. Export a backup before changing phones or uninstalling; uninstalling removes local records. Only a backup saved separately can restore them.</p>
+            <p className="text-xs text-ink-300 mt-2 leading-relaxed">Olive is an organizer and timer, not a medical device. It does not diagnose or give medical advice. Contact your care provider or emergency services if you have concerns.</p>
             <div className="flex flex-wrap gap-3 mt-3">
               <a href="https://olive.ashbi.ca/privacy/" target="_blank" rel="noopener noreferrer" className="min-h-11 inline-flex items-center underline text-sm text-sage-300">Privacy policy</a>
               <a href="https://olive.ashbi.ca/support/" target="_blank" rel="noopener noreferrer" className="min-h-11 inline-flex items-center underline text-sm text-sage-300">Help &amp; support</a>

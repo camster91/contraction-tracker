@@ -1,3 +1,5 @@
+> Current release candidate: Olive 1.3.0 (build 17), English-only for v1. The v1 fixes PR adds on-device-only speech, an IndexedDB open timeout, snapshot-safe recovery (deleted contractions stay deleted), a live picture-in-picture status, fail-fast Android release signing and an in-app medical disclaimer, and removes French and retired files. Signed builds on physical iPhone and Android devices are still required before submission. Entries below are historical.
+
 > October 9 correction round: build 15 is being validated after the agent bug, feature and UI audit. See docs/REMEDIATION-BUILD15.md for current implementation and limits. Earlier build numbers, original-key instructions and console receipts below are historical; they do not establish build 15 distribution or acceptance.
 
 > October 8 latest UX/code review: local source 13017b17d7191f29238706af51b0cc24775150de fixes backup privacy/cancellation, modal isolation/Safari focus, retired startup parsing, immediate Stop statistics and crash support access. Lint/typecheck/build, 37 unit and 82 affected browser tests passed with zero skips. Support/privacy were restored after 503 and now exactly match source over HTTPS; named rollback retained. Changes are after uploaded build 13 and need a consolidated signed native candidate, physical/professional acceptance, refreshed affected screenshots and current-source CI. Public review remains incomplete. See docs/UX-APPLE-REVIEW-2026-10-08.md. Older status below is historical.
@@ -38,7 +40,7 @@ See [the current release plan](docs/RELEASE-PLAN.md) for the reconciled issue in
 
 ## Local checks
 
-Run `npm ci`, `npm run verify`, `node --test tests/unit/*.mjs`, `npx playwright test`, `npm audit`, `node scripts/check-store-assets.mjs`, and `node scripts/check-store-metadata.mjs`. Current-feature tests remain active; retired-feature coverage is retained in `tests/legacy/v1.2/` with its rationale. Tests and unsigned builds are preparation evidence, not store acceptance.
+Run `npm ci`, `npm run verify`, `node --test tests/unit/*.mjs`, `npx playwright test`, `npm audit`, `node scripts/check-store-assets.mjs`, and `node scripts/check-store-metadata.mjs`. Current-feature tests remain active; retired v1.2 tests were removed from the tree and remain in git history. Tests and unsigned builds are preparation evidence, not store acceptance.
 
 `./scripts/build-ios-archive.sh` creates a fresh unsigned archive. `DEVELOPMENT_TEAM=YOUR_TEAM ./scripts/build-ios.sh` prepares a signed export when an authorized paid developer team and provisioning are configured. Neither script uploads. `./scripts/build-android.sh` requires the existing keystore and its protected properties file; it does not generate a replacement key.
 

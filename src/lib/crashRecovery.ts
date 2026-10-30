@@ -23,16 +23,6 @@ function validContractions(value: unknown): Record<string, unknown>[] {
   return array(value).filter(validateContractionRecord) as Record<string, unknown>[];
 }
 
-function mergeContractions(local: unknown[], mirrored: unknown[], preferMirror: boolean): unknown[] {
-  const merged = new Map<string, Record<string, unknown>>();
-  for (const item of preferMirror ? [...mirrored, ...local] : [...local, ...mirrored]) {
-    if (validateContractionRecord(item) && typeof item.id === 'string' && !merged.has(item.id)) {
-      merged.set(item.id, item as Record<string, unknown>);
-    }
-  }
-  return [...merged.values()];
-}
-
 function validCurrent(value: unknown): boolean {
   return value === null || validateContractionRecord(value);
 }
@@ -45,20 +35,24 @@ function validCurrent(value: unknown): boolean {
  */
 
 export async function recoverCrashBackup(): Promise<BackupData | null> {
+  // Primary copy first; the shadow only when the primary is unreadable. Each
+  // copy is a full snapshot, so picking "the longest" or unioning snapshots
+  // would bring back contractions the user deleted.
   const history = readCandidates('contraction-tracker:v1')
-    .filter((candidate): candidate is { contractions?: unknown[]; savedAt?: string } =>
-      !!candidate && typeof candidate === 'object' && !Array.isArray(candidate))
-    .sort((left, right) => validContractions(right.contractions).length - validContractions(left.contractions).length)[0] ?? null;
+    .find((candidate): candidate is { contractions?: unknown[]; savedAt?: string } =>
+      !!candidate && typeof candidate === 'object' && !Array.isArray(candidate) &&
+      Array.isArray((candidate as { contractions?: unknown }).contractions)) ?? null;
   const localContractions = validContractions(history?.contractions);
   const mirror = await loadAutoBackup<unknown>();
   const mirroredContractions = validContractions(mirror?.contractions);
-  // Merge by id instead of replacing the local copy. This preserves a record
-  // written after the last IndexedDB tick while recovering records missing
-  // from localStorage after a wipe or quota failure.
+  // Use the IndexedDB snapshot only when it is strictly newer, or when the
+  // local copy is missing entirely (localStorage wipe).
   const localSavedAt = Date.parse(history?.savedAt ?? '');
   const mirrorSavedAt = Date.parse(mirror?.savedAt ?? '');
-  const preferMirror = Number.isFinite(mirrorSavedAt) && (!Number.isFinite(localSavedAt) || mirrorSavedAt > localSavedAt);
-  const contractions = mergeContractions(localContractions, mirroredContractions, preferMirror);
+  const localMissing = !history || (!Number.isFinite(localSavedAt) && localContractions.length === 0);
+  const preferMirror = !!mirror && (localMissing ||
+    (Number.isFinite(mirrorSavedAt) && Number.isFinite(localSavedAt) && mirrorSavedAt > localSavedAt));
+  const contractions = preferMirror ? mirroredContractions : localContractions;
 
   const localCurrent = read('contraction-tracker:current');
   const timerMirror = await loadCurrentBackup<unknown>();

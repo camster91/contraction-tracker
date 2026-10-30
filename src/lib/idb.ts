@@ -32,6 +32,8 @@ type BackupRecord = {
 
 let dbPromise: Promise<IDBDatabase | null> | null = null;
 
+const OPEN_TIMEOUT_MS = 3000;
+
 function openDB(): Promise<IDBDatabase | null> {
   if (dbPromise) return dbPromise;
   dbPromise = new Promise((resolve) => {
@@ -39,6 +41,21 @@ function openDB(): Promise<IDBDatabase | null> {
       resolve(null);
       return;
     }
+    let settled = false;
+    const finish = (db: IDBDatabase | null) => {
+      if (settled) {
+        // Opened after we gave up: close it; the next call will retry.
+        db?.close();
+        return;
+      }
+      settled = true;
+      clearTimeout(timer);
+      if (!db) dbPromise = null; // allow a later retry
+      resolve(db);
+    };
+    // A blocked or stuck open must never hold up startup; localStorage
+    // remains the working copy.
+    const timer = setTimeout(() => finish(null), OPEN_TIMEOUT_MS);
     try {
       const req = indexedDB.open(DB_NAME, DB_VERSION);
       req.onupgradeneeded = () => {
@@ -47,10 +64,15 @@ function openDB(): Promise<IDBDatabase | null> {
           db.createObjectStore(STORE);
         }
       };
-      req.onsuccess = () => resolve(req.result);
-      req.onerror = () => resolve(null);
+      req.onsuccess = () => {
+        const db = req.result;
+        db.onversionchange = () => { db.close(); dbPromise = null; };
+        finish(db);
+      };
+      req.onerror = () => finish(null);
+      req.onblocked = () => finish(null);
     } catch {
-      resolve(null);
+      finish(null);
     }
   });
   return dbPromise;

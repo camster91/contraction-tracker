@@ -38,8 +38,9 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
             if (oliveKeystorePropertiesFile.exists()) {
                 signingConfig signingConfigs.release
-            } else {
-                logger.warn("android/app/keystore.properties not found. Release output will not be store-signed.")
+            } else if (gradle.startParameter.taskNames.any { it.toLowerCase().contains('release') || it.toLowerCase().startsWith('bundle') }) {
+                // Never produce an unsigned release by accident. Debug builds and cap sync are unaffected.
+                throw new GradleException("android/app/keystore.properties not found. Add the release signing config before building a release.")
             }
         }
     }

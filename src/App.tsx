@@ -48,6 +48,7 @@ import {
   migrateBackup,
   rotateBackup,
   validateBackup,
+  validateContractionRecord,
 } from './lib/backup';
 import { initSync, broadcastContractions, broadcastCurrent } from './lib/sync';
 import {
@@ -384,15 +385,23 @@ export default function App() {
         const localContractions = Array.isArray(local?.contractions)
           ? local.contractions.filter((c) => c && typeof c.id === 'string' && typeof c.start === 'string' && Number.isFinite(Date.parse(c.start)))
           : [];
+        // The IndexedDB record is a full snapshot, not a log, so never union it
+        // with local data (that would bring back deleted contractions). Use it
+        // only when localStorage was wiped (no savedAt) or the snapshot is
+        // strictly newer than the local copy (a local write was lost).
+        const localSavedAt = Date.parse(local?.savedAt ?? '');
+        const backupSavedAt = Date.parse(backup?.savedAt ?? '');
+        const localWiped = !Number.isFinite(localSavedAt) && localContractions.length === 0;
         if (backup && Array.isArray(backup.contractions) &&
-            (localContractions.length === 0 ||
-             (Date.parse(backup.savedAt ?? '') > Date.parse(local?.savedAt ?? '1970-01-01')))) {
-          const merged = new Map(localContractions.map((c) => [c.id, c]));
-          for (const c of backup.contractions) {
-            if (c && typeof c.id === 'string' && Number.isFinite(Date.parse(c.start))) merged.set(c.id, c);
+            (localWiped || (Number.isFinite(localSavedAt) && Number.isFinite(backupSavedAt) && backupSavedAt > localSavedAt))) {
+          const recovered = backup.contractions.filter((c) =>
+            validateContractionRecord(c) && Number.isFinite(Date.parse(c.start)));
+          const sameIds = recovered.length === localContractions.length &&
+            recovered.every((c) => localContractions.some((l) => l.id === c.id));
+          if (!sameIds && (recovered.length > 0 || !localWiped)) {
+            setContractions([...recovered].sort((x, y) => x.start.localeCompare(y.start)));
+            if (recovered.length > localContractions.length) setDataDamagedToast(true);
           }
-          setContractions([...merged.values()].sort((a, b) => a.start.localeCompare(b.start)));
-          if (merged.size > localContractions.length) setDataDamagedToast(true);
         }
         const candidate = timer?.current ?? backup?.current;
         if (!load(SESSION_KEY, null) && candidate && !candidate.end &&
@@ -622,8 +631,12 @@ export default function App() {
     };
   }, []);
 
-  // PiP video element is created in handleEnterPip (kept inline; no need
-  // for a ref because the cleanup happens in a useEffect-free closure).
+  // The PiP draw loop outlives the render that started it, so it reads live
+  // state from this ref instead of the closure (which would go stale after
+  // Start/Stop while the window is open).
+  const pipStateRef = useRef({ current, sessionContractions, carePlan });
+  pipStateRef.current = { current, sessionContractions, carePlan };
+  const [pipOpen, setPipOpen] = useState(false);
 
   const canUsePip = !Capacitor.isNativePlatform() && !!document.pictureInPictureEnabled;
   const handleEnterPip = async () => {
@@ -633,6 +646,7 @@ export default function App() {
     const cleanup = () => {
       if (rafId !== null) cancelAnimationFrame(rafId);
       rafId = null;
+      setPipOpen(false);
       try { video?.srcObject && (video.srcObject as MediaStream).getTracks().forEach(t => t.stop()); } catch { /* ignore */ }
       video = null;
     };
@@ -655,6 +669,7 @@ export default function App() {
       //   - Saved care-plan reminder: amber background, reminder text
       const draw = () => {
         if (!ctx) return;
+        const { current, sessionContractions, carePlan } = pipStateRef.current;
         const inProgress = current && !current.end;
         const carePlanMatch = isCarePlanPattern(sessionContractions, carePlan, Date.now());
         // Background — amber when the saved reminder matches, otherwise dark plum
@@ -701,6 +716,7 @@ export default function App() {
       video.playsInline = true;
       await video.play();
       await video.requestPictureInPicture();
+      setPipOpen(true);
       // Stop the rAF loop and free the stream once PiP closes.
       video.addEventListener('leavepictureinpicture', cleanup, { once: true });
     } catch {
@@ -1341,7 +1357,7 @@ export default function App() {
                 <div className="text-xs uppercase tracking-[0.25em] text-rose-300 font-semibold">
                   <span role="status">In progress</span>
                 </div>
-                {canUsePip && !document.pictureInPictureElement && (
+                {canUsePip && !pipOpen && (
                   <button
                     onClick={handleEnterPip}
                     className="ml-1 p-1 rounded text-rose-300/60 active:text-rose-300 active:bg-rose-300/10 transition-colors"
@@ -1351,7 +1367,7 @@ export default function App() {
                     <PictureInPicture2 className="w-4 h-4" strokeWidth={1.75} />
                   </button>
                 )}
-                {canUsePip && document.pictureInPictureElement && (
+                {canUsePip && pipOpen && (
                   <button
                     onClick={handleEnterPip}
                     className="ml-1 p-1 rounded text-rose-300/60 active:text-rose-300 active:bg-rose-300/10 transition-colors"
@@ -1771,7 +1787,7 @@ export default function App() {
             </div>
             {/* Pre-open the floating timer so it stays visible while using
                 other apps during labor. One tap, then forget about it. */}
-            {canUsePip && !document.pictureInPictureElement && (
+            {canUsePip && !pipOpen && (
               <button
                 onClick={handleEnterPip}
                 className="mt-4 inline-flex items-center gap-1.5 text-sm text-ink-400 active:text-rose-300 border border-ink-200/20 rounded-full px-3 py-1.5 min-h-[44px] transition-colors"
@@ -1785,7 +1801,7 @@ export default function App() {
                 While timing, Olive tries to keep the screen awake.
               </p>
             )}
-            {canUsePip && document.pictureInPictureElement && (
+            {canUsePip && pipOpen && (
               <button
                 onClick={handleEnterPip}
                 className="mt-4 inline-flex items-center gap-1.5 text-sm text-rose-300 border border-rose-300/30 rounded-full px-3 py-1.5 min-h-[44px] transition-colors"

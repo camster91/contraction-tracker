@@ -113,21 +113,15 @@ function pickVoice(): SpeechSynthesisVoice | null {
   if (preferredVoice) return preferredVoice;
   const voices = window.speechSynthesis.getVoices();
   if (voices.length === 0) return null;
-  // Prefer a calm, natural-sounding voice. iOS has "Samantha" and "Karen",
-  // Android has "Google" voices. We try several name patterns.
-  const prefs = [
-    'Samantha', 'Karen', 'Google US English', 'Google UK English Female',
-    'Microsoft Aria Online (Natural) - English (United States)',
-    'Microsoft Jenny Online (Natural)', 'en-US', 'en-GB',
-  ];
+  // Privacy: only on-device voices. Network voices (e.g. Microsoft "Online")
+  // would send spoken contraction details off the phone.
+  const local = voices.filter((v) => v.localService && !/online|natural/i.test(v.name));
+  const prefs = ['Samantha', 'Karen', 'en-US', 'en-GB'];
   for (const p of prefs) {
-    const match = voices.find((v) => v.name === p || v.lang === p);
+    const match = local.find((v) => v.name === p || v.lang === p);
     if (match) { preferredVoice = match; return match; }
   }
-  // Fall back to the first English voice
-  const en = voices.find((v) => v.lang?.startsWith('en'));
-  if (en) { preferredVoice = en; return en; }
-  preferredVoice = voices[0] || null;
+  preferredVoice = local.find((v) => v.lang?.startsWith('en')) || null;
   return preferredVoice;
 }
 
@@ -145,9 +139,12 @@ export function speak(text: string, opts: { rate?: number; pitch?: number } = {}
   if (Date.now() - lastSpeechAt < 800) return;
   lastSpeechAt = Date.now();
 
-  const u = new SpeechSynthesisUtterance(text);
+  // No on-device voice: stay silent rather than fall back to a network voice.
+  // Tones and haptics still cover the alert.
   const voice = pickVoice();
-  if (voice) u.voice = voice;
+  if (!voice) return;
+  const u = new SpeechSynthesisUtterance(text);
+  u.voice = voice;
   u.rate = opts.rate ?? 0.95;
   u.pitch = opts.pitch ?? 1.0;
   u.volume = 0.9;
