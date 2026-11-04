@@ -57,7 +57,7 @@ test('200 percent text keeps settings and manual entry operable', async ({ page 
   await expectNoHorizontalPageOverflow(page);
   await page.getByRole('button', { name: 'Close settings' }).click();
 
-  const addMissed = page.getByRole('button', { name: 'Add missed contraction' });
+  const addMissed = page.getByRole('button', { name: 'Forgot to tap? Add it as a missed contraction', exact: true });
   await addMissed.scrollIntoViewIfNeeded();
   await addMissed.click();
   const manual = page.getByRole('dialog', { name: 'Add missed contraction' });

@@ -1527,7 +1527,7 @@ export default function App() {
         {!current && (
           <button
             type="button"
-            aria-label="Add missed contraction"
+            aria-label="Forgot to tap? Add it as a missed contraction"
             onClick={() => setShowManual(true)}
             className="mb-4 inline-flex items-center gap-1.5 text-sm text-ink-400 active:text-rose-300 rounded-full border border-ink-200/30 bg-ink-100/5 px-3 py-1.5 min-h-[44px] transition-colors"
           >
