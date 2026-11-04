@@ -12,7 +12,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('a missed contraction can be added manually and is visibly identified', async ({ page }) => {
-  await page.getByRole('button', { name: 'Add missed contraction' }).click();
+  await page.getByRole('button', { name: 'Forgot to tap? Add it as a missed contraction', exact: true }).click();
   const sheet = page.getByRole('dialog', { name: 'Add missed contraction' });
   await expect(sheet).toBeVisible();
 
@@ -37,7 +37,7 @@ test('a missed contraction can be added manually and is visibly identified', asy
 });
 
 test('manual entry rejects an end time before its start time', async ({ page }) => {
-  await page.getByRole('button', { name: 'Add missed contraction' }).click();
+  await page.getByRole('button', { name: 'Forgot to tap? Add it as a missed contraction', exact: true }).click();
   const sheet = page.getByRole('dialog', { name: 'Add missed contraction' });
   await sheet.getByLabel('Started').fill('2026-08-28T12:05');
   await sheet.getByLabel('Ended').fill('2026-08-28T12:04');
@@ -46,7 +46,7 @@ test('manual entry rejects an end time before its start time', async ({ page }) 
 });
 
 test('editing a completed end time cannot save a reversed duration', async ({ page }) => {
-  await page.getByRole('button', { name: 'Add missed contraction' }).click();
+  await page.getByRole('button', { name: 'Forgot to tap? Add it as a missed contraction', exact: true }).click();
   await page.getByRole('button', { name: 'Save manual entry' }).click();
   const before = await page.evaluate(() => JSON.parse(localStorage.getItem('contraction-tracker:v1') || '{}').contractions);
   const clock = await page.evaluate((start) => {
@@ -57,4 +57,12 @@ test('editing a completed end time cannot save a reversed duration', async ({ pa
   await page.getByLabel('Edit end time').fill(clock);
   await expect(page.getByText('End must be after the start, within four hours, and not in the future.')).toBeVisible();
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('contraction-tracker:v1') || '{}').contractions)).toEqual(before);
+});
+
+test('missed-contraction button accessible name includes its visible label (WCAG 2.5.3)', async ({ page }) => {
+  const button = page.getByRole('button', { name: 'Forgot to tap? Add it as a missed contraction', exact: true });
+  await expect(button).toBeVisible();
+  const visible = (await button.innerText()).replace(/\s+/g, ' ').trim();
+  expect(visible).toBe('Forgot to tap? Add it');
+  expect(await button.getAttribute('aria-label')).toMatch(new RegExp(`^${visible.replace(/[?]/g, '\\?')}`));
 });
