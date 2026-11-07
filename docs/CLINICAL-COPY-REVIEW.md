@@ -18,7 +18,7 @@ candidate does not establish review of the signed native candidate.
 | `objective-frequency` — Objective frequency | `src/components/ActiveLaborBanner.tsx`: frequent contractions/count in ten minutes. Review wording, color and prominence. |
 | `history-summary` — History / summary | `src/App.tsx`, `src/components/HistoryHeader.tsx`, `src/lib/contractions.ts`: assess clinical interpretation of counts, averages, intervals and the exported summary. |
 | `questions-responsibilities` — Questions / responsibilities | `src/components/ProviderQuestionsPanel.tsx`, `src/components/ResponsibilitiesPanel.tsx`; user-entered prompts/tasks without clinical advice. |
-| `hospital-exams` — Exam log | `src/components/HospitalSheet.tsx` and English `hospital.*` messages in `src/lib/i18n.ts`; visible labels/instructions and reported-measurement boundary. |
+| `hospital-exams` — Exam log | `src/components/HospitalSheet.tsx`; inline English labels/instructions and the reported-measurement boundary. |
 | `care-card-postpartum` — Care card / postpartum | `src/components/CareCardPanel.tsx`, `src/components/PostpartumTimelinePanel.tsx`; actual current routes and user-entered-information boundary. |
 | `support-privacy` — Support / privacy | `src/components/SettingsSheet.tsx`, `public/support/index.html`, `public/privacy/index.html`; support escalation, privacy limits and published copies. |
 | `store-copy-images` — Store copy / images | `APP-STORE-CONNECT-FIELDS.txt`, `PLAY-STORE-CONSOLE-FIELDS.txt`, `docs/STORE-ASSET-REVIEW.md`; assess implied validation, endorsement or universal thresholds. |
@@ -52,5 +52,6 @@ Resolve conflicting advice with a named owner and rationale. Every P0/P1 change 
 `npm run evaluate:validation` now checks the current inventory and remains red until
 genuine records meet the exact-candidate, independent-review, rendered-artifact and
 retest gates. `npm run evaluate:validation -- --check-templates` checks only the
-structural templates. Neither command creates acceptance evidence: manual review,
+structural templates; those templates are intentionally marked `unreviewed` and
+non-independent. Neither command creates acceptance evidence: manual review,
 consent, physical-device checks, store evidence and owner decisions remain separate.

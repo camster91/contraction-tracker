@@ -32,7 +32,7 @@ const expectedSources = {
   'objective-frequency': ['src/components/ActiveLaborBanner.tsx'],
   'history-summary': ['src/App.tsx', 'src/components/HistoryHeader.tsx', 'src/lib/contractions.ts'],
   'questions-responsibilities': ['src/components/ProviderQuestionsPanel.tsx', 'src/components/ResponsibilitiesPanel.tsx'],
-  'hospital-exams': ['src/components/HospitalSheet.tsx', 'src/lib/i18n.ts'],
+  'hospital-exams': ['src/components/HospitalSheet.tsx'],
   'care-card-postpartum': ['src/components/CareCardPanel.tsx', 'src/components/PostpartumTimelinePanel.tsx'],
   'support-privacy': ['src/components/SettingsSheet.tsx', 'public/support/index.html', 'public/privacy/index.html'],
   'store-copy-images': ['APP-STORE-CONNECT-FIELDS.txt', 'PLAY-STORE-CONSOLE-FIELDS.txt', 'docs/STORE-ASSET-REVIEW.md'],
@@ -137,7 +137,8 @@ function validateClinical(record, label, template = false) {
   else {
     for (const field of ['id', 'credential', 'jurisdiction', 'practiceContext', 'conflicts', 'reviewDate']) if (!nonEmpty(record.reviewer[field])) errors.push(`${label}: reviewer.${field} is required`);
     if (!['registered-midwife', 'labor-and-delivery-nurse', 'obstetrician', 'family-physician', 'maternity-professional-other'].includes(record.reviewer.credentialType)) errors.push(`${label}: reviewer.credentialType is invalid`);
-    if (record.reviewer.independentFromOtherReviewer !== true) errors.push(`${label}: reviewer must be independent`);
+    if (typeof record.reviewer.independentFromOtherReviewer !== 'boolean') errors.push(`${label}: reviewer.independentFromOtherReviewer must be boolean`);
+    if (!template && record.reviewer.independentFromOtherReviewer !== true) errors.push(`${label}: reviewer must be independent`);
     if (!template && placeholder(record.reviewer.id)) errors.push(`${label}: reviewer.id is still a placeholder`);
     if (!template && (!realDate(record.reviewer.reviewDate) || placeholder(record.reviewer.jurisdiction) || placeholder(record.reviewer.practiceContext))) errors.push(`${label}: reviewer context or review date is incomplete`);
   }
@@ -157,9 +158,10 @@ function validateClinical(record, label, template = false) {
   }
   if (!Array.isArray(record?.surfaces) || !sameIds(presentSurfaceIds, surfaceIds)) errors.push(`${label}: all ${surfaceIds.length} current v1.3 review surfaces must appear exactly once`);
   else record.surfaces.forEach((surface) => {
-    if (!['approve', 'change', 'remove'].includes(surface.decision) || !['none', 'P0', 'P1', 'P2'].includes(surface.severity)) errors.push(`${label}: ${surface.id} has an invalid decision or severity`);
+    const allowedDecisions = template ? ['unreviewed', 'approve', 'change', 'remove'] : ['approve', 'change', 'remove'];
+    if (!allowedDecisions.includes(surface.decision) || !['none', 'P0', 'P1', 'P2'].includes(surface.severity)) errors.push(`${label}: ${surface.id} has an invalid decision or severity`);
     if (typeof surface.requiresRenderedRereview !== 'boolean' || typeof surface.rereviewComplete !== 'boolean') errors.push(`${label}: ${surface.id} needs re-review booleans`);
-    if (surface.decision !== 'approve' && (!nonEmpty(surface.rationale) || !nonEmpty(surface.replacementWording))) errors.push(`${label}: ${surface.id} change/remove needs rationale and replacement wording`);
+    if (!['approve', 'unreviewed'].includes(surface.decision) && (!nonEmpty(surface.rationale) || !nonEmpty(surface.replacementWording))) errors.push(`${label}: ${surface.id} change/remove needs rationale and replacement wording`);
     if (!template && surface.decision === 'approve' && surface.severity !== 'none') errors.push(`${label}: ${surface.id} cannot be approved with a safety severity`);
     if (!template && surface.decision !== 'approve' && !nonEmpty(surface.resolutionEvidence)) errors.push(`${label}: ${surface.id} change/remove lacks linked resolution evidence`);
     if (!template && surface.requiresRenderedRereview && (!surface.rereviewComplete || !nonEmpty(surface.resolutionEvidence))) errors.push(`${label}: ${surface.id} required rendered re-review is incomplete`);
@@ -182,7 +184,8 @@ function validateClinical(record, label, template = false) {
   else if (!template) record.conflictResolutions.forEach((resolution, index) => {
     if (!surfaceIds.includes(resolution?.surfaceId) || !nonEmpty(resolution?.decisionOwner) || !nonEmpty(resolution?.finalWording) || !nonEmpty(resolution?.rationale) || !nonEmpty(resolution?.linkedDiff) || resolution?.renderedRereviewComplete !== true || !nonEmpty(resolution?.renderedRereviewEvidence)) errors.push(`${label}: conflict resolution ${index + 1} is incomplete`);
   });
-  if (!['approve', 'changes-required', 'reject'].includes(record?.overallDisposition)) errors.push(`${label}: overallDisposition is invalid`);
+  const dispositions = template ? ['unreviewed', 'approve', 'changes-required', 'reject'] : ['approve', 'changes-required', 'reject'];
+  if (!dispositions.includes(record?.overallDisposition)) errors.push(`${label}: overallDisposition is invalid`);
   if (!nonEmpty(record?.signedAttestationReference)) errors.push(`${label}: signedAttestationReference is required`);
   else if (!template && placeholder(record.signedAttestationReference)) errors.push(`${label}: signedAttestationReference is still a placeholder`);
   return errors;

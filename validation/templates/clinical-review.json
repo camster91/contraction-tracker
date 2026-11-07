@@ -9,7 +9,7 @@
     "practiceContext": "practice-context",
     "conflicts": "none declared",
     "reviewDate": "YYYY-MM-DD",
-    "independentFromOtherReviewer": true
+    "independentFromOtherReviewer": false
   },
   "candidate": {
     "version": "1.3.0",
@@ -32,98 +32,98 @@
   "surfaces": [
     {
       "id": "saved-reminder",
-      "decision": "approve",
+      "decision": "unreviewed",
       "severity": "none",
       "requiresRenderedRereview": false,
       "rereviewComplete": false
     },
     {
       "id": "care-plan-settings",
-      "decision": "approve",
+      "decision": "unreviewed",
       "severity": "none",
       "requiresRenderedRereview": false,
       "rereviewComplete": false
     },
     {
       "id": "spoken-reminder",
-      "decision": "approve",
+      "decision": "unreviewed",
       "severity": "none",
       "requiresRenderedRereview": false,
       "rereviewComplete": false
     },
     {
       "id": "objective-frequency",
-      "decision": "approve",
+      "decision": "unreviewed",
       "severity": "none",
       "requiresRenderedRereview": false,
       "rereviewComplete": false
     },
     {
       "id": "history-summary",
-      "decision": "approve",
+      "decision": "unreviewed",
       "severity": "none",
       "requiresRenderedRereview": false,
       "rereviewComplete": false
     },
     {
       "id": "questions-responsibilities",
-      "decision": "approve",
+      "decision": "unreviewed",
       "severity": "none",
       "requiresRenderedRereview": false,
       "rereviewComplete": false
     },
     {
       "id": "hospital-exams",
-      "decision": "approve",
+      "decision": "unreviewed",
       "severity": "none",
       "requiresRenderedRereview": false,
       "rereviewComplete": false
     },
     {
       "id": "care-card-postpartum",
-      "decision": "approve",
+      "decision": "unreviewed",
       "severity": "none",
       "requiresRenderedRereview": false,
       "rereviewComplete": false
     },
     {
       "id": "support-privacy",
-      "decision": "approve",
+      "decision": "unreviewed",
       "severity": "none",
       "requiresRenderedRereview": false,
       "rereviewComplete": false
     },
     {
       "id": "store-copy-images",
-      "decision": "approve",
+      "decision": "unreviewed",
       "severity": "none",
       "requiresRenderedRereview": false,
       "rereviewComplete": false
     },
     {
       "id": "pregnancy-planner",
-      "decision": "approve",
+      "decision": "unreviewed",
       "severity": "none",
       "requiresRenderedRereview": false,
       "rereviewComplete": false
     },
     {
       "id": "archive-pause",
-      "decision": "approve",
+      "decision": "unreviewed",
       "severity": "none",
       "requiresRenderedRereview": false,
       "rereviewComplete": false
     },
     {
       "id": "text-sharing",
-      "decision": "approve",
+      "decision": "unreviewed",
       "severity": "none",
       "requiresRenderedRereview": false,
       "rereviewComplete": false
     },
     {
       "id": "lull-handoff",
-      "decision": "approve",
+      "decision": "unreviewed",
       "severity": "none",
       "requiresRenderedRereview": false,
       "rereviewComplete": false
@@ -181,7 +181,6 @@
     {
       "surfaceId": "hospital-exams",
       "sourcePath": "src/components/HospitalSheet.tsx",
-      "messageId": "hospital.message-id",
       "exactText": "record-the-exact-rendered-text",
       "sourceSha256": "candidate-source-sha256",
       "renderedArtifactReference": "validation/artifacts/annotated-screenshot",
@@ -245,6 +244,6 @@
     }
   ],
   "conflictResolutions": [],
-  "overallDisposition": "changes-required",
+  "overallDisposition": "unreviewed",
   "signedAttestationReference": "restricted-signed-attestation-reference"
 }

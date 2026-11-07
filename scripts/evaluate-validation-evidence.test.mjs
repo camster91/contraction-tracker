@@ -67,3 +67,22 @@ test('retired clinical surface IDs cannot pass as current v1.3 inventory', async
     await rm(temp, { recursive: true, force: true });
   }
 });
+
+test('unreviewed clinical template cannot be evaluated as real acceptance evidence', async () => {
+  const temp = await mkdtemp(path.join(os.tmpdir(), 'olive-validation-template-'));
+  try {
+    const user = path.join(temp, 'user');
+    const clinical = path.join(temp, 'clinical');
+    await mkdir(user);
+    await mkdir(clinical);
+    const record = JSON.parse(await readFile(clinicalTemplatePath, 'utf8'));
+    await writeFile(path.join(clinical, 'unreviewed.json'), `${JSON.stringify(record)}\n`);
+    const result = await runEvaluator([], { OLIVE_USER_EVIDENCE_DIR: user, OLIVE_CLINICAL_EVIDENCE_DIR: clinical });
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /has an invalid decision or severity/);
+    assert.match(result.stderr, /overallDisposition is invalid/);
+    assert.match(result.stderr, /reviewer must be independent/);
+  } finally {
+    await rm(temp, { recursive: true, force: true });
+  }
+});
