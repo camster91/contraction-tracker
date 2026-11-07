@@ -6,20 +6,40 @@ This reviews wording and interpretation; it is not medical-device certification 
 
 ## Current inventory
 
+The evaluator and review records use inventory ID `olive-native-v1.3-en`. This is the
+free, English, native v1.3 surface contract; a browser-only image or an older
+candidate does not establish review of the signed native candidate.
+
 | Surface | Current source and review focus |
 |---|---|
-| Saved reminder | `src/App.tsx`: Saved care-plan reminder and matching-timing detail. Assess diagnosis, reassurance and travel-direction interpretations. |
-| Opt-in settings | `src/components/CarePlanPanel.tsx`, `src/lib/carePlan.ts`: disabled by default. Assess prefilled numbers and individualized instructions. |
-| Spoken reminder | The care-plan `speak(...)` call in `src/App.tsx`; assess audio without the visual disclaimer. |
-| Objective frequency | `src/components/ActiveLaborBanner.tsx`: Frequent contractions/count in ten minutes. Review wording, color and prominence. |
-| History / summary | Current history/chart and exported summary. Assess clinical interpretation of counts, averages and intervals. |
-| Questions / responsibilities | `src/components/ProviderQuestionsPanel.tsx`, `src/components/ResponsibilitiesPanel.tsx`; user-entered prompts/tasks without clinical advice. |
-| Exam log | `src/components/HospitalSheet.tsx` and English `hospital.*` messages in `src/lib/i18n.ts`; visible labels/instructions and reported-measurement boundary. |
-| Care card / postpartum | `src/components/CareCardPanel.tsx`, `src/components/PostpartumTimelinePanel.tsx`; actual current routes and user-entered-information boundary. |
-| Support / privacy | `public/support/index.html`, `public/privacy/index.html`; support escalation and limits, then published copies. |
-| Store copy / images | Current Apple/Play field drafts and final screenshots; implied validation, endorsement or universal thresholds. |
+| `saved-reminder` — Saved reminder | `src/App.tsx`: saved care-plan reminder and matching-timing detail. Assess diagnosis, reassurance and travel-direction interpretations. |
+| `care-plan-settings` — Opt-in settings | `src/components/CarePlanPanel.tsx`, `src/lib/carePlan.ts`: disabled by default. Assess prefilled numbers and individualized instructions. |
+| `spoken-reminder` — Spoken reminder | The care-plan `speak(...)` call in `src/App.tsx`; assess audio without the visual disclaimer. |
+| `objective-frequency` — Objective frequency | `src/components/ActiveLaborBanner.tsx`: frequent contractions/count in ten minutes. Review wording, color and prominence. |
+| `history-summary` — History / summary | `src/App.tsx`, `src/components/HistoryHeader.tsx`, `src/lib/contractions.ts`: assess clinical interpretation of counts, averages, intervals and the exported summary. |
+| `questions-responsibilities` — Questions / responsibilities | `src/components/ProviderQuestionsPanel.tsx`, `src/components/ResponsibilitiesPanel.tsx`; user-entered prompts/tasks without clinical advice. |
+| `hospital-exams` — Exam log | `src/components/HospitalSheet.tsx` and English `hospital.*` messages in `src/lib/i18n.ts`; visible labels/instructions and reported-measurement boundary. |
+| `care-card-postpartum` — Care card / postpartum | `src/components/CareCardPanel.tsx`, `src/components/PostpartumTimelinePanel.tsx`; actual current routes and user-entered-information boundary. |
+| `support-privacy` — Support / privacy | `src/components/SettingsSheet.tsx`, `public/support/index.html`, `public/privacy/index.html`; support escalation, privacy limits and published copies. |
+| `store-copy-images` — Store copy / images | `APP-STORE-CONNECT-FIELDS.txt`, `PLAY-STORE-CONSOLE-FIELDS.txt`, `docs/STORE-ASSET-REVIEW.md`; assess implied validation, endorsement or universal thresholds. |
+| `pregnancy-planner` — Pregnancy planner | `src/components/PregnancyPlannerPanel.tsx`, `src/components/JourneySheet.tsx`; assess optional due date, provider prompts and user-entered planning boundaries. |
+| `archive-pause` — Archive pause | `src/components/JourneySheet.tsx`, `src/App.tsx`, `src/messages/en.ts`, `src/lib/journey.ts`; assess pause wording, record retention and explicit resume without implying a new pregnancy record. |
+| `text-sharing` — Text sharing | `src/components/ManualShareSheet.tsx`, `src/lib/shareSummary.ts`, `src/components/HistoryHeader.tsx`, `src/App.tsx`; assess explicit review/copy behavior, cancellation and no automatic transfer. |
+| `lull-handoff` — Optional Lull website handoff | `src/components/JourneySheet.tsx`; assess postpartum-only placement, clear website destination and the explicit no-record-transfer boundary. |
 
-Partner links, shared session status, the former dedicated labor-event log, the removed Pattern building banner and memory-book PDF are outside this release. Retained localization strings do not prove a surface is displayed. English is the launch language.
+Retired surfaces remain historical context only and cannot satisfy the current inventory:
+
+| Historical ID | Current disposition |
+|---|---|
+| `urgent-help`, `pattern-building`, `shared-status`, `labor-events` | Removed or superseded; retain historical records, but do not map them to a current approval. |
+| `postpartum-boundary` | Superseded by `care-card-postpartum`; review the current source and rendered candidate. |
+| `support-escalation`, `privacy-boundary` | Superseded by `support-privacy`; review the combined current boundary. |
+| `store-copy`, `screenshots` | Superseded by `store-copy-images`; review current metadata and images together. |
+
+Retained localization strings do not prove a surface is displayed. Partner links,
+shared session status, the former dedicated labor-event log, the removed Pattern
+building banner and memory-book PDF are outside this release. English is the launch
+language.
 
 ## Questions and records
 
@@ -29,4 +49,8 @@ Each reviewer records a dated decision per row: approve, changes required, or no
 
 Resolve conflicting advice with a named owner and rationale. Every P0/P1 change needs an issue, source diff, updated rendered evidence and independent re-review on the replacement candidate. Both reviewers must approve the final inventory. Changed copy/binaries require an assessment of whether earlier evidence still applies.
 
-The historical evaluator/template requires retired shared-status/pattern-building surfaces. Reconcile it before automated acceptance. There is no current `npm run evaluate:validation` command. Manual review must remain explicit until tooling is aligned; a historical script pass does not certify v1.3.
+`npm run evaluate:validation` now checks the current inventory and remains red until
+genuine records meet the exact-candidate, independent-review, rendered-artifact and
+retest gates. `npm run evaluate:validation -- --check-templates` checks only the
+structural templates. Neither command creates acceptance evidence: manual review,
+consent, physical-device checks, store evidence and owner decisions remain separate.

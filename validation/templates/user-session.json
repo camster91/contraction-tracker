@@ -1,0 +1,160 @@
+{
+  "schemaVersion": 1,
+  "inventoryId": "olive-native-v1.3-en",
+  "participantId": "anonymous-participant-id",
+  "groups": [
+    "third-trimester-first-pregnancy"
+  ],
+  "accessibilityEvidence": "simulated-setting",
+  "consent": {
+    "observed": false,
+    "date": "YYYY-MM-DD"
+  },
+  "candidate": {
+    "version": "1.3.0",
+    "build": "build-number",
+    "iosBuild": "ios-build-number",
+    "androidBuild": "android-build-number",
+    "sourceRevision": "full-git-source-sha",
+    "iosArtifactSha256": "ios-artifact-sha256",
+    "androidArtifactSha256": "android-artifact-sha256",
+    "releaseEvidenceId": "validation/release-evidence/olive-release-evidence.json",
+    "installSource": "testflight-or-play"
+  },
+  "device": {
+    "platform": "ios",
+    "model": "device-model",
+    "osVersion": "os-version",
+    "locale": "en-CA",
+    "textScale": "100%",
+    "accessibilitySettings": []
+  },
+  "facilitatorId": "facilitator-id",
+  "tasks": [
+    {
+      "id": 1,
+      "completed": false,
+      "assistance": false,
+      "seconds": null,
+      "errors": [],
+      "confidence": 1,
+      "safetyInterpretation": "none"
+    },
+    {
+      "id": 2,
+      "completed": false,
+      "assistance": false,
+      "seconds": null,
+      "errors": [],
+      "confidence": 1,
+      "safetyInterpretation": "none"
+    },
+    {
+      "id": 3,
+      "completed": false,
+      "assistance": false,
+      "seconds": null,
+      "errors": [],
+      "confidence": 1,
+      "safetyInterpretation": "none"
+    },
+    {
+      "id": 4,
+      "completed": false,
+      "assistance": false,
+      "seconds": null,
+      "errors": [],
+      "confidence": 1,
+      "safetyInterpretation": "none",
+      "componentResults": {
+        "edit": false,
+        "delete": false,
+        "undo": false
+      }
+    },
+    {
+      "id": 5,
+      "completed": false,
+      "assistance": false,
+      "seconds": null,
+      "errors": [],
+      "confidence": 1,
+      "safetyInterpretation": "none"
+    },
+    {
+      "id": 6,
+      "completed": false,
+      "assistance": false,
+      "seconds": null,
+      "errors": [],
+      "confidence": 1,
+      "safetyInterpretation": "none"
+    },
+    {
+      "id": 7,
+      "completed": false,
+      "assistance": false,
+      "seconds": null,
+      "errors": [],
+      "confidence": 1,
+      "safetyInterpretation": "none"
+    },
+    {
+      "id": 8,
+      "completed": false,
+      "assistance": false,
+      "seconds": null,
+      "errors": [],
+      "confidence": 1,
+      "safetyInterpretation": "none"
+    },
+    {
+      "id": 9,
+      "completed": false,
+      "assistance": false,
+      "seconds": null,
+      "errors": [],
+      "confidence": 1,
+      "safetyInterpretation": "none",
+      "componentResults": {
+        "backup": false,
+        "spreadsheetHistory": false,
+        "readableSummary": false
+      }
+    },
+    {
+      "id": 10,
+      "completed": false,
+      "assistance": false,
+      "seconds": null,
+      "errors": [],
+      "confidence": 1,
+      "safetyInterpretation": "none"
+    },
+    {
+      "id": 11,
+      "completed": false,
+      "assistance": false,
+      "seconds": null,
+      "errors": [],
+      "confidence": 1,
+      "safetyInterpretation": "none"
+    },
+    {
+      "id": 12,
+      "completed": false,
+      "assistance": false,
+      "seconds": null,
+      "errors": [],
+      "confidence": 1,
+      "safetyInterpretation": "none"
+    }
+  ],
+  "wouldChooseOlive": false,
+  "findings": [],
+  "cleanup": {
+    "linksRevoked": false,
+    "testDataDeleted": false,
+    "accidentalExternalCall": false
+  }
+}

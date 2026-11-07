@@ -1,0 +1,250 @@
+{
+  "schemaVersion": 1,
+  "inventoryId": "olive-native-v1.3-en",
+  "reviewer": {
+    "id": "independent-reviewer-id",
+    "credential": "credential-summary",
+    "credentialType": "registered-midwife",
+    "jurisdiction": "practice-jurisdiction",
+    "practiceContext": "practice-context",
+    "conflicts": "none declared",
+    "reviewDate": "YYYY-MM-DD",
+    "independentFromOtherReviewer": true
+  },
+  "candidate": {
+    "version": "1.3.0",
+    "build": "build-number",
+    "iosBuild": "ios-build-number",
+    "androidBuild": "android-build-number",
+    "sourceRevision": "full-git-source-sha",
+    "iosArtifactSha256": "ios-artifact-sha256",
+    "androidArtifactSha256": "android-artifact-sha256",
+    "releaseEvidenceId": "validation/release-evidence/olive-release-evidence.json"
+  },
+  "credentialVerification": {
+    "restrictedReference": "restricted-credential-reference",
+    "checkedDate": "YYYY-MM-DD",
+    "verifierId": "independent-verifier-id",
+    "separateSubmissionConfirmed": false,
+    "noSharedAuthorshipConfirmed": false,
+    "currentRegistrationVerified": false
+  },
+  "surfaces": [
+    {
+      "id": "saved-reminder",
+      "decision": "approve",
+      "severity": "none",
+      "requiresRenderedRereview": false,
+      "rereviewComplete": false
+    },
+    {
+      "id": "care-plan-settings",
+      "decision": "approve",
+      "severity": "none",
+      "requiresRenderedRereview": false,
+      "rereviewComplete": false
+    },
+    {
+      "id": "spoken-reminder",
+      "decision": "approve",
+      "severity": "none",
+      "requiresRenderedRereview": false,
+      "rereviewComplete": false
+    },
+    {
+      "id": "objective-frequency",
+      "decision": "approve",
+      "severity": "none",
+      "requiresRenderedRereview": false,
+      "rereviewComplete": false
+    },
+    {
+      "id": "history-summary",
+      "decision": "approve",
+      "severity": "none",
+      "requiresRenderedRereview": false,
+      "rereviewComplete": false
+    },
+    {
+      "id": "questions-responsibilities",
+      "decision": "approve",
+      "severity": "none",
+      "requiresRenderedRereview": false,
+      "rereviewComplete": false
+    },
+    {
+      "id": "hospital-exams",
+      "decision": "approve",
+      "severity": "none",
+      "requiresRenderedRereview": false,
+      "rereviewComplete": false
+    },
+    {
+      "id": "care-card-postpartum",
+      "decision": "approve",
+      "severity": "none",
+      "requiresRenderedRereview": false,
+      "rereviewComplete": false
+    },
+    {
+      "id": "support-privacy",
+      "decision": "approve",
+      "severity": "none",
+      "requiresRenderedRereview": false,
+      "rereviewComplete": false
+    },
+    {
+      "id": "store-copy-images",
+      "decision": "approve",
+      "severity": "none",
+      "requiresRenderedRereview": false,
+      "rereviewComplete": false
+    },
+    {
+      "id": "pregnancy-planner",
+      "decision": "approve",
+      "severity": "none",
+      "requiresRenderedRereview": false,
+      "rereviewComplete": false
+    },
+    {
+      "id": "archive-pause",
+      "decision": "approve",
+      "severity": "none",
+      "requiresRenderedRereview": false,
+      "rereviewComplete": false
+    },
+    {
+      "id": "text-sharing",
+      "decision": "approve",
+      "severity": "none",
+      "requiresRenderedRereview": false,
+      "rereviewComplete": false
+    },
+    {
+      "id": "lull-handoff",
+      "decision": "approve",
+      "severity": "none",
+      "requiresRenderedRereview": false,
+      "rereviewComplete": false
+    }
+  ],
+  "reviewedItems": [
+    {
+      "surfaceId": "saved-reminder",
+      "sourcePath": "src/App.tsx",
+      "exactText": "record-the-exact-rendered-text",
+      "sourceSha256": "candidate-source-sha256",
+      "renderedArtifactReference": "validation/artifacts/annotated-screenshot",
+      "renderedArtifactSha256": "rendered-artifact-sha256"
+    },
+    {
+      "surfaceId": "care-plan-settings",
+      "sourcePath": "src/components/CarePlanPanel.tsx",
+      "exactText": "record-the-exact-rendered-text",
+      "sourceSha256": "candidate-source-sha256",
+      "renderedArtifactReference": "validation/artifacts/annotated-screenshot",
+      "renderedArtifactSha256": "rendered-artifact-sha256"
+    },
+    {
+      "surfaceId": "spoken-reminder",
+      "sourcePath": "src/App.tsx",
+      "exactText": "record-the-exact-rendered-text",
+      "sourceSha256": "candidate-source-sha256",
+      "renderedArtifactReference": "validation/artifacts/annotated-screenshot",
+      "renderedArtifactSha256": "rendered-artifact-sha256"
+    },
+    {
+      "surfaceId": "objective-frequency",
+      "sourcePath": "src/components/ActiveLaborBanner.tsx",
+      "exactText": "record-the-exact-rendered-text",
+      "sourceSha256": "candidate-source-sha256",
+      "renderedArtifactReference": "validation/artifacts/annotated-screenshot",
+      "renderedArtifactSha256": "rendered-artifact-sha256"
+    },
+    {
+      "surfaceId": "history-summary",
+      "sourcePath": "src/App.tsx",
+      "exactText": "record-the-exact-rendered-text",
+      "sourceSha256": "candidate-source-sha256",
+      "renderedArtifactReference": "validation/artifacts/annotated-screenshot",
+      "renderedArtifactSha256": "rendered-artifact-sha256"
+    },
+    {
+      "surfaceId": "questions-responsibilities",
+      "sourcePath": "src/components/ProviderQuestionsPanel.tsx",
+      "exactText": "record-the-exact-rendered-text",
+      "sourceSha256": "candidate-source-sha256",
+      "renderedArtifactReference": "validation/artifacts/annotated-screenshot",
+      "renderedArtifactSha256": "rendered-artifact-sha256"
+    },
+    {
+      "surfaceId": "hospital-exams",
+      "sourcePath": "src/components/HospitalSheet.tsx",
+      "messageId": "hospital.message-id",
+      "exactText": "record-the-exact-rendered-text",
+      "sourceSha256": "candidate-source-sha256",
+      "renderedArtifactReference": "validation/artifacts/annotated-screenshot",
+      "renderedArtifactSha256": "rendered-artifact-sha256"
+    },
+    {
+      "surfaceId": "care-card-postpartum",
+      "sourcePath": "src/components/CareCardPanel.tsx",
+      "exactText": "record-the-exact-rendered-text",
+      "sourceSha256": "candidate-source-sha256",
+      "renderedArtifactReference": "validation/artifacts/annotated-screenshot",
+      "renderedArtifactSha256": "rendered-artifact-sha256"
+    },
+    {
+      "surfaceId": "support-privacy",
+      "sourcePath": "src/components/SettingsSheet.tsx",
+      "exactText": "record-the-exact-rendered-text",
+      "sourceSha256": "candidate-source-sha256",
+      "renderedArtifactReference": "validation/artifacts/annotated-screenshot",
+      "renderedArtifactSha256": "rendered-artifact-sha256"
+    },
+    {
+      "surfaceId": "store-copy-images",
+      "sourcePath": "APP-STORE-CONNECT-FIELDS.txt",
+      "exactText": "record-the-exact-rendered-text",
+      "sourceSha256": "candidate-source-sha256",
+      "renderedArtifactReference": "validation/artifacts/annotated-screenshot",
+      "renderedArtifactSha256": "rendered-artifact-sha256"
+    },
+    {
+      "surfaceId": "pregnancy-planner",
+      "sourcePath": "src/components/PregnancyPlannerPanel.tsx",
+      "exactText": "record-the-exact-rendered-text",
+      "sourceSha256": "candidate-source-sha256",
+      "renderedArtifactReference": "validation/artifacts/annotated-screenshot",
+      "renderedArtifactSha256": "rendered-artifact-sha256"
+    },
+    {
+      "surfaceId": "archive-pause",
+      "sourcePath": "src/components/JourneySheet.tsx",
+      "exactText": "record-the-exact-rendered-text",
+      "sourceSha256": "candidate-source-sha256",
+      "renderedArtifactReference": "validation/artifacts/annotated-screenshot",
+      "renderedArtifactSha256": "rendered-artifact-sha256"
+    },
+    {
+      "surfaceId": "text-sharing",
+      "sourcePath": "src/components/ManualShareSheet.tsx",
+      "exactText": "record-the-exact-rendered-text",
+      "sourceSha256": "candidate-source-sha256",
+      "renderedArtifactReference": "validation/artifacts/annotated-screenshot",
+      "renderedArtifactSha256": "rendered-artifact-sha256"
+    },
+    {
+      "surfaceId": "lull-handoff",
+      "sourcePath": "src/components/JourneySheet.tsx",
+      "exactText": "record-the-exact-rendered-text",
+      "sourceSha256": "candidate-source-sha256",
+      "renderedArtifactReference": "validation/artifacts/annotated-screenshot",
+      "renderedArtifactSha256": "rendered-artifact-sha256"
+    }
+  ],
+  "conflictResolutions": [],
+  "overallDisposition": "changes-required",
+  "signedAttestationReference": "restricted-signed-attestation-reference"
+}
