@@ -1,0 +1,12 @@
+{
+  "repository": "camster91/contraction-tracker",
+  "app_id": "6819506377",
+  "bundles": [
+    "com.ashbi.olive",
+    "com.ashbi.olive.OliveLiveActivity"
+  ],
+  "project": "ios/App/App.xcodeproj/project.pbxproj",
+  "checks": [
+    "Build"
+  ]
+}
