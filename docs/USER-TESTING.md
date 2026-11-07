@@ -29,4 +29,13 @@ Record completion, duration, assistance, errors and quotations separately from i
 
 Use [NATIVE-DEVICE-ACCEPTANCE.md](NATIVE-DEVICE-ACCEPTANCE.md) for technical checks and [CLINICAL-COPY-REVIEW.md](CLINICAL-COPY-REVIEW.md) for independent wording review.
 
-The historical evaluator and templates retain retired shared-status/task references. Before automated evaluation is used, reconcile their inventory/schema with #69/#70 while preserving identity, consent, independence and finding-resolution checks. Until then, review current records manually against this protocol and exact candidate. Never mark unobserved results passed.
+Task 8 includes the current pregnancy planner, archive pause/resume and optional
+postpartum-only Lull website boundary. Task 9 includes the current text-sharing
+review/cancel/copy path; it does not imply that a participant sent private data.
+
+The evaluator uses inventory ID `olive-native-v1.3-en` and rejects retired
+shared-status, partner-link, labor-event and memory-book surface IDs. Historical
+records remain history and are not silently converted into current acceptance.
+Before automated evaluation is used for a real run, preserve identity, consent,
+independence and finding-resolution checks and bind every record to the exact
+candidate. Never mark unobserved results passed.

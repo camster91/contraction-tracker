@@ -8,17 +8,49 @@ const root = path.resolve(import.meta.dirname, '..');
 const userTemplatePath = path.join(root, 'validation/templates/user-session.json');
 const clinicalTemplatePath = path.join(root, 'validation/templates/clinical-review.json');
 const taskIds = Array.from({ length: 12 }, (_, index) => index + 1);
-const surfaceIds = ['urgent-help', 'saved-reminder', 'pattern-building', 'care-plan-settings', 'spoken-reminder', 'shared-status', 'labor-events', 'hospital-exams', 'postpartum-boundary', 'support-escalation', 'privacy-boundary', 'store-copy', 'screenshots'];
+const inventoryId = 'olive-native-v1.3-en';
+const surfaceIds = [
+  'saved-reminder',
+  'care-plan-settings',
+  'spoken-reminder',
+  'objective-frequency',
+  'history-summary',
+  'questions-responsibilities',
+  'hospital-exams',
+  'care-card-postpartum',
+  'support-privacy',
+  'store-copy-images',
+  'pregnancy-planner',
+  'archive-pause',
+  'text-sharing',
+  'lull-handoff',
+];
 const expectedSources = {
-  'urgent-help': ['src/App.tsx'], 'saved-reminder': ['src/App.tsx'], 'pattern-building': ['src/App.tsx'],
-  'care-plan-settings': ['src/components/SettingsSheet.tsx'], 'spoken-reminder': ['src/App.tsx'],
-  'shared-status': ['src/lib/shareStateCopy.ts', 'src/components/ShareView.tsx', 'src/components/JourneySheet.tsx', 'src/App.tsx'],
-  'labor-events': ['src/components/LaborEventsSheet.tsx', 'src/lib/laborEvents.ts'],
-  'hospital-exams': ['src/components/HospitalSheet.tsx', 'src/lib/i18n.ts'],
-  'postpartum-boundary': ['src/components/PostpartumTimelinePanel.tsx'], 'support-escalation': ['public/support/index.html'],
-  'privacy-boundary': ['docs/privacy-policy.md', 'public/privacy/index.html'],
-  'store-copy': ['APP-STORE-CONNECT-FIELDS.txt', 'PLAY-STORE-CONSOLE-FIELDS.txt'],
-  screenshots: ['docs/STORE-ASSET-REVIEW.md'],
+  'saved-reminder': ['src/App.tsx'],
+  'care-plan-settings': ['src/components/CarePlanPanel.tsx', 'src/lib/carePlan.ts'],
+  'spoken-reminder': ['src/App.tsx'],
+  'objective-frequency': ['src/components/ActiveLaborBanner.tsx'],
+  'history-summary': ['src/App.tsx', 'src/components/HistoryHeader.tsx', 'src/lib/contractions.ts'],
+  'questions-responsibilities': ['src/components/ProviderQuestionsPanel.tsx', 'src/components/ResponsibilitiesPanel.tsx'],
+  'hospital-exams': ['src/components/HospitalSheet.tsx'],
+  'care-card-postpartum': ['src/components/CareCardPanel.tsx', 'src/components/PostpartumTimelinePanel.tsx'],
+  'support-privacy': ['src/components/SettingsSheet.tsx', 'public/support/index.html', 'public/privacy/index.html'],
+  'store-copy-images': ['APP-STORE-CONNECT-FIELDS.txt', 'PLAY-STORE-CONSOLE-FIELDS.txt', 'docs/STORE-ASSET-REVIEW.md'],
+  'pregnancy-planner': ['src/components/PregnancyPlannerPanel.tsx', 'src/components/JourneySheet.tsx'],
+  'archive-pause': ['src/components/JourneySheet.tsx', 'src/App.tsx', 'src/messages/en.ts', 'src/lib/journey.ts'],
+  'text-sharing': ['src/components/ManualShareSheet.tsx', 'src/lib/shareSummary.ts', 'src/components/HistoryHeader.tsx', 'src/App.tsx'],
+  'lull-handoff': ['src/components/JourneySheet.tsx'],
+};
+const retiredSurfaceMap = {
+  'urgent-help': null,
+  'pattern-building': null,
+  'shared-status': null,
+  'labor-events': null,
+  'postpartum-boundary': 'care-card-postpartum',
+  'support-escalation': 'support-privacy',
+  'privacy-boundary': 'support-privacy',
+  'store-copy': 'store-copy-images',
+  screenshots: 'store-copy-images',
 };
 const groups = new Set(['third-trimester-first-pregnancy', 'third-trimester-subsequent-pregnancy', 'partner-or-doula', 'labored-within-previous-year', 'low-vision', 'large-text', 'reduced-motor', 'reduced-motion']);
 const interpretations = new Set(['none', 'diagnosis', 'all-clear', 'travel-direction', 'other']);
@@ -47,8 +79,15 @@ function validateCandidate(candidate, label, errors, template) {
   if (!template && !/^[0-9a-f]{64}$/i.test(candidate.androidArtifactSha256 ?? '')) errors.push(`${label}: androidArtifactSha256 must be a 64-character SHA-256`);
 }
 
+function validateInventory(record, label, errors, template) {
+  if (record?.inventoryId !== inventoryId) {
+    errors.push(`${label}: inventoryId must be ${inventoryId}${template ? '' : '; historical/retired inventories cannot satisfy the current review gate'}`);
+  }
+}
+
 function validateUser(record, label, template = false) {
   const errors = [];
+  validateInventory(record, label, errors, template);
   if (record?.schemaVersion !== 1) errors.push(`${label}: schemaVersion must be 1`);
   if (!nonEmpty(record?.participantId)) errors.push(`${label}: participantId is required`);
   else if (!template && placeholder(record.participantId)) errors.push(`${label}: participantId is still a placeholder`);
@@ -92,12 +131,14 @@ function validateUser(record, label, template = false) {
 
 function validateClinical(record, label, template = false) {
   const errors = [];
+  validateInventory(record, label, errors, template);
   if (record?.schemaVersion !== 1) errors.push(`${label}: schemaVersion must be 1`);
   if (!isObject(record?.reviewer)) errors.push(`${label}: reviewer is required`);
   else {
     for (const field of ['id', 'credential', 'jurisdiction', 'practiceContext', 'conflicts', 'reviewDate']) if (!nonEmpty(record.reviewer[field])) errors.push(`${label}: reviewer.${field} is required`);
     if (!['registered-midwife', 'labor-and-delivery-nurse', 'obstetrician', 'family-physician', 'maternity-professional-other'].includes(record.reviewer.credentialType)) errors.push(`${label}: reviewer.credentialType is invalid`);
-    if (record.reviewer.independentFromOtherReviewer !== true) errors.push(`${label}: reviewer must be independent`);
+    if (typeof record.reviewer.independentFromOtherReviewer !== 'boolean') errors.push(`${label}: reviewer.independentFromOtherReviewer must be boolean`);
+    if (!template && record.reviewer.independentFromOtherReviewer !== true) errors.push(`${label}: reviewer must be independent`);
     if (!template && placeholder(record.reviewer.id)) errors.push(`${label}: reviewer.id is still a placeholder`);
     if (!template && (!realDate(record.reviewer.reviewDate) || placeholder(record.reviewer.jurisdiction) || placeholder(record.reviewer.practiceContext))) errors.push(`${label}: reviewer context or review date is incomplete`);
   }
@@ -109,11 +150,18 @@ function validateClinical(record, label, template = false) {
     if (!template && placeholder(record.credentialVerification.restrictedReference)) errors.push(`${label}: credential verification reference is still a placeholder`);
     if (!template && (!realDate(record.credentialVerification.checkedDate) || placeholder(record.credentialVerification.verifierId))) errors.push(`${label}: credential verification date or verifier is invalid`);
   }
-  if (!Array.isArray(record?.surfaces) || !sameIds(record.surfaces.map((surface) => surface.id), surfaceIds)) errors.push(`${label}: all 13 review surfaces must appear exactly once`);
+  const presentSurfaceIds = Array.isArray(record?.surfaces) ? record.surfaces.map((surface) => surface.id) : [];
+  const retiredSurfaces = [...new Set(presentSurfaceIds.filter((surfaceId) => Object.hasOwn(retiredSurfaceMap, surfaceId)))];
+  if (retiredSurfaces.length) {
+    const replacements = retiredSurfaces.map((surfaceId) => `${surfaceId} → ${retiredSurfaceMap[surfaceId] ?? 'removed'}`).join(', ');
+    errors.push(`${label}: retired surface IDs are not valid for ${inventoryId} (${replacements}); preserve them only in historical records and review the current mapped inventory`);
+  }
+  if (!Array.isArray(record?.surfaces) || !sameIds(presentSurfaceIds, surfaceIds)) errors.push(`${label}: all ${surfaceIds.length} current v1.3 review surfaces must appear exactly once`);
   else record.surfaces.forEach((surface) => {
-    if (!['approve', 'change', 'remove'].includes(surface.decision) || !['none', 'P0', 'P1', 'P2'].includes(surface.severity)) errors.push(`${label}: ${surface.id} has an invalid decision or severity`);
+    const allowedDecisions = template ? ['unreviewed', 'approve', 'change', 'remove'] : ['approve', 'change', 'remove'];
+    if (!allowedDecisions.includes(surface.decision) || !['none', 'P0', 'P1', 'P2'].includes(surface.severity)) errors.push(`${label}: ${surface.id} has an invalid decision or severity`);
     if (typeof surface.requiresRenderedRereview !== 'boolean' || typeof surface.rereviewComplete !== 'boolean') errors.push(`${label}: ${surface.id} needs re-review booleans`);
-    if (surface.decision !== 'approve' && (!nonEmpty(surface.rationale) || !nonEmpty(surface.replacementWording))) errors.push(`${label}: ${surface.id} change/remove needs rationale and replacement wording`);
+    if (!['approve', 'unreviewed'].includes(surface.decision) && (!nonEmpty(surface.rationale) || !nonEmpty(surface.replacementWording))) errors.push(`${label}: ${surface.id} change/remove needs rationale and replacement wording`);
     if (!template && surface.decision === 'approve' && surface.severity !== 'none') errors.push(`${label}: ${surface.id} cannot be approved with a safety severity`);
     if (!template && surface.decision !== 'approve' && !nonEmpty(surface.resolutionEvidence)) errors.push(`${label}: ${surface.id} change/remove lacks linked resolution evidence`);
     if (!template && surface.requiresRenderedRereview && (!surface.rereviewComplete || !nonEmpty(surface.resolutionEvidence))) errors.push(`${label}: ${surface.id} required rendered re-review is incomplete`);
@@ -136,13 +184,29 @@ function validateClinical(record, label, template = false) {
   else if (!template) record.conflictResolutions.forEach((resolution, index) => {
     if (!surfaceIds.includes(resolution?.surfaceId) || !nonEmpty(resolution?.decisionOwner) || !nonEmpty(resolution?.finalWording) || !nonEmpty(resolution?.rationale) || !nonEmpty(resolution?.linkedDiff) || resolution?.renderedRereviewComplete !== true || !nonEmpty(resolution?.renderedRereviewEvidence)) errors.push(`${label}: conflict resolution ${index + 1} is incomplete`);
   });
-  if (!['approve', 'changes-required', 'reject'].includes(record?.overallDisposition)) errors.push(`${label}: overallDisposition is invalid`);
+  const dispositions = template ? ['unreviewed', 'approve', 'changes-required', 'reject'] : ['approve', 'changes-required', 'reject'];
+  if (!dispositions.includes(record?.overallDisposition)) errors.push(`${label}: overallDisposition is invalid`);
   if (!nonEmpty(record?.signedAttestationReference)) errors.push(`${label}: signedAttestationReference is required`);
   else if (!template && placeholder(record.signedAttestationReference)) errors.push(`${label}: signedAttestationReference is still a placeholder`);
   return errors;
 }
 
 async function readJson(file) { return JSON.parse(await readFile(file, 'utf8')); }
+
+async function verifyCurrentInventorySources() {
+  const sourcePaths = [...new Set(Object.values(expectedSources).flat())];
+  const missing = [];
+  for (const sourcePath of sourcePaths) {
+    try {
+      await readFile(path.join(root, sourcePath));
+    } catch (error) {
+      if (error.code === 'ENOENT') missing.push(sourcePath);
+      else throw error;
+    }
+  }
+  if (missing.length) throw new Error(`Current ${inventoryId} references missing source file(s): ${missing.join(', ')}`);
+  if (!sameIds(Object.keys(expectedSources), surfaceIds)) throw new Error(`Current ${inventoryId} source map does not match its surface inventory`);
+}
 
 async function verifyClinicalSourceEvidence(record, label, errors) {
   if (!Array.isArray(record?.reviewedItems) || !/^[0-9a-f]{40}$/i.test(record?.candidate?.sourceRevision ?? '')) return;
@@ -223,6 +287,7 @@ async function readJsonDirectory(directory) {
 const ratio = (records, predicate) => records.length ? records.filter(predicate).length / records.length : 0;
 
 async function checkTemplates() {
+  await verifyCurrentInventorySources();
   const user = await readJson(userTemplatePath);
   const clinical = await readJson(clinicalTemplatePath);
   const errors = [...validateUser(user, 'user-session template', true), ...validateClinical(clinical, 'clinical-review template', true)];
@@ -231,6 +296,7 @@ async function checkTemplates() {
 }
 
 async function evaluate() {
+  await checkTemplates();
   const userDirectory = path.resolve(process.env.OLIVE_USER_EVIDENCE_DIR || path.join(root, 'validation/evidence/user'));
   const clinicalDirectory = path.resolve(process.env.OLIVE_CLINICAL_EVIDENCE_DIR || path.join(root, 'validation/evidence/clinical'));
   const users = await readJsonDirectory(userDirectory);
