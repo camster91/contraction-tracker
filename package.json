@@ -50,7 +50,7 @@
     "eslint-plugin-react-refresh": "^0.5.7",
     "globals": "^17.14.0",
     "playwright": "^1.60.0",
-    "serve": "^14.2.7",
+    "serve": "^14.2.8",
     "tailwindcss": "^4.3.3",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.72.2",
