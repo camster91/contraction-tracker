@@ -2,7 +2,7 @@ Olive — Third-party notices
 
 Bundled fonts, icons and software retain the following licences.
 
-@capacitor/android 8.5.2
+@capacitor/android 8.6.2
 ========================================================================
 MIT License
 
@@ -52,7 +52,7 @@ LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-@capacitor/core 8.5.2
+@capacitor/core 8.6.2
 ========================================================================
 MIT License
 
@@ -76,7 +76,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-@capacitor/filesystem 8.1.4
+@capacitor/filesystem 8.1.5
 ========================================================================
 MIT License
 
@@ -126,7 +126,7 @@ LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-@capacitor/ios 8.5.2
+@capacitor/ios 8.6.2
 ========================================================================
 MIT License
 
@@ -420,7 +420,7 @@ DAMAGES, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM
 OTHER DEALINGS IN THE FONT SOFTWARE.
 
-lucide-react 1.52.0
+lucide-react 1.72.0
 ========================================================================
 ISC License
 
@@ -466,7 +466,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-react 19.3.0
+react 19.3.1
 ========================================================================
 MIT License
 
@@ -490,7 +490,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-react-dom 19.3.0
+react-dom 19.3.1
 ========================================================================
 MIT License
 
@@ -538,7 +538,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-tailwindcss 4.3.3
+tailwindcss 4.3.5
 ========================================================================
 MIT License
 
